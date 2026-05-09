@@ -10,6 +10,7 @@ from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import anthropic
+from streamlit_js_eval import streamlit_js_eval
 
 from companies import COMPANIES, SECTOR_COLORS, yf_ticker
 
@@ -69,39 +70,18 @@ section[data-testid="stSidebar"] {{ background: {BG_ALT}; }}
 .last-updated {{ color: #a38060; font-size: 12px; text-align: right; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
 
-/* ── Mobile responsive ───────────────────────────────────────────── */
-@media (max-width: 768px) {{
-    /* Stack all Streamlit columns vertically */
-    [data-testid="column"] {{
-        width: 100% !important;
-        flex: 1 1 100% !important;
-        min-width: 100% !important;
-    }}
-
-    /* Smaller metric cards */
-    .metric-card {{ padding: 14px 16px; }}
-    .metric-value {{ font-size: 20px !important; }}
-    .metric-label {{ font-size: 10px; }}
-
-    /* Header */
-    div[style*="font-size:34px"] {{ font-size: 22px !important; }}
-    div[style*="font-size:13px"] {{ font-size: 11px !important; }}
-
-    /* Section headers */
-    .section-header {{ font-size: 14px !important; margin: 20px 0 10px 0; }}
-
-    /* Tables — horizontal scroll on mobile */
-    .card-wrap {{ overflow-x: auto !important; -webkit-overflow-scrolling: touch; }}
-    table {{ min-width: 500px; }}
-
-    /* Reduce chart padding */
-    .card-wrap[style*="padding:16px"] {{ padding: 8px !important; }}
-
-    /* Chat input full width */
-    [data-testid="stForm"] [data-testid="column"]:first-child {{
-        flex: 1 1 80% !important;
-    }}
+/* ── Mobile card ─────────────────────────────────────────────────── */
+.mobile-kpi {{
+    background: {CARD_BG};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+    margin-bottom: 8px;
 }}
+.mobile-kpi-label {{ color: #8b6d4a; font-size: 10px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }}
+.mobile-kpi-value {{ color: #1a0f00; font-size: 22px; font-weight: 700; line-height: 1; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -527,9 +507,166 @@ def stream_ai_response(user_question, data_context):
         yield f"⚠️ Error contacting AI: {e}"
 
 
+# ── Mobile layout ─────────────────────────────────────────────────────────────
+
+def main_mobile():
+    hist = load_history()
+    nifty_live, sensex_live = fetch_live_indices()
+    usdinr = get_usdinr()
+    df = build_extended_df(hist, nifty_live, sensex_live)
+    last = df.iloc[-1]
+    last_date_str = pd.Timestamp(last["date"]).strftime("%d %b %Y")
+
+    with st.spinner("Loading market data…"):
+        returns_1m   = fetch_1m_returns()
+        long_hist    = fetch_long_history()
+        live_mktcaps = fetch_market_caps()
+    name_map = {c["ticker"]: c["name"] for c in COMPANIES}
+
+    z47_ret    = pct_since(df, "z47_float")
+    nifty_ret  = pct_since(df, "nifty_indexed")
+    outperf    = round(z47_ret - nifty_ret, 1) if z47_ret is not None and nifty_ret is not None else None
+    z47_ytd    = pct_since(df, "z47_float", ytd=True)
+
+    # ── Header ──────────────────────────────────────────────────────
+    st.markdown(
+        f'<div style="color:#1a0f00;font-size:24px;font-weight:800;margin-bottom:2px">Z47 Index</div>'
+        f'<div style="color:#8b6d4a;font-size:11px;margin-bottom:4px">'
+        f'Free-float market-cap weighted · 47 Indian internet &amp; tech cos</div>'
+        f'<div style="color:#a38060;font-size:11px;margin-bottom:20px">'
+        f'Data as of <b style="color:#4a3520">{last_date_str}</b> &nbsp;·&nbsp; 1 USD = ₹{usdinr}</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── KPI cards 2×2 ───────────────────────────────────────────────
+    c1, c2 = st.columns(2)
+    nifty_disp  = f"{nifty_live:,.0f}"  if nifty_live  else f"{last['nifty_indexed']:.1f}"
+    sensex_disp = f"{sensex_live:,.0f}" if sensex_live else f"{last['sensex_indexed']:.1f}"
+    oc  = "delta-pos" if outperf and outperf > 0 else "delta-neg"
+    oa  = "▲" if outperf and outperf > 0 else "▼"
+
+    with c1:
+        st.markdown(
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47\'s 47</div>'
+            f'<div class="mobile-kpi-value">{last["z47_float"]:.1f}</div>'
+            f'{delta_html(z47_ret)}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Sensex</div>'
+            f'<div class="mobile-kpi-value">{sensex_disp}</div>'
+            f'{delta_html(pct_since(df, "sensex_indexed"))}</div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Nifty 50</div>'
+            f'<div class="mobile-kpi-value">{nifty_disp}</div>'
+            f'{delta_html(nifty_ret)}</div>', unsafe_allow_html=True)
+        ow = "outperforms" if outperf and outperf > 0 else "underperforms"
+        st.markdown(
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47 vs Nifty</div>'
+            f'<div class="mobile-kpi-value" style="font-size:15px">Z47 {ow}</div>'
+            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf):.1f} pp</div></div>',
+            unsafe_allow_html=True)
+
+    # ── Performance chart (compact) ──────────────────────────────────
+    st.markdown('<div class="section-header">Performance</div>', unsafe_allow_html=True)
+    period = st.radio("Period", ["1M", "3M", "6M", "1Y", "YTD", "All"],
+                      index=5, horizontal=True, label_visibility="collapsed", key="mob_period")
+    fig = make_perf_chart(df, period)
+    fig.update_layout(height=280, margin=dict(l=0, r=0, t=0, b=0))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── AI Chatbox ───────────────────────────────────────────────────
+    st.markdown('<div class="section-header">Ask Z47 Assistant</div>', unsafe_allow_html=True)
+    if "mob_chat" not in st.session_state:
+        st.session_state.mob_chat = []
+    for msg in st.session_state.mob_chat:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+    with st.form(key="mob_chat_form", clear_on_submit=True, border=False):
+        user_input = st.text_input("q", placeholder="Ask anything about Z47…",
+                                   label_visibility="collapsed")
+        submitted  = st.form_submit_button("Ask →", use_container_width=True)
+    if submitted and user_input.strip():
+        prompt = user_input.strip()
+        st.session_state.mob_chat.append({"role": "user", "content": prompt})
+        data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live)
+        with st.chat_message("assistant"):
+            response_text = st.write_stream(stream_ai_response(prompt, data_ctx))
+        st.session_state.mob_chat.append({"role": "assistant", "content": response_text})
+
+    # ── Top 5 gainers / losers (stacked) ─────────────────────────────
+    st.markdown('<div class="section-header">Top Movers — Last Month</div>', unsafe_allow_html=True)
+    if returns_1m:
+        for title, items, color, arrow in [
+            ("🏆 Top 5 Gainers", sorted(returns_1m.items(), key=lambda x: -x[1])[:5], "#16a34a", "▲"),
+            ("📉 Top 5 Losers",  sorted(returns_1m.items(), key=lambda x:  x[1])[:5], "#dc2626", "▼"),
+        ]:
+            rows_html = "".join(
+                f"<tr style='border-top:1px solid {BORDER}'>"
+                f"<td style='padding:9px 12px;color:#1a0f00;font-size:13px'>{name_map.get(tk,tk)}</td>"
+                f"<td style='padding:9px 12px;text-align:right;color:{color};font-weight:700'>"
+                f"{arrow} {abs(pct):.1f}%</td></tr>"
+                for tk, pct in items
+            )
+            st.markdown(
+                f"<div class='card-wrap' style='padding:0;margin-bottom:12px'>"
+                f"<div style='padding:12px 14px;font-weight:700;color:#1a0f00;"
+                f"border-bottom:1px solid {BORDER};font-size:13px'>{title}</div>"
+                f"<table style='width:100%;border-collapse:collapse'><tbody>{rows_html}</tbody></table></div>",
+                unsafe_allow_html=True,
+            )
+
+    # ── Constituents (compact — key columns only) ────────────────────
+    st.markdown('<div class="section-header">Constituents</div>', unsafe_allow_html=True)
+    th2 = "padding:8px 10px;color:#8b6d4a;font-weight:600;font-size:11px"
+    tbl = (
+        f"<div class='card-wrap' style='padding:0;overflow-x:auto'>"
+        f"<table style='width:100%;border-collapse:collapse;font-size:12px'>"
+        f"<thead><tr style='background:{BG_ALT}'>"
+        f"<th style='text-align:left;{th2}'>Company</th>"
+        f"<th style='text-align:right;{th2}'>Price</th>"
+        f"<th style='text-align:right;{th2}'>Day</th>"
+        f"<th style='text-align:right;{th2}'>1M</th>"
+        f"<th style='text-align:right;{th2}'>Mkt Cap ₹Mn</th>"
+        f"</tr></thead><tbody>"
+    )
+    with st.spinner("Fetching prices…"):
+        price_cache = {}
+        for c in COMPANIES:
+            if c["exchange"] == "NSE":
+                price_cache[c["ticker"]] = fetch_nse_price(c["ticker"])
+            else:
+                price_cache[c["ticker"]] = fetch_nasdaq_price(c["ticker"])
+
+    for c in COMPANIES:
+        q   = price_cache.get(c["ticker"], {})
+        px  = q.get("price")
+        pct = q.get("pct_change")
+        m1  = returns_1m.get(c["ticker"])
+        mc  = live_mktcaps.get(c["ticker"])
+        mc_inr = round(mc["mc"] if mc and mc["currency"]=="INR" else (mc["mc"]*usdinr if mc else c["mkt_cap_mn"]), 0)
+        px_str = (f"₹{px:,.0f}" if c["exchange"]=="NSE" else f"${px:,.1f}") if px else "—"
+        tbl += (
+            f"<tr style='border-top:1px solid {BORDER}'>"
+            f"<td style='padding:8px 10px;color:#1a0f00;font-weight:500'>{c['name']}</td>"
+            f"<td style='padding:8px 10px;text-align:right;color:#4a3520'>{px_str}</td>"
+            f"<td style='padding:8px 10px;text-align:right'>{_fmt_chg(pct)}</td>"
+            f"<td style='padding:8px 10px;text-align:right'>{_fmt_chg(m1)}</td>"
+            f"<td style='padding:8px 10px;text-align:right;color:#4a3520'>{mc_inr:,.0f}</td>"
+            f"</tr>"
+        )
+    tbl += "</tbody></table></div>"
+    st.markdown(tbl, unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_w")
+    if screen_width is not None and screen_width < 768:
+        main_mobile()
+        return
+
     hist = load_history()
     nifty_live, sensex_live = fetch_live_indices()
     usdinr = get_usdinr()
