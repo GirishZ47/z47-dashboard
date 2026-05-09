@@ -68,6 +68,40 @@ section[data-testid="stSidebar"] {{ background: {BG_ALT}; }}
 
 .last-updated {{ color: #a38060; font-size: 12px; text-align: right; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
+
+/* ── Mobile responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {{
+    /* Stack all Streamlit columns vertically */
+    [data-testid="column"] {{
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }}
+
+    /* Smaller metric cards */
+    .metric-card {{ padding: 14px 16px; }}
+    .metric-value {{ font-size: 20px !important; }}
+    .metric-label {{ font-size: 10px; }}
+
+    /* Header */
+    div[style*="font-size:34px"] {{ font-size: 22px !important; }}
+    div[style*="font-size:13px"] {{ font-size: 11px !important; }}
+
+    /* Section headers */
+    .section-header {{ font-size: 14px !important; margin: 20px 0 10px 0; }}
+
+    /* Tables — horizontal scroll on mobile */
+    .card-wrap {{ overflow-x: auto !important; -webkit-overflow-scrolling: touch; }}
+    table {{ min-width: 500px; }}
+
+    /* Reduce chart padding */
+    .card-wrap[style*="padding:16px"] {{ padding: 8px !important; }}
+
+    /* Chat input full width */
+    [data-testid="stForm"] [data-testid="column"]:first-child {{
+        flex: 1 1 80% !important;
+    }}
+}}
 </style>
 """, unsafe_allow_html=True)
 
