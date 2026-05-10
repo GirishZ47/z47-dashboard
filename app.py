@@ -298,12 +298,13 @@ def fetch_company_news(yf_tk: str) -> list:
 
 def _yf_info_with_fallback(c: dict) -> dict:
     """
-    Fetch yfinance info for a company with retry + .NS/.BO fallback.
+    Fetch yfinance info + recommendations + earnings history for a company.
 
-    Yahoo Finance rate-limits parallel requests. We retry up to 3 times
-    with exponential back-off before falling through to the .BO ticker.
-    All 47 NSE companies work with .NS when the request succeeds; .BO is
-    a belt-and-suspenders safety net.
+    Uses retry with exponential back-off to survive Yahoo Finance rate limits.
+    All 47 NSE companies work with .NS; .BO is a belt-and-suspenders fallback.
+    Also pre-fetches recommendations_summary and earnings_history here so the
+    daily cached batch (fetch_all_analyst_data) is the reliable source — the
+    per-company live call is only used as a supplement.
     """
     def _extract(info):
         return {
@@ -327,46 +328,93 @@ def _yf_info_with_fallback(c: dict) -> dict:
             "marketCap":          info.get("marketCap"),
         }
 
-    def _fetch_with_retry(sym, retries=3):
-        """Fetch yf.Ticker(sym).info with exponential back-off on failure."""
+    def _fetch_ticker_with_retry(sym, retries=3):
+        """Return a live yf.Ticker, retrying on rate-limit / empty response."""
         for attempt in range(retries):
             try:
                 info = yf.Ticker(sym).info or {}
-                # Consider it a success if we get any meaningful field
                 if info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose"):
-                    return info
-                # Got a response but it's empty/minimal — may be rate-limited
+                    return yf.Ticker(sym)   # re-create so all attrs are fresh
                 if attempt < retries - 1:
-                    time.sleep(2 ** attempt)   # 1s, 2s back-off
+                    time.sleep(2 ** attempt)
             except Exception:
                 if attempt < retries - 1:
                     time.sleep(2 ** attempt)
-        # Last attempt: return whatever we get, even if empty
+        return yf.Ticker(sym)   # last-ditch attempt
+
+    def _fetch_info_with_retry(sym, retries=3):
+        for attempt in range(retries):
+            try:
+                info = yf.Ticker(sym).info or {}
+                if info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose"):
+                    return info
+                if attempt < retries - 1:
+                    time.sleep(2 ** attempt)
+            except Exception:
+                if attempt < retries - 1:
+                    time.sleep(2 ** attempt)
         try:
             return yf.Ticker(sym).info or {}
         except Exception:
             return {}
 
-    # NASDAQ stocks — no exchange suffix needed, no .BO fallback
-    if c["exchange"] != "NSE":
-        return _extract(_fetch_with_retry(yf_ticker(c)))
+    def _fetch_recs(t):
+        """Fetch recommendations_summary, fall back to recommendations."""
+        try:
+            rs = t.recommendations_summary
+            if rs is not None and not rs.empty:
+                return rs
+        except Exception:
+            pass
+        try:
+            r = t.recommendations
+            if r is not None and not r.empty:
+                return r
+        except Exception:
+            pass
+        return pd.DataFrame()
 
-    # NSE: try .NS with retry first
-    ns_info = _fetch_with_retry(c["ticker"] + ".NS")
+    def _fetch_earnings(t):
+        """Fetch earnings_history (no lxml needed — columns: epsActual, epsEstimate)."""
+        try:
+            eh = t.earnings_history
+            if eh is not None and not eh.empty:
+                return eh
+        except Exception:
+            pass
+        return pd.DataFrame()
+
+    # ── NASDAQ stocks ────────────────────────────────────────────────────
+    if c["exchange"] != "NSE":
+        sym = yf_ticker(c)
+        t   = _fetch_ticker_with_retry(sym)
+        return {
+            **_extract(t.info or {}),
+            "recommendations": _fetch_recs(t),
+            "earnings_history": _fetch_earnings(t),
+        }
+
+    # ── NSE: try .NS first ───────────────────────────────────────────────
+    ns_sym  = c["ticker"] + ".NS"
+    ns_info = _fetch_info_with_retry(ns_sym)
     ns_data = _extract(ns_info)
 
-    # If analyst data still missing after retries, try .BO as fallback
+    # If analyst price target still missing, try .BO
     if not ns_data.get("targetMean"):
         try:
-            bo_info = _fetch_with_retry(c["ticker"] + ".BO")
+            bo_info = _fetch_info_with_retry(c["ticker"] + ".BO")
             bo_data = _extract(bo_info)
-            # Merge: prefer .NS for prices, fill gaps from .BO for analyst fields
-            merged = {**ns_data, **{k: v for k, v in bo_data.items() if v and not ns_data.get(k)}}
-            return merged
+            ns_data = {**ns_data, **{k: v for k, v in bo_data.items() if v and not ns_data.get(k)}}
         except Exception:
             pass
 
-    return ns_data
+    # Fetch recommendations + earnings on the primary ticker
+    t_ns = yf.Ticker(ns_sym)
+    return {
+        **ns_data,
+        "recommendations":  _fetch_recs(t_ns),
+        "earnings_history": _fetch_earnings(t_ns),
+    }
 
 
 @st.cache_data(ttl=86400)  # refresh daily — analyst data changes slowly
@@ -431,11 +479,12 @@ def fetch_company_live(yf_tk: str) -> dict:
         except Exception:
             result["info"] = {}
 
-        # ── Earnings dates ──────────────────────────────────────────────
+        # ── Earnings history (no lxml required; has epsActual + epsEstimate) ──
         try:
-            result["earnings_dates"] = t.earnings_dates
+            eh = t.earnings_history
+            result["earnings_history"] = eh if eh is not None else pd.DataFrame()
         except Exception:
-            result["earnings_dates"] = pd.DataFrame()
+            result["earnings_history"] = pd.DataFrame()
 
         # ── Recommendations — summary preferred, raw as fallback ────────
         recs_loaded = False
@@ -624,8 +673,19 @@ def _render_news(news_list):
                     unsafe_allow_html=True)
 
 
+def _quarter_label(d) -> str:
+    """Convert a date to e.g. 'Q1 '26' — %q not supported on Windows."""
+    try:
+        ts = pd.Timestamp(d)
+        q  = (ts.month - 1) // 3 + 1
+        return f"Q{q} '{ts.strftime('%y')}"
+    except Exception:
+        return str(d)[:7]
+
+
 def _render_earnings_trends(details, sym):
-    earn_df = details.get("earnings_dates", pd.DataFrame())
+    # earnings_history: columns epsActual, epsEstimate — no lxml required
+    earn_df = details.get("earnings_history", pd.DataFrame())
     inc_q   = details.get("income_quarterly", pd.DataFrame())
 
     col_l, col_r = st.columns(2)
@@ -634,49 +694,77 @@ def _render_earnings_trends(details, sym):
     with col_l:
         st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Earnings Per Share</div>',
                     unsafe_allow_html=True)
-        if earn_df is not None and not earn_df.empty:
-            # Keep last 4 quarters with both estimate and actual
-            df = earn_df.dropna(subset=["EPS Estimate", "Reported EPS"]).head(4).iloc[::-1]
-            quarters = [pd.Timestamp(d).strftime("Q%q '%y") if hasattr(d,"strftime")
-                        else str(d)[:7] for d in df.index]
-            estimates = df["EPS Estimate"].tolist()
-            actuals   = df["Reported EPS"].tolist()
-            beats     = [a >= e for a, e in zip(actuals, estimates)]
 
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=quarters, y=estimates, mode="markers",
-                marker=dict(size=14, color="white", line=dict(color="#8b6d4a", width=2)),
-                name="Estimate",
-            ))
-            fig.add_trace(go.Scatter(
-                x=quarters, y=actuals, mode="markers",
-                marker=dict(size=14,
-                            color=["#16a34a" if b else "#dc2626" for b in beats]),
-                name="Actual",
-            ))
-            # Beat/Miss annotations
-            for i, (q, a, e, b) in enumerate(zip(quarters, actuals, estimates, beats)):
-                diff = round(a - e, 2)
-                fig.add_annotation(
-                    x=q, y=a,
-                    text=f"{'Beat' if b else 'Missed'}<br>{'+' if diff>=0 else ''}{diff}",
-                    showarrow=False, yshift=-28,
-                    font=dict(size=10, color="#16a34a" if b else "#dc2626"),
+        eps_plotted = False
+        if earn_df is not None and not earn_df.empty:
+            # earnings_history columns: epsActual, epsEstimate (index = quarter date)
+            if "epsActual" in earn_df.columns:
+                # Keep rows where we have at least an actual; sort chronologically
+                df = earn_df.dropna(subset=["epsActual"]).copy()
+                df = df.sort_index().tail(6)   # last 6 quarters max
+
+                quarters = []
+                for d in df.index:
+                    quarters.append(_quarter_label(d))
+
+                actuals   = df["epsActual"].tolist()
+                estimates = df["epsEstimate"].tolist() if "epsEstimate" in df.columns else [None]*len(actuals)
+
+                fig = go.Figure()
+
+                # Plot estimates where available
+                est_x = [q for q, e in zip(quarters, estimates) if e is not None and not pd.isna(e)]
+                est_y = [e for e in estimates if e is not None and not pd.isna(e)]
+                if est_x:
+                    fig.add_trace(go.Scatter(
+                        x=est_x, y=est_y, mode="markers",
+                        marker=dict(size=14, color="white", line=dict(color="#8b6d4a", width=2)),
+                        name="Estimate",
+                    ))
+
+                # Color actuals: green = beat estimate, red = missed, blue = no estimate
+                colors = []
+                for a, e in zip(actuals, estimates):
+                    if e is None or pd.isna(e):
+                        colors.append("#1d4ed8")
+                    elif a >= e:
+                        colors.append("#16a34a")
+                    else:
+                        colors.append("#dc2626")
+
+                fig.add_trace(go.Scatter(
+                    x=quarters, y=actuals, mode="markers",
+                    marker=dict(size=14, color=colors),
+                    name="Actual",
+                ))
+
+                # Beat/Miss annotations only where we have both
+                for q, a, e in zip(quarters, actuals, estimates):
+                    if e is not None and not pd.isna(e):
+                        beat = a >= e
+                        diff = round(a - e, 2)
+                        fig.add_annotation(
+                            x=q, y=a,
+                            text=f"{'Beat' if beat else 'Missed'}<br>{'+' if diff>=0 else ''}{diff}",
+                            showarrow=False, yshift=-28,
+                            font=dict(size=10, color="#16a34a" if beat else "#dc2626"),
+                        )
+
+                fig.update_layout(
+                    paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=280,
+                    margin=dict(l=0, r=0, t=10, b=60),
+                    xaxis=dict(showgrid=False, color="#a38060"),
+                    yaxis=dict(showgrid=False, color="#a38060", title="EPS"),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                                font=dict(color="#4a3520")),
+                    showlegend=True,
                 )
-            fig.update_layout(
-                paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=280,
-                margin=dict(l=0, r=0, t=10, b=60),
-                xaxis=dict(showgrid=False, color="#a38060"),
-                yaxis=dict(showgrid=False, color="#a38060", title="EPS"),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-                            font=dict(color="#4a3520")),
-                showlegend=True,
-            )
-            st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
+                st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+                eps_plotted = True
+
+        if not eps_plotted:
             st.info("EPS data not available.")
 
     # ── Revenue vs Earnings (quarterly) ──────────────────────────────
@@ -690,8 +778,7 @@ def _render_earnings_trends(details, sym):
             ni_row  = next((i for i in df4.index
                             if "net income common" in str(i).lower() or "net income" == str(i).lower()), None)
 
-            dates = [pd.Timestamp(c).strftime("Q%q '%y") if hasattr(c,"strftime")
-                     else str(c)[:7] for c in df4.columns]
+            dates = [_quarter_label(c) for c in df4.columns]
             rev = [float(df4.loc[rev_row, c])/1e9 if rev_row else 0 for c in df4.columns]
             ni  = [float(df4.loc[ni_row,  c])/1e9 if ni_row  else 0 for c in df4.columns]
 
@@ -778,39 +865,59 @@ def _render_analyst_insights(details, info, sym):
     with col_r:
         st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Analyst Recommendations</div>',
                     unsafe_allow_html=True)
+        # rec_map covers both recommendations_summary and raw recommendations columns
         rec_map = [
             ("strongBuy",   "Strong Buy",   "#15803d"),
             ("buy",         "Buy",          "#4ade80"),
             ("hold",        "Hold",         "#f59e0b"),
             ("underperform","Underperform", "#f97316"),
-            ("sell",        "Sell",         "#dc2626"),
+            ("strongSell",  "Strong Sell",  "#dc2626"),
+            ("sell",        "Sell",         "#b91c1c"),
         ]
-        # Normalise: both recommendations_summary and raw recommendations may arrive
-        df_recs = None
+
+        def _period_label(p):
+            """Convert '0m' → 'This Month', '-1m' → 'Last Month', else pass through."""
+            try:
+                n = int(str(p).replace("m", ""))
+                if n == 0:   return "This Month"
+                if n == -1:  return "Last Month"
+                if n == -2:  return "2 Months Ago"
+                if n == -3:  return "3 Months Ago"
+                return str(p)
+            except Exception:
+                return str(p)
+
+        df_recs  = None
+        periods  = []
         if recs is not None and not recs.empty:
             if "strongBuy" in recs.columns:
-                # Already in summary format
+                # recommendations_summary format — most common
                 df_recs = recs.head(4).copy()
-                periods = df_recs["period"].tolist() if "period" in df_recs.columns else [str(i) for i in df_recs.index]
+                raw_periods = df_recs["period"].tolist() if "period" in df_recs.columns \
+                              else [str(i) for i in df_recs.index]
+                periods = [_period_label(p) for p in raw_periods]
             elif "To Grade" in recs.columns or "toGrade" in recs.columns:
-                # Raw analyst actions — count by grade in last 4 months
+                # Raw analyst actions — aggregate by month
                 grade_col = "To Grade" if "To Grade" in recs.columns else "toGrade"
                 recs.index = pd.to_datetime(recs.index, utc=True)
                 recs["month"] = recs.index.to_period("M")
-                periods = sorted(recs["month"].unique())[-4:]
+                month_periods = sorted(recs["month"].unique())[-4:]
+                grade_map = {
+                    "strong buy": "strongBuy", "buy": "buy", "hold": "hold",
+                    "underperform": "underperform", "sell": "sell", "strong sell": "strongSell",
+                    "neutral": "hold", "outperform": "buy", "overweight": "buy",
+                    "underweight": "sell", "market perform": "hold",
+                }
                 rows = []
-                grade_map = {"strong buy": "strongBuy", "buy": "buy", "hold": "hold",
-                             "underperform": "underperform", "sell": "sell",
-                             "neutral": "hold", "outperform": "buy", "overweight": "buy",
-                             "underweight": "sell", "market perform": "hold"}
-                for p in periods:
-                    sub = recs[recs["month"] == p]
+                for p in month_periods:
+                    sub    = recs[recs["month"] == p]
                     counts = {"period": str(p)}
-                    for k in ["strongBuy","buy","hold","underperform","sell"]:
+                    for k in ["strongBuy","buy","hold","underperform","strongSell","sell"]:
                         counts[k] = 0
                     for g in sub[grade_col].str.lower():
-                        mapped = grade_map.get(g, None)
-                        if mapped: counts[mapped] += 1
+                        mapped = grade_map.get(g)
+                        if mapped:
+                            counts[mapped] += 1
                     rows.append(counts)
                 df_recs = pd.DataFrame(rows)
                 periods = [r["period"] for r in rows]
@@ -819,6 +926,8 @@ def _render_analyst_insights(details, info, sym):
             fig = go.Figure()
             for col_key, label, color in rec_map:
                 vals = df_recs[col_key].tolist() if col_key in df_recs.columns else [0]*len(periods)
+                if not any(v > 0 for v in vals):
+                    continue   # skip empty series to keep legend clean
                 fig.add_trace(go.Bar(
                     x=periods, y=vals, name=label,
                     marker_color=color,
@@ -1715,6 +1824,20 @@ def main():
                     "median":  pre.get("targetMedian"),
                     "current": pre.get("currentPrice"),
                 }
+
+            # Use pre-fetched recommendations if live fetch came back empty
+            pre_recs = pre.get("recommendations")
+            if pre_recs is not None and not pre_recs.empty:
+                live_recs = details.get("recommendations")
+                if live_recs is None or (hasattr(live_recs, "empty") and live_recs.empty):
+                    details["recommendations"] = pre_recs
+
+            # Use pre-fetched earnings_history if live fetch came back empty
+            pre_earn = pre.get("earnings_history")
+            if pre_earn is not None and not pre_earn.empty:
+                live_earn = details.get("earnings_history")
+                if live_earn is None or (hasattr(live_earn, "empty") and live_earn.empty):
+                    details["earnings_history"] = pre_earn
         price_data = price_cache.get(chosen["ticker"], {})
         mc_data    = live_mktcaps.get(chosen["ticker"])
         render_company_deep_dive(chosen, details, usdinr, price_data, mc_data)
