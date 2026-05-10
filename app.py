@@ -69,6 +69,9 @@ section[data-testid="stSidebar"] {{ background: {BG_ALT}; }}
 
 .last-updated {{ color: #a38060; font-size: 12px; text-align: right; }}
 #MainMenu, footer, header {{ visibility: hidden; }}
+[data-testid="stHeader"] {{ display: none !important; }}
+[data-testid="stToolbar"] {{ display: none !important; }}
+.block-container {{ padding-top: 1.5rem !important; }}
 
 /* ── Mobile card ─────────────────────────────────────────────────── */
 .mobile-kpi {{
