@@ -295,6 +295,41 @@ def fetch_company_news(yf_tk: str) -> list:
         return []
 
 
+@st.cache_data(ttl=86400)  # refresh daily — analyst data changes slowly
+def fetch_all_analyst_data() -> dict:
+    """Pre-fetch analyst price targets + key stats for all 47 companies in parallel."""
+    def _get(c):
+        try:
+            info = yf.Ticker(yf_ticker(c)).info or {}
+            return c["ticker"], {
+                "targetLow":          info.get("targetLowPrice"),
+                "targetHigh":         info.get("targetHighPrice"),
+                "targetMean":         info.get("targetMeanPrice"),
+                "targetMedian":       info.get("targetMedianPrice"),
+                "currentPrice":       info.get("currentPrice") or info.get("previousClose"),
+                "recommendationKey":  info.get("recommendationKey"),
+                "numberOfAnalysts":   info.get("numberOfAnalystOpinions"),
+                "trailingPE":         info.get("trailingPE"),
+                "forwardPE":          info.get("forwardPE"),
+                "trailingEps":        info.get("trailingEps"),
+                "beta":               info.get("beta"),
+                "fiftyTwoWeekLow":    info.get("fiftyTwoWeekLow"),
+                "fiftyTwoWeekHigh":   info.get("fiftyTwoWeekHigh"),
+                "dividendYield":      info.get("dividendYield"),
+                "averageVolume":      info.get("averageVolume"),
+            }
+        except Exception:
+            return c["ticker"], {}
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        futures = {ex.submit(_get, c): c for c in COMPANIES}
+        for f in as_completed(futures):
+            ticker, data = f.result()
+            results[ticker] = data
+    return results
+
+
 @st.cache_data(ttl=86400)  # financial statements are quarterly — refresh daily
 def fetch_company_financials(yf_tk: str) -> dict:
     """Income statement, balance sheet, cash flow — slow-changing data."""
@@ -1267,9 +1302,10 @@ def main():
 
     # ── Fetch all market data early (needed by chatbox + rest of page) ─────────
     with st.spinner("Loading market data…"):
-        returns_1m   = fetch_1m_returns()
-        long_hist    = fetch_long_history()
-        live_mktcaps = fetch_market_caps()
+        returns_1m      = fetch_1m_returns()
+        long_hist       = fetch_long_history()
+        live_mktcaps    = fetch_market_caps()
+        all_analyst     = fetch_all_analyst_data()    # daily pre-fetch for all 47
 
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
@@ -1561,7 +1597,38 @@ def main():
         idx = company_options.index(selected) - 1
         chosen = COMPANIES[idx]
         with st.spinner(f"Loading {chosen['name']} details…"):
-            details   = fetch_company_details(yf_ticker(chosen))
+            details = fetch_company_details(yf_ticker(chosen))
+        # Enrich with pre-fetched analyst data (overrides missing yfinance info fields)
+        pre = all_analyst.get(chosen["ticker"], {})
+        if pre:
+            info_merged = {**details.get("info", {}), **{
+                "targetLowPrice":          pre.get("targetLow"),
+                "targetHighPrice":         pre.get("targetHigh"),
+                "targetMeanPrice":         pre.get("targetMean"),
+                "targetMedianPrice":       pre.get("targetMedian"),
+                "currentPrice":            pre.get("currentPrice"),
+                "trailingPE":              pre.get("trailingPE"),
+                "forwardPE":               pre.get("forwardPE"),
+                "trailingEps":             pre.get("trailingEps"),
+                "beta":                    pre.get("beta"),
+                "fiftyTwoWeekLow":         pre.get("fiftyTwoWeekLow"),
+                "fiftyTwoWeekHigh":        pre.get("fiftyTwoWeekHigh"),
+                "dividendYield":           pre.get("dividendYield"),
+                "averageVolume":           pre.get("averageVolume"),
+                "numberOfAnalystOpinions": pre.get("numberOfAnalysts"),
+                "recommendationKey":       pre.get("recommendationKey"),
+            }}
+            # Only update non-None values
+            details["info"] = {k: v for k, v in info_merged.items() if v is not None}
+            # Also update price_targets from pre-fetched data
+            if pre.get("targetMean"):
+                details["price_targets"] = {
+                    "low":     pre.get("targetLow"),
+                    "high":    pre.get("targetHigh"),
+                    "mean":    pre.get("targetMean"),
+                    "median":  pre.get("targetMedian"),
+                    "current": pre.get("currentPrice"),
+                }
         price_data = price_cache.get(chosen["ticker"], {})
         mc_data    = live_mktcaps.get(chosen["ticker"])
         render_company_deep_dive(chosen, details, usdinr, price_data, mc_data)
