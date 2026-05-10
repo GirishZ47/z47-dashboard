@@ -228,15 +228,94 @@ IPOS = [
 ]
 
 
+# ── NSE session helper ─────────────────────────────────────────────────────────
+_NSE_HDR = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.nseindia.com/",
+}
+
+
+def _nse_quote(symbol):
+    """Fetch last price + 52w high/low from NSE equity API."""
+    try:
+        s = requests.Session()
+        s.get("https://www.nseindia.com", headers=_NSE_HDR, timeout=6)
+        r = s.get(
+            f"https://www.nseindia.com/api/quote-equity?symbol={symbol}",
+            headers=_NSE_HDR, timeout=8,
+        )
+        if r.status_code == 200:
+            pi = r.json().get("priceInfo", {})
+            price = pi.get("lastPrice")
+            whl   = pi.get("weekHighLow", {})
+            h52   = whl.get("max")
+            l52   = whl.get("min")
+            if price:
+                return float(price), float(h52) if h52 else None, float(l52) if l52 else None
+    except Exception:
+        pass
+    return None, None, None
+
+
+def _bse_quote(symbol):
+    """Fetch last price from BSE API (needs BSE scrip code — best-effort)."""
+    try:
+        r = requests.get(
+            f"https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w?Scrip_cd=0&scripcode=0&seriesid=EQ&scripname={symbol}",
+            headers={"User-Agent": "Mozilla/5.0"}, timeout=8,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            price = data.get("CurrRate") or data.get("Ltp")
+            if price:
+                return float(str(price).replace(",", "")), None, None
+    except Exception:
+        pass
+    return None, None, None
+
+
 # ── Cached helpers ─────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)
 def _live_price(ticker):
+    """yfinance fast_info → yfinance history → NSE API → BSE API."""
+    # 1. yfinance fast_info
     try:
-        t = yf.Ticker(ticker)
+        t  = yf.Ticker(ticker)
         fi = t.fast_info
-        return fi.last_price, fi.fifty_two_week_high, fi.fifty_two_week_low
+        p  = fi.last_price
+        if p and float(p) > 0:
+            return float(p), fi.fifty_two_week_high, fi.fifty_two_week_low
     except Exception:
-        return None, None, None
+        pass
+
+    # 2. yfinance history (last close)
+    try:
+        t    = yf.Ticker(ticker)
+        hist = t.history(period="5d")
+        if not hist.empty:
+            p = float(hist["Close"].iloc[-1])
+            if p > 0:
+                return p, float(hist["High"].max()), float(hist["Low"].min())
+    except Exception:
+        pass
+
+    # 3. NSE API (for .NS tickers)
+    if ticker.endswith(".NS"):
+        sym = ticker[:-3]
+        p, h52, l52 = _nse_quote(sym)
+        if p:
+            return p, h52, l52
+
+    # 4. BSE best-effort
+    sym = ticker.replace(".NS", "").replace(".BO", "")
+    p, h52, l52 = _bse_quote(sym)
+    if p:
+        return p, h52, l52
+
+    return None, None, None
 
 
 def _scrape_gmp(company_name):
