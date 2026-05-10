@@ -672,41 +672,25 @@ def _render_news(news_list):
                     unsafe_allow_html=True)
         return
 
-    # Separate stories vs press releases
-    stories = [n for n in news_list if n.get("type","").upper() != "PRESS_RELEASE"]
-    releases = [n for n in news_list if n.get("type","").upper() == "PRESS_RELEASE"]
+    html = ""
+    for n in news_list[:20]:
+        ts = n.get("providerPublishTime", 0)
+        try:
+            dt = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d %b %Y")
+        except Exception:
+            dt = ""
+        pub   = n.get("publisher", "")
+        title = n.get("title", "")
+        link  = n.get("link", "#")
+        html += (
+            f"<div style='padding:12px 0;border-bottom:1px solid {BORDER}'>"
+            f"<a href='{link}' target='_blank' style='color:#1a0f00;font-weight:600;"
+            f"font-size:13px;text-decoration:none;line-height:1.4'>{title}</a>"
+            f"<div style='color:#a38060;font-size:11px;margin-top:4px'>"
+            f"{pub} &nbsp;·&nbsp; {dt}</div></div>"
+        )
 
-    tab_all, tab_news, tab_pr = st.tabs(["All", "News", "Press Releases"])
-
-    def _article_html(items, limit=20):
-        html = ""
-        for n in items[:limit]:
-            ts = n.get("providerPublishTime", 0)
-            try:
-                dt = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d %b %Y")
-            except Exception:
-                dt = ""
-            pub   = n.get("publisher", "")
-            title = n.get("title", "")
-            link  = n.get("link", "#")
-            html += (
-                f"<div style='padding:12px 0;border-bottom:1px solid {BORDER}'>"
-                f"<a href='{link}' target='_blank' style='color:#1a0f00;font-weight:600;"
-                f"font-size:13px;text-decoration:none;line-height:1.4'>{title}</a>"
-                f"<div style='color:#a38060;font-size:11px;margin-top:4px'>"
-                f"{pub} &nbsp;·&nbsp; {dt}</div></div>"
-            )
-        return html or "<p style='color:#a38060'>None found.</p>"
-
-    with tab_all:
-        st.markdown(f"<div class='card-wrap'>{_article_html(news_list)}</div>",
-                    unsafe_allow_html=True)
-    with tab_news:
-        st.markdown(f"<div class='card-wrap'>{_article_html(stories)}</div>",
-                    unsafe_allow_html=True)
-    with tab_pr:
-        st.markdown(f"<div class='card-wrap'>{_article_html(releases)}</div>",
-                    unsafe_allow_html=True)
+    st.markdown(f"<div class='card-wrap'>{html}</div>", unsafe_allow_html=True)
 
 
 def _quarter_label(d) -> str:
@@ -1075,7 +1059,7 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
         "💸 Cash Flow",
         "📈 Earnings Trends",
         "🎯 Analyst Insights",
-        "📰 News & Releases",
+        "📰 Recent News",
     ])
 
     tk = c["ticker"]
