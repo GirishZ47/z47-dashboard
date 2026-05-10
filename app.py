@@ -290,10 +290,46 @@ def fetch_long_history() -> dict:
 
 @st.cache_data(ttl=300)   # same cadence as prices
 def fetch_company_news(yf_tk: str) -> list:
+    """
+    Fetch and normalise news from yfinance.
+    yfinance ≥0.2.50 wraps each article in a 'content' sub-dict with new
+    field names. We normalise to a flat dict so the rest of the UI doesn't care.
+    """
     try:
-        return yf.Ticker(yf_tk).news or []
+        raw = yf.Ticker(yf_tk).news or []
     except Exception:
         return []
+
+    normalised = []
+    for item in raw:
+        # New format: all data is under item["content"]
+        c = item.get("content", {})
+        if c:
+            # ISO date string → unix timestamp for backwards compat
+            pub_str = c.get("pubDate") or c.get("displayTime", "")
+            try:
+                import datetime
+                ts = int(datetime.datetime.fromisoformat(
+                    pub_str.replace("Z", "+00:00")).timestamp())
+            except Exception:
+                ts = 0
+
+            url = (c.get("clickThroughUrl") or c.get("canonicalUrl") or {}).get("url", "#")
+            ctype = c.get("contentType", "STORY")
+
+            normalised.append({
+                "title":               c.get("title", ""),
+                "link":                url,
+                "publisher":           (c.get("provider") or {}).get("displayName", ""),
+                "providerPublishTime": ts,
+                "type":                "PRESS_RELEASE" if ctype == "PRESS_RELEASE" else "STORY",
+                "summary":             c.get("summary", ""),
+            })
+        else:
+            # Old flat format — pass through as-is
+            normalised.append(item)
+
+    return normalised
 
 
 def _yf_info_with_fallback(c: dict) -> dict:
