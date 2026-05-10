@@ -286,6 +286,210 @@ def fetch_long_history() -> dict:
     return results
 
 
+@st.cache_data(ttl=3600)
+def fetch_company_details(yf_tk: str) -> dict:
+    """Key stats + financial statements for one company (cached 1 hour)."""
+    try:
+        t = yf.Ticker(yf_tk)
+        result = {}
+        try:    result["info"] = t.info or {}
+        except: result["info"] = {}
+        for key, attr in [
+            ("income_annual",      "financials"),
+            ("income_quarterly",   "quarterly_financials"),
+            ("balance_annual",     "balance_sheet"),
+            ("balance_quarterly",  "quarterly_balance_sheet"),
+            ("cashflow_annual",    "cashflow"),
+            ("cashflow_quarterly", "quarterly_cashflow"),
+        ]:
+            try:    result[key] = getattr(t, attr)
+            except: result[key] = pd.DataFrame()
+        return result
+    except Exception:
+        return {}
+
+
+# ── Company detail helpers ────────────────────────────────────────────────────
+
+def _fmt_fin(v, sym="₹"):
+    if v is None: return "—"
+    try:
+        v = float(v)
+        if pd.isna(v): return "—"
+    except Exception:
+        return "—"
+    neg = "-" if v < 0 else ""
+    av  = abs(v)
+    if av >= 1e12: return f"{neg}{sym}{av/1e12:.2f}T"
+    if av >= 1e9:  return f"{neg}{sym}{av/1e9:.2f}B"
+    if av >= 1e6:  return f"{neg}{sym}{av/1e6:.2f}M"
+    if av >= 1e3:  return f"{neg}{sym}{av/1e3:.0f}K"
+    return f"{neg}{sym}{av:.2f}"
+
+
+def _fin_table_html(df, sym, row_specs):
+    """Render a yfinance financials DataFrame as styled HTML.
+    row_specs: [(display_name, [candidate_yf_keys]), ...]
+    """
+    if df is None or df.empty:
+        return f"<p style='color:#a38060;padding:16px'>Data not available for this company.</p>"
+
+    df = df.iloc[:, :4]   # max 4 periods
+    col_dates = []
+    for c in df.columns:
+        try:    col_dates.append(pd.Timestamp(c).strftime("%b '%y"))
+        except: col_dates.append(str(c))
+
+    th  = (f"padding:9px 12px;color:#8b6d4a;font-weight:600;font-size:12px;"
+           f"text-align:right;background:{BG_ALT};white-space:nowrap")
+    thl = th.replace("text-align:right", "text-align:left")
+    html = (f"<div style='overflow-x:auto'>"
+            f"<table style='width:100%;border-collapse:collapse;font-size:12px'>"
+            f"<thead><tr><th style='{thl}'>Breakdown</th>")
+    for d in col_dates:
+        html += f"<th style='{th}'>{d}</th>"
+    html += "</tr></thead><tbody>"
+
+    for display_name, candidates in row_specs:
+        matched = None
+        for cand in candidates:
+            for idx in df.index:
+                if cand.lower() == str(idx).lower():
+                    matched = idx; break
+            if matched: break
+
+        html += f"<tr style='border-top:1px solid {BORDER}'>"
+        bold = "font-weight:600" if display_name in ("Total Revenue","Gross Profit","Net Income","Operating Income") else ""
+        html += (f"<td style='padding:8px 12px;color:#1a0f00;{bold}'>{display_name}</td>")
+        for col in df.columns:
+            if matched is not None:
+                try:
+                    val = float(df.loc[matched, col])
+                    color = "#dc2626" if val < 0 else "#1a0f00"
+                    html += f"<td style='padding:8px 12px;text-align:right;color:{color}'>{_fmt_fin(val,sym)}</td>"
+                except Exception:
+                    html += f"<td style='padding:8px 12px;text-align:right;color:#a38060'>—</td>"
+            else:
+                html += f"<td style='padding:8px 12px;text-align:right;color:#a38060'>—</td>"
+        html += "</tr>"
+
+    html += "</tbody></table></div>"
+    return html
+
+
+IS_ROWS = [
+    ("Total Revenue",     ["Total Revenue", "Operating Revenue"]),
+    ("Cost of Revenue",   ["Cost Of Revenue"]),
+    ("Gross Profit",      ["Gross Profit"]),
+    ("Operating Expense", ["Total Expenses", "Operating Expense"]),
+    ("Operating Income",  ["EBIT", "Operating Income", "Total Operating Income As Reported"]),
+    ("EBITDA",            ["EBITDA", "Normalized EBITDA"]),
+    ("Pretax Income",     ["Pretax Income"]),
+    ("Tax Provision",     ["Tax Provision"]),
+    ("Net Income",        ["Net Income Common Stockholders", "Net Income"]),
+    ("Basic EPS",         ["Basic EPS"]),
+    ("Diluted EPS",       ["Diluted EPS"]),
+]
+BS_ROWS = [
+    ("Total Assets",       ["Total Assets"]),
+    ("Total Liabilities",  ["Total Liabilities Net Minority Interest", "Total Liabilities"]),
+    ("Stockholders Equity",["Stockholders Equity", "Total Equity Gross Minority Interest"]),
+    ("Cash & Equivalents", ["Cash And Cash Equivalents", "Cash Cash Equivalents And Short Term Investments"]),
+    ("Total Debt",         ["Total Debt"]),
+    ("Net Debt",           ["Net Debt"]),
+    ("Working Capital",    ["Working Capital"]),
+]
+CF_ROWS = [
+    ("Operating Cash Flow",  ["Operating Cash Flow"]),
+    ("Investing Cash Flow",  ["Investing Cash Flow"]),
+    ("Financing Cash Flow",  ["Financing Cash Flow"]),
+    ("Free Cash Flow",       ["Free Cash Flow"]),
+    ("Capital Expenditure",  ["Capital Expenditure"]),
+    ("Net Income",           ["Net Income From Continuing Operations", "Net Income"]),
+]
+
+
+def render_company_deep_dive(c, details, usdinr):
+    info = details.get("info", {})
+    sym  = "₹" if c["exchange"] == "NSE" else "$"
+
+    def _p(key):
+        v = info.get(key)
+        return f"{sym}{v:,.2f}" if isinstance(v, (int, float)) else "—"
+
+    def _mc(key):
+        v = info.get(key)
+        if not isinstance(v, (int, float)): return "—"
+        if v >= 1e12: return f"{sym}{v/1e12:.2f}T"
+        if v >= 1e9:  return f"{sym}{v/1e9:.2f}B"
+        return f"{sym}{v/1e6:.1f}M"
+
+    def _n(key, fmt="{:,.0f}"):
+        v = info.get(key)
+        return fmt.format(v) if isinstance(v, (int, float)) else "—"
+
+    stat_groups = [
+        [
+            ("Previous Close",  _p("previousClose")),
+            ("Open",            _p("open")),
+            ("Day's Range",     f"{_p('dayLow')} – {_p('dayHigh')}"),
+            ("52-Week Range",   f"{_p('fiftyTwoWeekLow')} – {_p('fiftyTwoWeekHigh')}"),
+            ("Sector",          c["sector"]),
+        ],
+        [
+            ("Volume",        _n("volume")),
+            ("Avg. Volume",   _n("averageVolume")),
+            ("Market Cap",    _mc("marketCap")),
+            ("Float %",       f"{c['float_pct']}%"),
+            ("Exchange",      c["exchange"]),
+        ],
+        [
+            ("PE Ratio (TTM)", _n("trailingPE", "{:.1f}x")),
+            ("EPS (TTM)",      f"{sym}{info['trailingEps']:.2f}" if isinstance(info.get("trailingEps"), (int,float)) else "—"),
+            ("Beta (5Y)",      _n("beta", "{:.2f}")),
+            ("1Y Target Est",  _p("targetMeanPrice")),
+            ("Div & Yield",    f"{info.get('dividendYield', 0)*100:.2f}%" if info.get("dividendYield") else "—"),
+        ],
+    ]
+
+    cols = st.columns(3)
+    for col, stats in zip(cols, stat_groups):
+        with col:
+            rows_html = "".join(
+                f"<tr style='border-top:1px solid {BORDER}'>"
+                f"<td style='padding:8px 12px;color:#8b6d4a;font-size:12px;white-space:nowrap'>{lbl}</td>"
+                f"<td style='padding:8px 12px;color:#1a0f00;font-weight:500;text-align:right'>{val}</td></tr>"
+                for lbl, val in stats
+            )
+            st.markdown(
+                f"<div class='card-wrap' style='padding:0'>"
+                f"<table style='width:100%;border-collapse:collapse'><tbody>{rows_html}</tbody></table></div>",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
+    tab_is, tab_bs, tab_cf = st.tabs(["📊 Income Statement", "🏦 Balance Sheet", "💸 Cash Flow"])
+
+    tk = c["ticker"]
+    with tab_is:
+        freq = st.radio("", ["Annual", "Quarterly"], horizontal=True, key=f"is_{tk}")
+        df = details.get("income_annual" if freq=="Annual" else "income_quarterly", pd.DataFrame())
+        st.markdown(f"<div class='card-wrap' style='padding:0'>{_fin_table_html(df, sym, IS_ROWS)}</div>",
+                    unsafe_allow_html=True)
+
+    with tab_bs:
+        freq = st.radio("", ["Annual", "Quarterly"], horizontal=True, key=f"bs_{tk}")
+        df = details.get("balance_annual" if freq=="Annual" else "balance_quarterly", pd.DataFrame())
+        st.markdown(f"<div class='card-wrap' style='padding:0'>{_fin_table_html(df, sym, BS_ROWS)}</div>",
+                    unsafe_allow_html=True)
+
+    with tab_cf:
+        freq = st.radio("", ["Annual", "Quarterly"], horizontal=True, key=f"cf_{tk}")
+        df = details.get("cashflow_annual" if freq=="Annual" else "cashflow_quarterly", pd.DataFrame())
+        st.markdown(f"<div class='card-wrap' style='padding:0'>{_fin_table_html(df, sym, CF_ROWS)}</div>",
+                    unsafe_allow_html=True)
+
+
 # ── Utility ───────────────────────────────────────────────────────────────────
 
 def build_extended_df(hist, nifty_live, sensex_live):
@@ -979,6 +1183,24 @@ def main():
         f"USD at ₹{usdinr}/$ live rate.</div></div>"
     )
     st.markdown(tbl, unsafe_allow_html=True)
+
+    # ── Company Deep Dive ────────────────────────────────────────────────────
+    st.markdown('<div class="section-header">Company Deep Dive</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="color:#8b6d4a;font-size:12px;margin-bottom:12px">'
+        'Select any company to view key stats and financial statements (refreshed hourly).'
+        '</div>', unsafe_allow_html=True,
+    )
+
+    company_options = ["— Select a company —"] + [f"{c['name']}  ({c['ticker']})" for c in COMPANIES]
+    selected = st.selectbox("Company", company_options, label_visibility="collapsed")
+
+    if selected != "— Select a company —":
+        idx = company_options.index(selected) - 1
+        chosen = COMPANIES[idx]
+        with st.spinner(f"Loading {chosen['name']} details…"):
+            details = fetch_company_details(yf_ticker(chosen))
+        render_company_deep_dive(chosen, details, usdinr)
 
     # ── Sector breakdown ─────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Sector Composition</div>', unsafe_allow_html=True)
