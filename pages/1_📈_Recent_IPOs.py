@@ -3,6 +3,7 @@ st.set_page_config(page_title="Recent IPOs | Z47", page_icon="📈", layout="wid
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sidebar_nav import render_sidebar
 
 import requests
 import pandas as pd
@@ -36,6 +37,7 @@ st.markdown(
 )
 
 st_autorefresh(interval=900_000, key="recent_ipo_refresh")
+render_sidebar()
 
 # ── Hardcoded IPO data ─────────────────────────────────────────────────────────
 IPOS = [

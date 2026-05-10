@@ -3,6 +3,7 @@ st.set_page_config(page_title="DRHP Filings | Z47", page_icon="📋", layout="wi
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sidebar_nav import render_sidebar
 
 import requests
 import pandas as pd
@@ -36,6 +37,7 @@ st.markdown(
 )
 
 st_autorefresh(interval=1_800_000, key="drhp_refresh")
+render_sidebar()
 
 # ── Sector tags ────────────────────────────────────────────────────────────────
 Z47_SECTORS = [

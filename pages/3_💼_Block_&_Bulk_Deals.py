@@ -4,6 +4,7 @@ st.set_page_config(page_title="Block & Bulk Deals | Z47", page_icon="💼", layo
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from companies import COMPANIES
+from sidebar_nav import render_sidebar
 
 import requests
 import pandas as pd
@@ -35,6 +36,7 @@ st.markdown(
     </style>""",
     unsafe_allow_html=True,
 )
+render_sidebar()
 
 # ── Z47 company maps ──────────────────────────────────────────────────────────
 Z47_SYMBOLS = {c["ticker"] for c in COMPANIES if c["exchange"] == "NSE"}
