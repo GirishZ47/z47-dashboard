@@ -676,16 +676,28 @@ def _render_analyst_insights(details, info, sym):
             st.info("Recommendation data not available.")
 
 
-def render_company_deep_dive(c, details, usdinr):
-    info = details.get("info", {})
-    sym  = "₹" if c["exchange"] == "NSE" else "$"
+def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
+    info       = details.get("info", {})
+    sym        = "₹" if c["exchange"] == "NSE" else "$"
+    price_data = price_data or {}
 
-    def _p(key):
-        v = info.get(key)
+    # ── helpers ──────────────────────────────────────────────────────
+    def _p(key, fallback=None):
+        v = info.get(key, fallback)
         return f"{sym}{v:,.2f}" if isinstance(v, (int, float)) else "—"
 
-    def _mc(key):
-        v = info.get(key)
+    def _mc_str():
+        # Prefer live market cap we already have; fall back to yfinance info
+        if mc_data:
+            v = mc_data["mc"] * 1e6   # mc is in Mn, convert to units
+            if mc_data["currency"] != "INR":
+                v_inr = v * usdinr
+            else:
+                v_inr = v
+            if v_inr >= 1e12: return f"₹{v_inr/1e12:.2f}T"
+            if v_inr >= 1e9:  return f"₹{v_inr/1e9:.2f}B"
+            return f"₹{v_inr/1e6:.1f}M"
+        v = info.get("marketCap")
         if not isinstance(v, (int, float)): return "—"
         if v >= 1e12: return f"{sym}{v/1e12:.2f}T"
         if v >= 1e9:  return f"{sym}{v/1e9:.2f}B"
@@ -695,18 +707,30 @@ def render_company_deep_dive(c, details, usdinr):
         v = info.get(key)
         return fmt.format(v) if isinstance(v, (int, float)) else "—"
 
+    # Use live NSE/NASDAQ price as fallback when yfinance info is missing
+    live_price = price_data.get("price")
+    live_prev  = price_data.get("prev_close")
+    prev_close = info.get("previousClose") or live_prev
+    curr_price = info.get("currentPrice") or info.get("regularMarketPrice") or live_price
+
+    def _price_str(v):
+        return f"{sym}{v:,.2f}" if isinstance(v, (int, float)) else "—"
+
+    day_low  = info.get("dayLow")  or (live_price * 0.99 if live_price else None)
+    day_high = info.get("dayHigh") or (live_price * 1.01 if live_price else None)
+
     stat_groups = [
         [
-            ("Previous Close",  _p("previousClose")),
-            ("Open",            _p("open")),
-            ("Day's Range",     f"{_p('dayLow')} – {_p('dayHigh')}"),
+            ("Previous Close",  _price_str(prev_close)),
+            ("Current Price",   _price_str(curr_price)),
+            ("Day's Range",     f"{_price_str(day_low)} – {_price_str(day_high)}"),
             ("52-Week Range",   f"{_p('fiftyTwoWeekLow')} – {_p('fiftyTwoWeekHigh')}"),
             ("Sector",          c["sector"]),
         ],
         [
-            ("Volume",        _n("volume")),
+            ("Volume",        _n("volume") if info.get("volume") else (f"{price_data.get('volume'):,.0f}" if price_data.get("volume") else "—")),
             ("Avg. Volume",   _n("averageVolume")),
-            ("Market Cap",    _mc("marketCap")),
+            ("Market Cap",    _mc_str()),
             ("Float %",       f"{c['float_pct']}%"),
             ("Exchange",      c["exchange"]),
         ],
@@ -715,7 +739,7 @@ def render_company_deep_dive(c, details, usdinr):
             ("EPS (TTM)",      f"{sym}{info['trailingEps']:.2f}" if isinstance(info.get("trailingEps"), (int,float)) else "—"),
             ("Beta (5Y)",      _n("beta", "{:.2f}")),
             ("1Y Target Est",  _p("targetMeanPrice")),
-            ("Div & Yield",    f"{info.get('dividendYield', 0)*100:.2f}%" if info.get("dividendYield") else "—"),
+            ("Div & Yield",    f"{info.get('dividendYield',0)*100:.2f}%" if info.get("dividendYield") else "—"),
         ],
     ]
 
@@ -1486,8 +1510,10 @@ def main():
         idx = company_options.index(selected) - 1
         chosen = COMPANIES[idx]
         with st.spinner(f"Loading {chosen['name']} details…"):
-            details = fetch_company_details(yf_ticker(chosen))
-        render_company_deep_dive(chosen, details, usdinr)
+            details   = fetch_company_details(yf_ticker(chosen))
+        price_data = price_cache.get(chosen["ticker"], {})
+        mc_data    = live_mktcaps.get(chosen["ticker"])
+        render_company_deep_dive(chosen, details, usdinr, price_data, mc_data)
 
     # ── Sector breakdown ─────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Sector Composition</div>', unsafe_allow_html=True)
