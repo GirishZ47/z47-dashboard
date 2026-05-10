@@ -295,38 +295,74 @@ def fetch_company_news(yf_tk: str) -> list:
         return []
 
 
+def _yf_info_with_fallback(c: dict) -> dict:
+    """
+    Fetch yfinance info for a company, trying .NS first then .BO as fallback.
+    Some stocks (e.g. GROWW) are indexed better under .BO on Yahoo Finance.
+    """
+    def _extract(info):
+        return {
+            "targetLow":          info.get("targetLowPrice"),
+            "targetHigh":         info.get("targetHighPrice"),
+            "targetMean":         info.get("targetMeanPrice"),
+            "targetMedian":       info.get("targetMedianPrice"),
+            "currentPrice":       info.get("currentPrice") or info.get("previousClose"),
+            "previousClose":      info.get("previousClose"),
+            "recommendationKey":  info.get("recommendationKey"),
+            "numberOfAnalysts":   info.get("numberOfAnalystOpinions"),
+            "trailingPE":         info.get("trailingPE"),
+            "forwardPE":          info.get("forwardPE"),
+            "trailingEps":        info.get("trailingEps"),
+            "beta":               info.get("beta"),
+            "fiftyTwoWeekLow":    info.get("fiftyTwoWeekLow"),
+            "fiftyTwoWeekHigh":   info.get("fiftyTwoWeekHigh"),
+            "dividendYield":      info.get("dividendYield"),
+            "averageVolume":      info.get("averageVolume"),
+            "volume":             info.get("volume"),
+            "marketCap":          info.get("marketCap"),
+        }
+
+    # NASDAQ stocks don't need fallback
+    if c["exchange"] != "NSE":
+        try:
+            return _extract(yf.Ticker(yf_ticker(c)).info or {})
+        except Exception:
+            return {}
+
+    # Try .NS first
+    ns_data = {}
+    try:
+        ns_info = yf.Ticker(c["ticker"] + ".NS").info or {}
+        ns_data = _extract(ns_info)
+    except Exception:
+        pass
+
+    # If analyst data is missing, try .BO
+    if not ns_data.get("targetMean"):
+        try:
+            bo_info = yf.Ticker(c["ticker"] + ".BO").info or {}
+            bo_data = _extract(bo_info)
+            # Merge: .NS for prices, .BO fills in any gaps
+            merged = {**ns_data, **{k: v for k, v in bo_data.items() if v and not ns_data.get(k)}}
+            return merged
+        except Exception:
+            pass
+
+    return ns_data
+
+
 @st.cache_data(ttl=86400)  # refresh daily — analyst data changes slowly
 def fetch_all_analyst_data() -> dict:
     """Pre-fetch analyst price targets + key stats for all 47 companies in parallel."""
-    def _get(c):
-        try:
-            info = yf.Ticker(yf_ticker(c)).info or {}
-            return c["ticker"], {
-                "targetLow":          info.get("targetLowPrice"),
-                "targetHigh":         info.get("targetHighPrice"),
-                "targetMean":         info.get("targetMeanPrice"),
-                "targetMedian":       info.get("targetMedianPrice"),
-                "currentPrice":       info.get("currentPrice") or info.get("previousClose"),
-                "recommendationKey":  info.get("recommendationKey"),
-                "numberOfAnalysts":   info.get("numberOfAnalystOpinions"),
-                "trailingPE":         info.get("trailingPE"),
-                "forwardPE":          info.get("forwardPE"),
-                "trailingEps":        info.get("trailingEps"),
-                "beta":               info.get("beta"),
-                "fiftyTwoWeekLow":    info.get("fiftyTwoWeekLow"),
-                "fiftyTwoWeekHigh":   info.get("fiftyTwoWeekHigh"),
-                "dividendYield":      info.get("dividendYield"),
-                "averageVolume":      info.get("averageVolume"),
-            }
-        except Exception:
-            return c["ticker"], {}
-
     results = {}
     with ThreadPoolExecutor(max_workers=10) as ex:
-        futures = {ex.submit(_get, c): c for c in COMPANIES}
+        futures = {ex.submit(_yf_info_with_fallback, c): c for c in COMPANIES}
         for f in as_completed(futures):
-            ticker, data = f.result()
-            results[ticker] = data
+            c = futures[f]
+            try:
+                results[c["ticker"]] = f.result()
+            except Exception:
+                results[c["ticker"]] = {}
     return results
 
 
@@ -355,9 +391,21 @@ def fetch_company_financials(yf_tk: str) -> dict:
 def fetch_company_live(yf_tk: str) -> dict:
     """Key stats, analyst targets, recommendations, earnings dates — refreshed with prices."""
     try:
+        # Try primary ticker, then .BO fallback for NSE stocks
         t = yf.Ticker(yf_tk)
         result = {}
-        try:    result["info"] = t.info or {}
+        try:
+            info = t.info or {}
+            # If analyst data missing and this is an NSE stock, try .BO
+            if not info.get("targetMeanPrice") and yf_tk.endswith(".NS"):
+                bo_tk = yf_tk.replace(".NS", ".BO")
+                try:
+                    bo_info = yf.Ticker(bo_tk).info or {}
+                    # Merge: keep .NS prices, fill gaps from .BO
+                    info = {**info, **{k: v for k, v in bo_info.items() if v and not info.get(k)}}
+                except Exception:
+                    pass
+            result["info"] = info
         except: result["info"] = {}
 
         # Earnings dates
