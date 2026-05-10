@@ -21,7 +21,7 @@ st.set_page_config(
     page_title="Z47 Index",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ── Colour palette ────────────────────────────────────────────────────────────
@@ -1321,6 +1321,7 @@ def stream_ai_response(user_question, data_context):
 # ── Mobile layout ─────────────────────────────────────────────────────────────
 
 def main_mobile():
+    _render_sidebar()
     hist = load_history()
     nifty_live, sensex_live = fetch_live_indices()
     usdinr = get_usdinr()
@@ -1472,7 +1473,24 @@ def main_mobile():
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _render_sidebar():
+    st.sidebar.markdown(
+        f"""<div style='padding:8px 0 16px 0'>
+        <div style='font-size:17px;font-weight:800;color:#1a0f00;margin-bottom:2px'>Z47 Dashboard</div>
+        <div style='font-size:11px;color:#a38060'>Indian New-Age Tech & Fintech</div>
+        </div>""", unsafe_allow_html=True
+    )
+    st.sidebar.page_link("app.py",                                   label="📊 Z47 Index",       )
+    st.sidebar.page_link("pages/1_📈_Recent_IPOs.py",                label="📈 Recent IPOs",     )
+    st.sidebar.page_link("pages/2_🚀_Upcoming_IPOs.py",              label="🚀 Upcoming IPOs",   )
+    st.sidebar.page_link("pages/3_💼_Block_&_Bulk_Deals.py",         label="💼 Block & Bulk Deals")
+    st.sidebar.page_link("pages/4_📋_DRHP_Filings.py",              label="📋 DRHP Filings",    )
+    st.sidebar.markdown(f"<hr style='border-color:{BORDER};margin:12px 0'>", unsafe_allow_html=True)
+
+
 def main():
+    _render_sidebar()
+
     # Auto-refresh every 5 minutes — keeps prices, indices and live data current
     st_autorefresh(interval=300_000, key="z47_autorefresh")
 
