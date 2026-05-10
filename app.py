@@ -15,14 +15,17 @@ from streamlit_js_eval import streamlit_js_eval
 from streamlit_autorefresh import st_autorefresh
 
 from companies import COMPANIES, SECTOR_COLORS, yf_ticker
-from sidebar_nav import render_sidebar
+import page_recent_ipos
+import page_upcoming_ipos
+import page_block_deals
+import page_drhp
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Z47 Index",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── Colour palette ────────────────────────────────────────────────────────────
@@ -72,11 +75,31 @@ section[data-testid="stSidebar"] {{ background: {BG_ALT}; }}
 
 .last-updated {{ color: #a38060; font-size: 12px; text-align: right; }}
 #MainMenu, footer, header {{ visibility: hidden; height: 0 !important; }}
-[data-testid="stHeader"] {{ display: none !important; height: 0 !important; }}
-[data-testid="stToolbar"] {{ display: none !important; height: 0 !important; }}
-[data-testid="stDecoration"] {{ display: none !important; }}
+[data-testid="stHeader"]    {{ display: none !important; height: 0 !important; }}
+[data-testid="stToolbar"]   {{ display: none !important; height: 0 !important; }}
+[data-testid="stDecoration"]{{ display: none !important; }}
+[data-testid="collapsedControl"] {{ display: none !important; }}
+[data-testid="stSidebar"]   {{ display: none !important; }}
 .stApp > header {{ display: none !important; }}
-.block-container {{ padding-top: 1.5rem !important; }}
+.block-container {{ padding-top: 0.5rem !important; }}
+
+/* ── Top nav ──────────────────────────────────────────────────────── */
+.topnav-wrap {{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0 6px 0;
+    border-bottom: 2px solid {BORDER};
+    margin-bottom: 18px;
+}}
+.subnav-wrap {{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid {BORDER};
+    margin-bottom: 14px;
+}}
 
 /* ── Mobile card ─────────────────────────────────────────────────── */
 .mobile-kpi {{
@@ -1322,7 +1345,6 @@ def stream_ai_response(user_question, data_context):
 # ── Mobile layout ─────────────────────────────────────────────────────────────
 
 def main_mobile():
-    _render_sidebar()
     hist = load_history()
     nifty_live, sensex_live = fetch_live_indices()
     usdinr = get_usdinr()
@@ -1474,13 +1496,69 @@ def main_mobile():
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def _render_sidebar():
-    render_sidebar()
+def _nav_btn(label, key, target_page, ipo_tab=None):
+    """Render one top-nav button; returns True if active."""
+    active = (
+        st.session_state.get("nav_page", "z47") == target_page
+        and (ipo_tab is None or st.session_state.get("ipo_tab", "recent") == ipo_tab)
+    )
+    if st.button(label, key=key, type="primary" if active else "secondary",
+                 use_container_width=True):
+        st.session_state.nav_page = target_page
+        if ipo_tab is not None:
+            st.session_state.ipo_tab = ipo_tab
+        st.rerun()
+    return active
+
+
+def _render_top_nav():
+    """Persistent 3-button top nav — always rendered first."""
+    page = st.session_state.get("nav_page", "z47")
+
+    # ── Level-1 nav ───────────────────────────────────────────────────────────
+    c1, c2, c3, _gap = st.columns([1.6, 0.9, 2.0, 5])
+    with c1: _nav_btn("📊 Z47 Index",       "nav_z47",   "z47")
+    with c2: _nav_btn("📈 IPOs",            "nav_ipos",  "ipos")
+    with c3: _nav_btn("💼 Block & Bulk Deals","nav_block","block")
+
+    st.markdown("<hr style='border-color:#ccdaea;margin:6px 0 0 0'>", unsafe_allow_html=True)
+
+    # ── Level-2 IPO sub-nav (only when IPOs is active) ───────────────────────
+    if page == "ipos":
+        s1, s2, s3, _gap2 = st.columns([1.7, 1.9, 1.8, 4.6])
+        with s1: _nav_btn("📈 Recent IPOs",   "snav_recent",   "ipos", "recent")
+        with s2: _nav_btn("🚀 Upcoming IPOs", "snav_upcoming", "ipos", "upcoming")
+        with s3: _nav_btn("📋 DRHP Filings",  "snav_drhp",     "ipos", "drhp")
+        st.markdown("<hr style='border-color:#ccdaea;margin:6px 0 14px 0'>", unsafe_allow_html=True)
 
 
 def main():
-    _render_sidebar()
+    # Session state defaults
+    if "nav_page" not in st.session_state:
+        st.session_state.nav_page = "z47"
+    if "ipo_tab" not in st.session_state:
+        st.session_state.ipo_tab = "recent"
 
+    _render_top_nav()
+
+    page = st.session_state.nav_page
+
+    # ── Route to sub-pages ────────────────────────────────────────────────────
+    if page == "ipos":
+        tab = st.session_state.get("ipo_tab", "recent")
+        if tab == "recent":
+            page_recent_ipos.render()
+        elif tab == "upcoming":
+            page_upcoming_ipos.render()
+        else:
+            page_drhp.render()
+        return
+
+    if page == "block":
+        page_block_deals.render()
+        return
+
+    # ── Z47 Index (default) ───────────────────────────────────────────────────
     # Auto-refresh every 5 minutes — keeps prices, indices and live data current
     st_autorefresh(interval=300_000, key="z47_autorefresh")
 

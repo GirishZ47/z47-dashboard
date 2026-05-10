@@ -1,10 +1,5 @@
+"""Recent IPOs module — called by app.py routing."""
 import streamlit as st
-st.set_page_config(page_title="Recent IPOs | Z47", page_icon="📈", layout="wide")
-
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sidebar_nav import render_sidebar
-
 import requests
 import pandas as pd
 import yfinance as yf
@@ -12,34 +7,23 @@ import pytz
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 
-# ── Theme ──────────────────────────────────────────────────────────────────────
-BG = "#fdf6ec"; CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
+CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
 
-def now_ist():
+
+def _now_ist():
     return datetime.now(IST).strftime("%d-%m-%Y %H:%M:%S IST")
 
-def warn_banner(msg):
+
+def _warn(msg):
     st.markdown(
         f"""<div style='background:#fef3cd;border:1px solid #ffc107;border-radius:8px;
         padding:10px 16px;color:#856404;font-size:13px;margin-bottom:12px'>⚠️ {msg}</div>""",
         unsafe_allow_html=True,
     )
 
-st.markdown(
-    f"""<style>
-    .stApp {{ background-color: {BG}; }}
-    [data-testid="stHeader"] {{ display: none !important; }}
-    .block-container {{ padding-top: 1.5rem; }}
-    div[data-testid="metric-container"] {{ background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px }}
-    </style>""",
-    unsafe_allow_html=True,
-)
 
-st_autorefresh(interval=900_000, key="recent_ipo_refresh")
-render_sidebar()
-
-# ── Hardcoded IPO data ─────────────────────────────────────────────────────────
+# ── IPO data ───────────────────────────────────────────────────────────────────
 IPOS = [
     {
         "company": "Groww", "sector": "Fintech/FS", "ticker": "GROWW.NS", "exchange": "NSE",
@@ -243,79 +227,57 @@ IPOS = [
     },
 ]
 
-# ── Live data helpers ──────────────────────────────────────────────────────────
+
+# ── Cached helpers ─────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)
-def get_live_price(ticker):
+def _live_price(ticker):
     try:
         t = yf.Ticker(ticker)
-        info = t.fast_info
-        return info.last_price, info.fifty_two_week_high, info.fifty_two_week_low
+        fi = t.fast_info
+        return fi.last_price, fi.fifty_two_week_high, fi.fifty_two_week_low
     except Exception:
         return None, None, None
 
 
-@st.cache_data(ttl=300)
-def fetch_nse_block_deals(symbol):
-    NSE_HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nseindia.com/",
-    }
+def _scrape_gmp(company_name):
     try:
-        s = requests.Session()
-        s.get("https://www.nseindia.com", headers=NSE_HEADERS, timeout=6)
-        r = s.get(
-            f"https://www.nseindia.com/api/block-deal?symbol={symbol}",
-            headers=NSE_HEADERS, timeout=8,
-        )
-        if r.status_code == 200:
-            return r.json()
-    except Exception:
-        pass
-    return {}
-
-
-def scrape_gmp(company_name):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        url = "https://www.investorgain.com/report/live-ipo-gmp/331/"
-        r = requests.get(url, headers=headers, timeout=10)
         from bs4 import BeautifulSoup
+        r = requests.get(
+            "https://www.investorgain.com/report/live-ipo-gmp/331/",
+            headers={"User-Agent": "Mozilla/5.0"}, timeout=10,
+        )
         soup = BeautifulSoup(r.text, "lxml")
-        rows = soup.find_all("tr")
         name_lower = company_name.lower()
-        for row in rows:
+        for row in soup.find_all("tr"):
             cells = row.find_all("td")
             if cells and name_lower in cells[0].get_text(strip=True).lower():
-                gmp_text = cells[4].get_text(strip=True) if len(cells) > 4 else ""
-                exp_text = cells[5].get_text(strip=True) if len(cells) > 5 else ""
-                return {"gmp": gmp_text, "expected_listing": exp_text}
+                return {
+                    "gmp": cells[4].get_text(strip=True) if len(cells) > 4 else "",
+                    "expected_listing": cells[5].get_text(strip=True) if len(cells) > 5 else "",
+                }
     except Exception:
         pass
     return None
 
 
 @st.cache_data(ttl=600)
-def fetch_shareholding(ticker):
+def _shareholding(ticker):
     try:
         t = yf.Ticker(ticker)
-        holders = t.major_holders
-        if holders is not None and not holders.empty:
-            return holders
+        h = t.major_holders
+        if h is not None and not h.empty:
+            return h
     except Exception:
         pass
     return None
 
 
-# ── Build summary dataframe ────────────────────────────────────────────────────
-def build_summary_df():
+def _build_df():
     rows = []
     for ipo in IPOS:
-        price, h52, l52 = get_live_price(ipo["ticker"])
-        ip = ipo["issue_price"]
-        lp = ipo["listing_price"]
-        ret_ipo = round((price - ip) / ip * 100, 2) if price and ip else None
+        price, h52, l52 = _live_price(ipo["ticker"])
+        ip, lp = ipo["issue_price"], ipo["listing_price"]
+        ret_ipo  = round((price - ip) / ip * 100, 2) if price and ip else None
         ret_list = round((price - lp) / lp * 100, 2) if price and lp else None
         rows.append({
             "Company": ipo["company"],
@@ -333,176 +295,140 @@ def build_summary_df():
     return pd.DataFrame(rows)
 
 
-# ── Page ───────────────────────────────────────────────────────────────────────
-st.markdown("## 📈 Recent IPOs — New Age Tech & Fintech")
-st.markdown(
-    "<p style='color:#6b7a8d;font-size:14px'>Curated list of recent Indian new-age tech & fintech IPOs (last 12–18 months).</p>",
-    unsafe_allow_html=True,
-)
+# ── Render ─────────────────────────────────────────────────────────────────────
+def render():
+    st_autorefresh(interval=900_000, key="recent_ipo_refresh")
 
-col_r, col_b = st.columns([6, 1])
-with col_b:
-    if st.button("🔄 Refresh Now"):
-        st.cache_data.clear()
-        st.rerun()
+    st.markdown("## 📈 Recent IPOs — New Age Tech & Fintech")
+    st.markdown(
+        "<p style='color:#6b7a8d;font-size:14px'>Curated list of recent Indian new-age tech & fintech IPOs (last 12–18 months).</p>",
+        unsafe_allow_html=True,
+    )
 
-# ── Filter bar ────────────────────────────────────────────────────────────────
-sectors = sorted(set(i["sector"] for i in IPOS))
-col1, col2, col3 = st.columns([3, 2, 2])
-with col1:
-    search = st.text_input("Search company", placeholder="e.g. Swiggy", label_visibility="collapsed")
-with col2:
-    sel_sector = st.selectbox("Sector", ["All"] + sectors, label_visibility="collapsed")
-with col3:
-    sort_col = st.selectbox("Sort by", ["Listing Date", "Return from IPO (%)", "Issue Size"], label_visibility="collapsed")
+    col_r, col_b = st.columns([6, 1])
+    with col_b:
+        if st.button("🔄 Refresh", key="ri_refresh"):
+            st.cache_data.clear()
+            st.rerun()
 
-with st.spinner("Loading live prices…"):
-    df = build_summary_df()
-
-if search:
-    df = df[df["Company"].str.contains(search, case=False, na=False)]
-if sel_sector != "All":
-    df = df[df["Sector"] == sel_sector]
-
-try:
-    if sort_col == "Listing Date":
-        df = df.sort_values("Listing Date", ascending=False)
-    elif sort_col == "Return from IPO (%)":
-        df = df.sort_values("Return from IPO (%)", ascending=False)
-    elif sort_col == "Issue Size":
-        df = df.sort_values("Issue Size", ascending=False)
-except Exception:
-    pass
-
-def color_ret(val):
-    if val is None or (isinstance(val, float) and pd.isna(val)):
-        return ""
-    return "color: #16a34a; font-weight:600" if val >= 0 else "color: #dc2626; font-weight:600"
-
-styled = df.style.applymap(color_ret, subset=["Return from IPO (%)", "Return from Listing (%)"])
-
-st.dataframe(
-    styled,
-    use_container_width=True,
-    height=420,
-    column_config={
-        "Issue Price (₹)": st.column_config.NumberColumn(format="₹%.2f"),
-        "Listing Price (₹)": st.column_config.NumberColumn(format="₹%.2f"),
-        "Current Price (₹)": st.column_config.NumberColumn(format="₹%.2f"),
-        "Return from IPO (%)": st.column_config.NumberColumn(format="%.2f%%"),
-        "Return from Listing (%)": st.column_config.NumberColumn(format="%.2f%%"),
-    },
-)
-
-st.markdown(
-    f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {now_ist()}</div>',
-    unsafe_allow_html=True,
-)
-
-# ── Deep-dive section ─────────────────────────────────────────────────────────
-st.markdown("---")
-st.markdown("### Deep Dive — Select an IPO")
-
-company_names = [i["company"] for i in IPOS]
-selected_name = st.selectbox("Select IPO for Details", company_names)
-ipo = next(i for i in IPOS if i["company"] == selected_name)
-
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["📋 Overview", "📊 Performance", "🔮 GMP History", "📬 Subscription", "🏦 Shareholding"]
-)
-
-with tab1:
-    c1, c2 = st.columns(2)
+    sectors = sorted(set(i["sector"] for i in IPOS))
+    c1, c2, c3 = st.columns([3, 2, 2])
     with c1:
-        st.markdown(f"**Company:** {ipo['company']}")
-        st.markdown(f"**Sector:** {ipo['sector']}")
-        st.markdown(f"**Exchange:** {ipo['exchange']}")
-        st.markdown(f"**Listing Date:** {ipo['listing_date']}")
-        st.markdown(f"**Price Band:** {ipo['price_band']}")
-        st.markdown(f"**Issue Price:** {'₹' + str(ipo['issue_price']) if ipo['issue_price'] else 'TBD'}")
+        search = st.text_input("Search", placeholder="e.g. Swiggy", label_visibility="collapsed", key="ri_search")
     with c2:
-        st.markdown(f"**Lot Size:** {ipo['lot_size'] or 'TBD'}")
-        st.markdown(f"**Issue Size:** {ipo['issue_size']}")
-        st.markdown(f"**Fresh Issue:** {ipo['fresh_issue']}")
-        st.markdown(f"**OFS Component:** {ipo['ofs']}")
-        st.markdown(f"**Use of Funds:** {ipo['use_of_funds']}")
-        st.markdown(f"**Key Investors:** {ipo['key_investors']}")
+        sel_sector = st.selectbox("Sector", ["All"] + sectors, label_visibility="collapsed", key="ri_sector")
+    with c3:
+        sort_col = st.selectbox("Sort by", ["Listing Date", "Return from IPO (%)", "Issue Size"],
+                                label_visibility="collapsed", key="ri_sort")
 
-with tab2:
-    price, h52, l52 = get_live_price(ipo["ticker"])
-    ip = ipo["issue_price"]
-    lp = ipo["listing_price"]
+    with st.spinner("Loading live prices…"):
+        df = _build_df()
 
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.metric("Current Price", f"₹{price:.2f}" if price else "N/A")
-    with m2:
-        st.metric("Listing Price", f"₹{lp:.2f}" if lp else "N/A")
-    with m3:
-        ret = round((price - ip) / ip * 100, 2) if price and ip else None
-        delta_str = f"{ret:+.2f}%" if ret is not None else "N/A"
-        st.metric("Return from IPO", delta_str)
-    with m4:
-        st.metric("52W High / Low",
-                  f"₹{h52:.0f} / ₹{l52:.0f}" if h52 and l52 else "N/A")
+    if search:
+        df = df[df["Company"].str.contains(search, case=False, na=False)]
+    if sel_sector != "All":
+        df = df[df["Sector"] == sel_sector]
+    try:
+        if sort_col == "Listing Date":
+            df = df.sort_values("Listing Date", ascending=False)
+        elif sort_col == "Return from IPO (%)":
+            df = df.sort_values("Return from IPO (%)", ascending=False)
+    except Exception:
+        pass
 
-    if not price:
-        warn_banner(f"Live price unavailable for {ipo['ticker']}. yfinance may not have this ticker yet.")
+    def _color(val):
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return ""
+        return "color:#16a34a;font-weight:600" if val >= 0 else "color:#dc2626;font-weight:600"
 
-    st.markdown(
-        f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {now_ist()}</div>',
-        unsafe_allow_html=True,
-    )
+    styled = df.style.applymap(_color, subset=["Return from IPO (%)", "Return from Listing (%)"])
+    st.dataframe(styled, use_container_width=True, height=400,
+                 column_config={
+                     "Issue Price (₹)":         st.column_config.NumberColumn(format="₹%.2f"),
+                     "Listing Price (₹)":        st.column_config.NumberColumn(format="₹%.2f"),
+                     "Current Price (₹)":        st.column_config.NumberColumn(format="₹%.2f"),
+                     "Return from IPO (%)":      st.column_config.NumberColumn(format="%.2f%%"),
+                     "Return from Listing (%)":  st.column_config.NumberColumn(format="%.2f%%"),
+                 })
+    st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
+                unsafe_allow_html=True)
 
-with tab3:
-    st.markdown("**Grey Market Premium (GMP) Data**")
-    with st.spinner("Fetching GMP from investorgain.com…"):
-        gmp_data = scrape_gmp(ipo["company"])
-    if gmp_data:
-        col_g1, col_g2 = st.columns(2)
-        col_g1.metric("Current GMP", gmp_data.get("gmp", "N/A"))
-        col_g2.metric("Expected Listing", gmp_data.get("expected_listing", "N/A"))
-    else:
-        warn_banner(
-            "GMP data unavailable from investorgain.com. The company may have already listed or data is not available."
-        )
-        if ipo.get("known_listing_gain_pct") is not None:
-            pct = ipo["known_listing_gain_pct"]
-            color = "#16a34a" if pct >= 0 else "#dc2626"
-            st.markdown(
-                f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:14px;font-size:15px;margin-top:8px'>
-                Listing day gain: <b style='color:{color}'>{pct:+.1f}%</b> over issue price
-                </div>""",
-                unsafe_allow_html=True,
-            )
-    st.markdown(
-        f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {now_ist()}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("---")
+    st.markdown("### Deep Dive — Select an IPO")
+    selected = st.selectbox("Select IPO", [i["company"] for i in IPOS], key="ri_deep")
+    ipo = next(i for i in IPOS if i["company"] == selected)
 
-with tab4:
-    st.markdown("**Final Subscription Data**")
-    sub_data = {
-        "Category": ["QIB", "NII (HNI)", "RII (Retail)", "Overall"],
-        "Subscription": [ipo["qib_sub"], ipo["nii_sub"], ipo["rii_sub"], ipo["overall_sub"]],
-    }
-    sub_df = pd.DataFrame(sub_data)
-    st.dataframe(sub_df, use_container_width=True, hide_index=True)
-    st.caption("Source: NSE/BSE final subscription data (hardcoded from official filings).")
+    t1, t2, t3, t4, t5 = st.tabs(["📋 Overview", "📊 Performance", "🔮 GMP", "📬 Subscription", "🏦 Shareholding"])
 
-with tab5:
-    st.markdown("**Major Shareholders**")
-    with st.spinner("Fetching shareholding data…"):
-        holders = fetch_shareholding(ipo["ticker"])
-    if holders is not None:
-        st.dataframe(holders, use_container_width=True)
-    else:
-        warn_banner(
-            "Shareholding data not available from yfinance for this ticker. "
-            "Check NSE/BSE for the latest shareholding pattern."
-        )
-    st.markdown(
-        f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {now_ist()}</div>',
-        unsafe_allow_html=True,
-    )
+    with t1:
+        a, b = st.columns(2)
+        with a:
+            st.markdown(f"**Company:** {ipo['company']}")
+            st.markdown(f"**Sector:** {ipo['sector']}")
+            st.markdown(f"**Exchange:** {ipo['exchange']}")
+            st.markdown(f"**Listing Date:** {ipo['listing_date']}")
+            st.markdown(f"**Price Band:** {ipo['price_band']}")
+            st.markdown(f"**Issue Price:** {'₹' + str(ipo['issue_price']) if ipo['issue_price'] else 'TBD'}")
+        with b:
+            st.markdown(f"**Lot Size:** {ipo['lot_size'] or 'TBD'}")
+            st.markdown(f"**Issue Size:** {ipo['issue_size']}")
+            st.markdown(f"**Fresh Issue:** {ipo['fresh_issue']}")
+            st.markdown(f"**OFS:** {ipo['ofs']}")
+            st.markdown(f"**Use of Funds:** {ipo['use_of_funds']}")
+            st.markdown(f"**Key Investors:** {ipo['key_investors']}")
+
+    with t2:
+        price, h52, l52 = _live_price(ipo["ticker"])
+        ip, lp = ipo["issue_price"], ipo["listing_price"]
+        m1, m2, m3, m4 = st.columns(4)
+        with m1: st.metric("Current Price", f"₹{price:.2f}" if price else "N/A")
+        with m2: st.metric("Listing Price", f"₹{lp:.2f}" if lp else "N/A")
+        with m3:
+            ret = round((price - ip) / ip * 100, 2) if price and ip else None
+            st.metric("Return from IPO", f"{ret:+.2f}%" if ret is not None else "N/A")
+        with m4:
+            st.metric("52W High / Low", f"₹{h52:.0f} / ₹{l52:.0f}" if h52 and l52 else "N/A")
+        if not price:
+            _warn(f"Live price unavailable for {ipo['ticker']}.")
+        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
+                    unsafe_allow_html=True)
+
+    with t3:
+        st.markdown("**Grey Market Premium (GMP)**")
+        with st.spinner("Fetching GMP…"):
+            gmp = _scrape_gmp(ipo["company"])
+        if gmp:
+            g1, g2 = st.columns(2)
+            g1.metric("Current GMP", gmp.get("gmp", "N/A"))
+            g2.metric("Expected Listing", gmp.get("expected_listing", "N/A"))
+        else:
+            _warn("GMP data unavailable. Company may have already listed.")
+            if ipo.get("known_listing_gain_pct") is not None:
+                pct = ipo["known_listing_gain_pct"]
+                color = "#16a34a" if pct >= 0 else "#dc2626"
+                st.markdown(
+                    f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                    padding:14px;font-size:15px;margin-top:8px'>
+                    Listing day gain: <b style='color:{color}'>{pct:+.1f}%</b> over issue price</div>""",
+                    unsafe_allow_html=True)
+        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
+                    unsafe_allow_html=True)
+
+    with t4:
+        st.markdown("**Final Subscription Data**")
+        st.dataframe(pd.DataFrame({
+            "Category":     ["QIB", "NII (HNI)", "RII (Retail)", "Overall"],
+            "Subscription": [ipo["qib_sub"], ipo["nii_sub"], ipo["rii_sub"], ipo["overall_sub"]],
+        }), use_container_width=True, hide_index=True)
+        st.caption("Source: NSE/BSE final subscription data (hardcoded from official filings).")
+
+    with t5:
+        st.markdown("**Major Shareholders**")
+        with st.spinner("Fetching shareholding…"):
+            holders = _shareholding(ipo["ticker"])
+        if holders is not None:
+            st.dataframe(holders, use_container_width=True)
+        else:
+            _warn("Shareholding data not available from yfinance for this ticker.")
+        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
+                    unsafe_allow_html=True)
