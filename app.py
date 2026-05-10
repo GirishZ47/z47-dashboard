@@ -324,14 +324,38 @@ def fetch_company_live(yf_tk: str) -> dict:
         result = {}
         try:    result["info"] = t.info or {}
         except: result["info"] = {}
-        for key, attr in [
-            ("earnings_dates",  "earnings_dates"),
-            ("recommendations", "recommendations_summary"),
-        ]:
-            try:    result[key] = getattr(t, attr)
-            except: result[key] = pd.DataFrame()
-        try:    result["price_targets"] = t.analyst_price_targets
-        except: result["price_targets"] = {}
+
+        # Earnings dates
+        try:    result["earnings_dates"] = t.earnings_dates
+        except: result["earnings_dates"] = pd.DataFrame()
+
+        # Recommendations — try summary first, fall back to raw recommendations
+        try:
+            rs = t.recommendations_summary
+            if rs is not None and not rs.empty:
+                result["recommendations"] = rs
+            else:
+                raise ValueError("empty")
+        except Exception:
+            try:    result["recommendations"] = t.recommendations
+            except: result["recommendations"] = pd.DataFrame()
+
+        # Price targets — prefer dedicated endpoint, fall back to info fields
+        try:
+            apt = t.analyst_price_targets
+            if apt and apt.get("mean"):
+                result["price_targets"] = apt
+            else:
+                raise ValueError("empty")
+        except Exception:
+            info = result.get("info", {})
+            result["price_targets"] = {
+                "low":     info.get("targetLowPrice"),
+                "high":    info.get("targetHighPrice"),
+                "mean":    info.get("targetMeanPrice"),
+                "median":  info.get("targetMedianPrice"),
+                "current": info.get("currentPrice") or info.get("previousClose"),
+            }
         return result
     except Exception:
         return {}
@@ -587,9 +611,9 @@ def _render_analyst_insights(details, info, sym):
     with col_l:
         st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Analyst Price Targets</div>',
                     unsafe_allow_html=True)
-        low  = apt.get("low")
-        high = apt.get("high")
-        mean = apt.get("mean") or info.get("targetMeanPrice")
+        low  = apt.get("low")  or info.get("targetLowPrice")
+        high = apt.get("high") or info.get("targetHighPrice")
+        mean = apt.get("mean") or info.get("targetMeanPrice") or info.get("targetMedianPrice")
         curr = apt.get("current") or info.get("currentPrice") or info.get("previousClose")
 
         if all(v for v in [low, high, mean, curr]):
@@ -640,25 +664,52 @@ def _render_analyst_insights(details, info, sym):
     with col_r:
         st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Analyst Recommendations</div>',
                     unsafe_allow_html=True)
+        rec_map = [
+            ("strongBuy",   "Strong Buy",   "#15803d"),
+            ("buy",         "Buy",          "#4ade80"),
+            ("hold",        "Hold",         "#f59e0b"),
+            ("underperform","Underperform", "#f97316"),
+            ("sell",        "Sell",         "#dc2626"),
+        ]
+        # Normalise: both recommendations_summary and raw recommendations may arrive
+        df_recs = None
         if recs is not None and not recs.empty:
-            df = recs.head(4).copy()
-            # Period labels
-            periods = df["period"].tolist() if "period" in df.columns else [str(i) for i in df.index]
+            if "strongBuy" in recs.columns:
+                # Already in summary format
+                df_recs = recs.head(4).copy()
+                periods = df_recs["period"].tolist() if "period" in df_recs.columns else [str(i) for i in df_recs.index]
+            elif "To Grade" in recs.columns or "toGrade" in recs.columns:
+                # Raw analyst actions — count by grade in last 4 months
+                grade_col = "To Grade" if "To Grade" in recs.columns else "toGrade"
+                recs.index = pd.to_datetime(recs.index, utc=True)
+                recs["month"] = recs.index.to_period("M")
+                periods = sorted(recs["month"].unique())[-4:]
+                rows = []
+                grade_map = {"strong buy": "strongBuy", "buy": "buy", "hold": "hold",
+                             "underperform": "underperform", "sell": "sell",
+                             "neutral": "hold", "outperform": "buy", "overweight": "buy",
+                             "underweight": "sell", "market perform": "hold"}
+                for p in periods:
+                    sub = recs[recs["month"] == p]
+                    counts = {"period": str(p)}
+                    for k in ["strongBuy","buy","hold","underperform","sell"]:
+                        counts[k] = 0
+                    for g in sub[grade_col].str.lower():
+                        mapped = grade_map.get(g, None)
+                        if mapped: counts[mapped] += 1
+                    rows.append(counts)
+                df_recs = pd.DataFrame(rows)
+                periods = [r["period"] for r in rows]
 
-            rec_map = [
-                ("strongBuy",  "Strong Buy",  "#15803d"),
-                ("buy",        "Buy",         "#4ade80"),
-                ("hold",       "Hold",        "#f59e0b"),
-                ("underperform","Underperform","#f97316"),
-                ("sell",       "Sell",        "#dc2626"),
-            ]
+        if df_recs is not None and not df_recs.empty:
             fig = go.Figure()
             for col_key, label, color in rec_map:
-                vals = df[col_key].tolist() if col_key in df.columns else [0]*len(periods)
+                vals = df_recs[col_key].tolist() if col_key in df_recs.columns else [0]*len(periods)
                 fig.add_trace(go.Bar(
                     x=periods, y=vals, name=label,
                     marker_color=color,
-                    text=vals, textposition="inside",
+                    text=[v if v > 0 else "" for v in vals],
+                    textposition="inside",
                     textfont=dict(color="white", size=10),
                 ))
             fig.update_layout(
