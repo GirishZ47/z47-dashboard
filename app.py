@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import anthropic
 from streamlit_js_eval import streamlit_js_eval
+from streamlit_autorefresh import st_autorefresh
 
 from companies import COMPANIES, SECTOR_COLORS, yf_ticker
 
@@ -1154,6 +1155,9 @@ def main_mobile():
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    # Auto-refresh every 5 minutes — keeps prices, indices and live data current
+    st_autorefresh(interval=300_000, key="z47_autorefresh")
+
     screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_w")
     if screen_width is not None and screen_width < 768:
         main_mobile()
