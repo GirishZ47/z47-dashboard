@@ -225,6 +225,16 @@ IPOS = [
         "qib_sub": "68.3x", "nii_sub": "49.7x", "rii_sub": "18.2x", "overall_sub": "62.4x",
         "known_listing_gain_pct": 10.3,
     },
+    {
+        "company": "Kissht (OnEMI Technology)", "sector": "Fintech/FS", "ticker": "KISSHT.NS", "exchange": "NSE",
+        "listing_date": "2026-05-08", "price_band": "₹162–171", "issue_price": 171,
+        "listing_price": 190.0, "issue_size": "₹926 cr", "issue_size_cr": 926,
+        "lot_size": 87, "fresh_issue": "₹850 cr", "ofs": "₹76 cr",
+        "use_of_funds": "Augmenting capital base of NBFC subsidiary Si Creva for lending; general corporate purposes.",
+        "key_investors": "Temasek (Vertex), Ventureast, Sistema Asia Fund",
+        "qib_sub": "25.97x", "nii_sub": "6.91x", "rii_sub": "2.13x", "overall_sub": "9.96x",
+        "known_listing_gain_pct": 11.1,
+    },
 ]
 
 
@@ -433,6 +443,27 @@ _ANCHOR_DATA = {
             {"investor": "Goldman Sachs Asset Mgmt", "round": "Series F (2021)", "entry_val": "$1.1B",  "pct_held": "~15%", "return_at_ipo": "-77%",  "return_at_cmp": "—"},
             {"investor": "Accel",                    "round": "Series A (2015)", "entry_val": "~$50M",  "pct_held": "~12%", "return_at_ipo": "~25x",  "return_at_cmp": "—"},
             {"investor": "Wellington Management",    "round": "Series F (2021)", "entry_val": "$1.1B",  "pct_held": "~8%",  "return_at_ipo": "-77%",  "return_at_cmp": "—"},
+        ],
+    },
+    "Kissht (OnEMI Technology)": {
+        "anchor_total_cr": 278,
+        "anchors": [
+            {"investor": "HDFC MF",                      "category": "Mutual Fund",       "allocation_cr": 45},
+            {"investor": "ICICI Pru MF",                 "category": "Mutual Fund",       "allocation_cr": 40},
+            {"investor": "WhiteOak Capital MF",          "category": "Mutual Fund",       "allocation_cr": 35},
+            {"investor": "Goldman Sachs MF",             "category": "Mutual Fund",       "allocation_cr": 30},
+            {"investor": "Quant MF",                     "category": "Mutual Fund",       "allocation_cr": 25},
+            {"investor": "Bandhan MF",                   "category": "Mutual Fund",       "allocation_cr": 23},
+            {"investor": "Ashoka India Equity Trust",    "category": "FII / Global Fund", "allocation_cr": 22},
+            {"investor": "BNP Paribas",                  "category": "FII / Global Fund", "allocation_cr": 20},
+            {"investor": "Citigroup Global Markets",     "category": "FII / Global Fund", "allocation_cr": 18},
+            {"investor": "Neo Secondaries Fund",         "category": "AIF",               "allocation_cr": 12},
+            {"investor": "ACM Global Fund",              "category": "FII / Global Fund", "allocation_cr": 8},
+        ],
+        "pripo_investors": [
+            {"investor": "Temasek (via Vertex Growth Fund)", "round": "Series C–D (2019–21)", "entry_val": "~$200–400M", "pct_held": "~18%", "return_at_ipo": "~2–4x",  "return_at_cmp": "—"},
+            {"investor": "Ventureast Proactive Fund",        "round": "Series A–B (2015–18)", "entry_val": "~$30–80M",   "pct_held": "~8%",  "return_at_ipo": "~10–20x", "return_at_cmp": "—"},
+            {"investor": "Sistema Asia Fund",               "round": "Series B (2017)",      "entry_val": "~$50M",      "pct_held": "~5%",  "return_at_ipo": "~15x",    "return_at_cmp": "—"},
         ],
     },
     "Capillary Technologies": {
