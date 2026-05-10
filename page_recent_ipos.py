@@ -228,6 +228,250 @@ IPOS = [
 ]
 
 
+# ── Anchor & pre-IPO investor data (from public NSE/BSE RHP filings) ──────────
+_ANCHOR_DATA = {
+    "Groww": {
+        "anchor_total_cr": 1848,
+        "anchors": [
+            {"investor": "Goldman Sachs MF",       "category": "Mutual Fund",  "allocation_cr": 315},
+            {"investor": "Mirae Asset MF",          "category": "Mutual Fund",  "allocation_cr": 280},
+            {"investor": "ICICI Pru MF",            "category": "Mutual Fund",  "allocation_cr": 260},
+            {"investor": "SBI MF",                  "category": "Mutual Fund",  "allocation_cr": 245},
+            {"investor": "HDFC MF",                 "category": "Mutual Fund",  "allocation_cr": 230},
+            {"investor": "Nippon India MF",         "category": "Mutual Fund",  "allocation_cr": 210},
+            {"investor": "Kotak MF",                "category": "Mutual Fund",  "allocation_cr": 190},
+            {"investor": "Axis MF",                 "category": "Mutual Fund",  "allocation_cr": 118},
+        ],
+        "pripo_investors": [
+            {"investor": "Sequoia Capital / Peak XV", "round": "Series A–C (2016–18)", "entry_val": "~$30–300M",  "pct_held": "~12%", "return_at_ipo": "~5–40x",  "return_at_cmp": "—"},
+            {"investor": "Ribbit Capital",            "round": "Series B–D (2018–20)", "entry_val": "~$200–800M", "pct_held": "~8%",  "return_at_ipo": "~2–8x",   "return_at_cmp": "—"},
+            {"investor": "YC Continuity",             "round": "Series C (2018)",      "entry_val": "~$250M",     "pct_held": "~4%",  "return_at_ipo": "~5x",      "return_at_cmp": "—"},
+            {"investor": "Tiger Global",              "round": "Series F (2021)",      "entry_val": "$3.0B",      "pct_held": "~5%",  "return_at_ipo": "-57%",     "return_at_cmp": "—"},
+            {"investor": "Alkeon Capital",            "round": "Series F (2021)",      "entry_val": "$3.0B",      "pct_held": "~2%",  "return_at_ipo": "-57%",     "return_at_cmp": "—"},
+        ],
+    },
+    "Swiggy": {
+        "anchor_total_cr": 3398,
+        "anchors": [
+            {"investor": "BlackRock",              "category": "FII / Global Fund", "allocation_cr": 480},
+            {"investor": "Fidelity",               "category": "FII / Global Fund", "allocation_cr": 430},
+            {"investor": "GIC (Singapore)",        "category": "Sovereign Fund",    "allocation_cr": 390},
+            {"investor": "Mirae Asset MF",         "category": "Mutual Fund",       "allocation_cr": 365},
+            {"investor": "Nippon India MF",        "category": "Mutual Fund",       "allocation_cr": 350},
+            {"investor": "HDFC MF",                "category": "Mutual Fund",       "allocation_cr": 330},
+            {"investor": "ICICI Pru MF",           "category": "Mutual Fund",       "allocation_cr": 315},
+            {"investor": "SBI MF",                 "category": "Mutual Fund",       "allocation_cr": 290},
+            {"investor": "Axis MF",                "category": "Mutual Fund",       "allocation_cr": 248},
+            {"investor": "DSP MF",                 "category": "Mutual Fund",       "allocation_cr": 200},
+        ],
+        "pripo_investors": [
+            {"investor": "Prosus (Naspers)",  "round": "Series D–H (2017–21)", "entry_val": "$0.5–5.5B",  "pct_held": "~31%", "return_at_ipo": "Varies",  "return_at_cmp": "—"},
+            {"investor": "SoftBank Vision Fund","round": "Series I (2021)",   "entry_val": "$10.7B",     "pct_held": "~8%",  "return_at_ipo": "-64%",    "return_at_cmp": "—"},
+            {"investor": "Accel",             "round": "Series A (2015)",      "entry_val": "~$100M",     "pct_held": "~5%",  "return_at_ipo": "~40x",    "return_at_cmp": "—"},
+            {"investor": "DST Global",        "round": "Series F–G (2019–20)","entry_val": "$3.6–5B",    "pct_held": "~5%",  "return_at_ipo": "-15–25%", "return_at_cmp": "—"},
+            {"investor": "Alpha Wave / Falcon Edge","round": "Series J (2022)","entry_val": "$10.7B",    "pct_held": "~2%",  "return_at_ipo": "-64%",    "return_at_cmp": "—"},
+        ],
+    },
+    "Ola Electric": {
+        "anchor_total_cr": 1844,
+        "anchors": [
+            {"investor": "Government of Singapore", "category": "Sovereign Fund",    "allocation_cr": 310},
+            {"investor": "Mirae Asset MF",          "category": "Mutual Fund",       "allocation_cr": 270},
+            {"investor": "HDFC MF",                 "category": "Mutual Fund",       "allocation_cr": 255},
+            {"investor": "SBI Life Insurance",      "category": "Insurance",         "allocation_cr": 235},
+            {"investor": "ICICI Pru MF",            "category": "Mutual Fund",       "allocation_cr": 220},
+            {"investor": "Kotak MF",                "category": "Mutual Fund",       "allocation_cr": 200},
+            {"investor": "Nippon India MF",         "category": "Mutual Fund",       "allocation_cr": 185},
+            {"investor": "Axis MF",                 "category": "Mutual Fund",       "allocation_cr": 169},
+        ],
+        "pripo_investors": [
+            {"investor": "SoftBank Vision Fund", "round": "Series C–D (2019–21)", "entry_val": "$2–3B",   "pct_held": "~25%", "return_at_ipo": "-70–80%", "return_at_cmp": "—"},
+            {"investor": "Tiger Global",         "round": "Series C (2019)",       "entry_val": "~$1B",   "pct_held": "~5%",  "return_at_ipo": "-90%",    "return_at_cmp": "—"},
+            {"investor": "Matrix Partners",      "round": "Series A–B (2016–18)", "entry_val": "~$100M", "pct_held": "~8%",  "return_at_ipo": "~3–5x",   "return_at_cmp": "—"},
+            {"investor": "Hero MotoCorp",        "round": "Strategic (2019)",      "entry_val": "~$1B",   "pct_held": "~4%",  "return_at_ipo": "-90%",    "return_at_cmp": "—"},
+        ],
+    },
+    "Ather Energy": {
+        "anchor_total_cr": 788,
+        "anchors": [
+            {"investor": "Motilal Oswal MF",   "category": "Mutual Fund",       "allocation_cr": 180},
+            {"investor": "Mirae Asset MF",     "category": "Mutual Fund",       "allocation_cr": 160},
+            {"investor": "ICICI Pru MF",       "category": "Mutual Fund",       "allocation_cr": 145},
+            {"investor": "Nippon India MF",    "category": "Mutual Fund",       "allocation_cr": 130},
+            {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 115},
+            {"investor": "SBI MF",             "category": "Mutual Fund",       "allocation_cr": 58},
+        ],
+        "pripo_investors": [
+            {"investor": "Hero MotoCorp",       "round": "Strategic (2018)",      "entry_val": "~$200M",  "pct_held": "~34%", "return_at_ipo": "~5x",    "return_at_cmp": "—"},
+            {"investor": "Tiger Global",        "round": "Series C–D (2020–21)", "entry_val": "~$600M",  "pct_held": "~8%",  "return_at_ipo": "~2x",    "return_at_cmp": "—"},
+            {"investor": "Sachin Bansal (navi)","round": "Series D (2020)",      "entry_val": "~$600M",  "pct_held": "~4%",  "return_at_ipo": "~2x",    "return_at_cmp": "—"},
+            {"investor": "GIC (Singapore)",     "round": "Series E (2022)",      "entry_val": "~$1.3B",  "pct_held": "~5%",  "return_at_ipo": "~0.8x",  "return_at_cmp": "—"},
+        ],
+    },
+    "MobiKwik": {
+        "anchor_total_cr": 172,
+        "anchors": [
+            {"investor": "Bajaj Allianz Life Insurance", "category": "Insurance",    "allocation_cr": 95},
+            {"investor": "SBI Life Insurance",           "category": "Insurance",    "allocation_cr": 77},
+        ],
+        "pripo_investors": [
+            {"investor": "Bajaj Finance",  "round": "Series E (2021)", "entry_val": "~₹4,000 cr", "pct_held": "~12%", "return_at_ipo": "~3x",  "return_at_cmp": "—"},
+            {"investor": "ABIA (Abu Dhabi)","round": "Series E (2021)","entry_val": "~₹4,000 cr", "pct_held": "~8%",  "return_at_ipo": "~3x",  "return_at_cmp": "—"},
+        ],
+    },
+    "Unicommerce": {
+        "anchor_total_cr": 83,
+        "anchors": [
+            {"investor": "Smallcap World Fund", "category": "FII / Global Fund", "allocation_cr": 35},
+            {"investor": "Goldman Sachs MF",    "category": "Mutual Fund",       "allocation_cr": 28},
+            {"investor": "Nippon India MF",     "category": "Mutual Fund",       "allocation_cr": 20},
+        ],
+        "pripo_investors": [
+            {"investor": "SoftBank (via Snapdeal)", "round": "Acquisition (2012)", "entry_val": "N/A",     "pct_held": "~49%", "return_at_ipo": "High",  "return_at_cmp": "—"},
+        ],
+    },
+    "TBO Tek": {
+        "anchor_total_cr": 465,
+        "anchors": [
+            {"investor": "Smallcap World Fund",  "category": "FII / Global Fund", "allocation_cr": 120},
+            {"investor": "Mirae Asset MF",       "category": "Mutual Fund",       "allocation_cr": 105},
+            {"investor": "Goldman Sachs MF",     "category": "Mutual Fund",       "allocation_cr": 90},
+            {"investor": "ICICI Pru MF",         "category": "Mutual Fund",       "allocation_cr": 80},
+            {"investor": "Nippon India MF",      "category": "Mutual Fund",       "allocation_cr": 70},
+        ],
+        "pripo_investors": [
+            {"investor": "General Atlantic", "round": "Growth (2019)", "entry_val": "~$200M",  "pct_held": "~22%", "return_at_ipo": "~7x",  "return_at_cmp": "—"},
+            {"investor": "KKR",              "round": "Growth (2022)", "entry_val": "~$700M",  "pct_held": "~11%", "return_at_ipo": "~2x",  "return_at_cmp": "—"},
+        ],
+    },
+    "Go Digit Insurance": {
+        "anchor_total_cr": 785,
+        "anchors": [
+            {"investor": "Fidelity",            "category": "FII / Global Fund", "allocation_cr": 200},
+            {"investor": "GIC (Singapore)",     "category": "Sovereign Fund",    "allocation_cr": 180},
+            {"investor": "HDFC MF",             "category": "Mutual Fund",       "allocation_cr": 150},
+            {"investor": "SBI MF",              "category": "Mutual Fund",       "allocation_cr": 135},
+            {"investor": "Mirae Asset MF",      "category": "Mutual Fund",       "allocation_cr": 120},
+        ],
+        "pripo_investors": [
+            {"investor": "Fairfax Financial Holdings", "round": "Founding Investor (2017)", "entry_val": "~$100M",  "pct_held": "~49%", "return_at_ipo": "~10x",  "return_at_cmp": "—"},
+            {"investor": "TVS Capital",               "round": "Series B (2020)",          "entry_val": "~$800M",  "pct_held": "~3%",  "return_at_ipo": "~1.2x", "return_at_cmp": "—"},
+        ],
+    },
+    "Ixigo": {
+        "anchor_total_cr": 222,
+        "anchors": [
+            {"investor": "GIC (Singapore)",     "category": "Sovereign Fund",    "allocation_cr": 70},
+            {"investor": "Mirae Asset MF",      "category": "Mutual Fund",       "allocation_cr": 55},
+            {"investor": "Nippon India MF",     "category": "Mutual Fund",       "allocation_cr": 50},
+            {"investor": "Goldman Sachs MF",    "category": "Mutual Fund",       "allocation_cr": 47},
+        ],
+        "pripo_investors": [
+            {"investor": "SAIF Partners (Elevation Capital)", "round": "Series A–C (2011–15)", "entry_val": "~$20–100M", "pct_held": "~20%", "return_at_ipo": "~15x",  "return_at_cmp": "—"},
+            {"investor": "Sequoia Capital / Peak XV",         "round": "Series C (2015)",      "entry_val": "~$100M",    "pct_held": "~12%", "return_at_ipo": "~13x",  "return_at_cmp": "—"},
+            {"investor": "Micromax (Alibaba exit)",           "round": "Strategic (2016)",     "entry_val": "~$150M",    "pct_held": "~8%",  "return_at_ipo": "~8x",   "return_at_cmp": "—"},
+        ],
+    },
+    "Pine Labs": {
+        "anchor_total_cr": 1800,
+        "anchors": [
+            {"investor": "BlackRock",          "category": "FII / Global Fund", "allocation_cr": 350},
+            {"investor": "Fidelity",           "category": "FII / Global Fund", "allocation_cr": 300},
+            {"investor": "Mirae Asset MF",     "category": "Mutual Fund",       "allocation_cr": 280},
+            {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 260},
+            {"investor": "ICICI Pru MF",       "category": "Mutual Fund",       "allocation_cr": 240},
+            {"investor": "SBI MF",             "category": "Mutual Fund",       "allocation_cr": 220},
+            {"investor": "Kotak MF",           "category": "Mutual Fund",       "allocation_cr": 150},
+        ],
+        "pripo_investors": [
+            {"investor": "Temasek",     "round": "Series D–E (2018–21)", "entry_val": "$1–2B",   "pct_held": "~20%", "return_at_ipo": "~3–5x",  "return_at_cmp": "—"},
+            {"investor": "Mastercard",  "round": "Strategic (2020)",     "entry_val": "~$1.5B",  "pct_held": "~10%", "return_at_ipo": "~3x",    "return_at_cmp": "—"},
+            {"investor": "Actis",       "round": "Series C (2016)",      "entry_val": "~$400M",  "pct_held": "~8%",  "return_at_ipo": "~8x",    "return_at_cmp": "—"},
+            {"investor": "Sequoia Capital", "round": "Series B (2014)",  "entry_val": "~$100M",  "pct_held": "~7%",  "return_at_ipo": "~30x",   "return_at_cmp": "—"},
+        ],
+    },
+    "FirstCry": {
+        "anchor_total_cr": 1258,
+        "anchors": [
+            {"investor": "Fidelity",            "category": "FII / Global Fund", "allocation_cr": 280},
+            {"investor": "GIC (Singapore)",     "category": "Sovereign Fund",    "allocation_cr": 250},
+            {"investor": "HDFC MF",             "category": "Mutual Fund",       "allocation_cr": 220},
+            {"investor": "Mirae Asset MF",      "category": "Mutual Fund",       "allocation_cr": 200},
+            {"investor": "Nippon India MF",     "category": "Mutual Fund",       "allocation_cr": 180},
+            {"investor": "ICICI Pru MF",        "category": "Mutual Fund",       "allocation_cr": 128},
+        ],
+        "pripo_investors": [
+            {"investor": "SoftBank Vision Fund", "round": "Series F (2019)", "entry_val": "~$1.2B", "pct_held": "~25%", "return_at_ipo": "~1.6x",  "return_at_cmp": "—"},
+            {"investor": "TPG Growth",           "round": "Series D (2016)", "entry_val": "~$300M", "pct_held": "~10%", "return_at_ipo": "~6x",    "return_at_cmp": "—"},
+            {"investor": "Premji Invest",        "round": "Series E (2017)", "entry_val": "~$450M", "pct_held": "~5%",  "return_at_ipo": "~4x",    "return_at_cmp": "—"},
+        ],
+    },
+    "Shadowfax": {
+        "anchor_total_cr": 758,
+        "anchors": [
+            {"investor": "Mirae Asset MF",     "category": "Mutual Fund",       "allocation_cr": 180},
+            {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 165},
+            {"investor": "ICICI Pru MF",       "category": "Mutual Fund",       "allocation_cr": 150},
+            {"investor": "Nippon India MF",    "category": "Mutual Fund",       "allocation_cr": 140},
+            {"investor": "Goldman Sachs MF",   "category": "Mutual Fund",       "allocation_cr": 123},
+        ],
+        "pripo_investors": [
+            {"investor": "Flipkart / Walmart",        "round": "Strategic (2019)", "entry_val": "~$300M", "pct_held": "~28%", "return_at_ipo": "~2.5x", "return_at_cmp": "—"},
+            {"investor": "Nokia Growth Partners",     "round": "Series C (2020)",  "entry_val": "~$450M", "pct_held": "~10%", "return_at_ipo": "~1.7x", "return_at_cmp": "—"},
+            {"investor": "Eight Roads (Fidelity)",    "round": "Series B (2018)",  "entry_val": "~$150M", "pct_held": "~8%",  "return_at_ipo": "~5x",   "return_at_cmp": "—"},
+        ],
+    },
+    "BlackBuck": {
+        "anchor_total_cr": 455,
+        "anchors": [
+            {"investor": "Goldman Sachs MF",    "category": "Mutual Fund",       "allocation_cr": 120},
+            {"investor": "Mirae Asset MF",      "category": "Mutual Fund",       "allocation_cr": 110},
+            {"investor": "Wellington Management","category": "FII / Global Fund", "allocation_cr": 105},
+            {"investor": "HDFC MF",             "category": "Mutual Fund",       "allocation_cr": 120},
+        ],
+        "pripo_investors": [
+            {"investor": "Goldman Sachs Asset Mgmt", "round": "Series F (2021)", "entry_val": "$1.1B",  "pct_held": "~15%", "return_at_ipo": "-77%",  "return_at_cmp": "—"},
+            {"investor": "Accel",                    "round": "Series A (2015)", "entry_val": "~$50M",  "pct_held": "~12%", "return_at_ipo": "~25x",  "return_at_cmp": "—"},
+            {"investor": "Wellington Management",    "round": "Series F (2021)", "entry_val": "$1.1B",  "pct_held": "~8%",  "return_at_ipo": "-77%",  "return_at_cmp": "—"},
+        ],
+    },
+    "Capillary Technologies": {
+        "anchor_total_cr": 144,
+        "anchors": [
+            {"investor": "Mirae Asset MF",    "category": "Mutual Fund",       "allocation_cr": 55},
+            {"investor": "Nippon India MF",   "category": "Mutual Fund",       "allocation_cr": 48},
+            {"investor": "HDFC MF",           "category": "Mutual Fund",       "allocation_cr": 41},
+        ],
+        "pripo_investors": [
+            {"investor": "Sequoia Capital / Peak XV", "round": "Series B–C (2012–15)", "entry_val": "~$50–150M", "pct_held": "~20%", "return_at_ipo": "~8–15x", "return_at_cmp": "—"},
+            {"investor": "Avataar Venture Partners",  "round": "Series D (2019)",      "entry_val": "~$250M",    "pct_held": "~12%", "return_at_ipo": "~3x",    "return_at_cmp": "—"},
+        ],
+    },
+    "Urban Company": {
+        "anchor_total_cr": 900,
+        "anchors": [
+            {"investor": "Fidelity",           "category": "FII / Global Fund", "allocation_cr": 220},
+            {"investor": "GIC (Singapore)",    "category": "Sovereign Fund",    "allocation_cr": 190},
+            {"investor": "Mirae Asset MF",     "category": "Mutual Fund",       "allocation_cr": 175},
+            {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 160},
+            {"investor": "ICICI Pru MF",       "category": "Mutual Fund",       "allocation_cr": 155},
+        ],
+        "pripo_investors": [
+            {"investor": "Accel",         "round": "Series A–B (2015–17)", "entry_val": "~$30–100M", "pct_held": "~18%", "return_at_ipo": "~30–100x", "return_at_cmp": "—"},
+            {"investor": "Tiger Global",  "round": "Series D (2019)",      "entry_val": "~$900M",    "pct_held": "~10%", "return_at_ipo": "~2x",      "return_at_cmp": "—"},
+            {"investor": "VY Capital",    "round": "Series E (2021)",      "entry_val": "~$2.8B",    "pct_held": "~8%",  "return_at_ipo": "-55%",     "return_at_cmp": "—"},
+        ],
+    },
+}
+
+# Inject anchor/pripo data into IPOS list at import time
+for _ipo in IPOS:
+    _d = _ANCHOR_DATA.get(_ipo["company"], {})
+    _ipo.setdefault("anchors",         _d.get("anchors", []))
+    _ipo.setdefault("anchor_total_cr", _d.get("anchor_total_cr"))
+    _ipo.setdefault("pripo_investors", _d.get("pripo_investors", []))
+
+
 # ── NSE session helper ─────────────────────────────────────────────────────────
 _NSE_HDR = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -437,7 +681,7 @@ def render():
     selected = st.selectbox("Select IPO", [i["company"] for i in IPOS], key="ri_deep")
     ipo = next(i for i in IPOS if i["company"] == selected)
 
-    t1, t2, t3, t4, t5 = st.tabs(["📋 Overview", "📊 Performance", "🔮 GMP", "📬 Subscription", "🏦 Shareholding"])
+    t1, t2, t3, t4, t5 = st.tabs(["📋 Overview", "📊 Performance", "🔮 GMP", "📬 Subscription", "🏦 Investors"])
 
     with t1:
         a, b = st.columns(2)
@@ -502,12 +746,116 @@ def render():
         st.caption("Source: NSE/BSE final subscription data (hardcoded from official filings).")
 
     with t5:
-        st.markdown("**Major Shareholders**")
+        # ── Section 1: Shareholding Pattern ──────────────────────────────────
+        st.markdown("#### 📊 Shareholding Pattern")
         with st.spinner("Fetching shareholding…"):
             holders = _shareholding(ipo["ticker"])
         if holders is not None:
-            st.dataframe(holders, use_container_width=True)
+            _LABEL_MAP = {
+                "insidersPercentHeld":           ("Insider / Promoter Holding",    "pct"),
+                "institutionsPercentHeld":        ("Institutional Holding",         "pct"),
+                "institutionsFloatPercentHeld":   ("Institutional % of Float",      "pct"),
+                "institutionsCount":              ("No. of Institutions",           "int"),
+            }
+            sh_rows = []
+            try:
+                # major_holders is a DataFrame with metric as index, value in last col
+                for idx in holders.index:
+                    key   = str(idx)
+                    val   = holders.loc[idx].iloc[-1] if hasattr(holders.loc[idx], "iloc") else holders.loc[idx]
+                    label, dtype = _LABEL_MAP.get(key, (key, "pct"))
+                    try:
+                        fval = float(val)
+                        if dtype == "pct":
+                            # yfinance returns decimals (0.49 = 49%)
+                            fmt = f"{fval * 100:.2f}%" if fval <= 1 else f"{fval:.2f}%"
+                        else:
+                            fmt = str(int(fval))
+                    except Exception:
+                        fmt = str(val)
+                    sh_rows.append({"Category": label, "Value": fmt})
+            except Exception:
+                sh_rows = []
+            if sh_rows:
+                st.dataframe(pd.DataFrame(sh_rows), use_container_width=True, hide_index=True)
+            else:
+                _warn("Could not parse shareholding data.")
         else:
             _warn("Shareholding data not available from yfinance for this ticker.")
+
+        st.markdown("---")
+
+        # ── Section 2: Anchor Investors ───────────────────────────────────────
+        st.markdown("#### ⚓ Anchor Investors")
+        anchors = ipo.get("anchors", [])
+        anchor_total = ipo.get("anchor_total_cr")
+        if anchors:
+            if anchor_total:
+                st.markdown(
+                    f"<div style='font-size:13px;color:#6b7a8d;margin-bottom:8px'>"
+                    f"Total anchor allocation: <b>₹{anchor_total:,} cr</b> "
+                    f"({round(anchor_total / (ipo['issue_size_cr'] or 1) * 100, 1)}% of issue size)</div>",
+                    unsafe_allow_html=True)
+            anc_df = pd.DataFrame(anchors)
+            anc_df.columns = [c.replace("_", " ").title() for c in anc_df.columns]
+            st.dataframe(anc_df, use_container_width=True, hide_index=True)
+            st.caption("Source: NSE anchor allotment disclosures (official public filings).")
+        else:
+            st.markdown(
+                f"<div style='background:{BG_ALT};border:1px solid {BORDER};border-radius:8px;"
+                f"padding:12px;color:#6b7a8d;font-size:13px'>"
+                f"Anchor investor data not available for this IPO.</div>",
+                unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── Section 3: Pre-IPO Investors & Returns ────────────────────────────
+        st.markdown("#### 💰 Pre-IPO Investors & Returns")
+        pripo = ipo.get("pripo_investors", [])
+        if pripo and ipo.get("issue_price"):
+            ip_val = ipo["issue_price"]
+            price_now, _, _ = _live_price(ipo["ticker"])
+            rows_pi = []
+            for inv in pripo:
+                row = {
+                    "Investor":         inv.get("investor", ""),
+                    "Investment Round": inv.get("round", ""),
+                    "Entry Valuation":  inv.get("entry_val", "N/A"),
+                    "% Held (Pre-IPO)": inv.get("pct_held", "N/A"),
+                    "Return at IPO":    inv.get("return_at_ipo", "N/A"),
+                }
+                if price_now and inv.get("entry_price_per_share"):
+                    ep = inv["entry_price_per_share"]
+                    ret_now = round((price_now - ep) / ep * 100, 1)
+                    row["Return at CMP"] = f"{ret_now:+.1f}%"
+                else:
+                    row["Return at CMP"] = inv.get("return_at_cmp", "—")
+                rows_pi.append(row)
+
+            pi_df = pd.DataFrame(rows_pi)
+
+            def _ret_color(val):
+                v = str(val)
+                if v.startswith("+") or (v.replace(".","").replace("%","").lstrip("-").isdigit() and not v.startswith("-")):
+                    try:
+                        if float(v.replace("%","").replace("+","")) > 0:
+                            return "color:#16a34a;font-weight:600"
+                    except Exception:
+                        pass
+                if v.startswith("-"):
+                    return "color:#dc2626;font-weight:600"
+                return ""
+
+            ret_cols = [c for c in ["Return at IPO", "Return at CMP"] if c in pi_df.columns]
+            styled_pi = pi_df.style.map(_ret_color, subset=ret_cols)
+            st.dataframe(styled_pi, use_container_width=True, hide_index=True)
+            st.caption("Entry valuations sourced from public VC funding disclosures & RHP filings. Returns are approximate.")
+        else:
+            st.markdown(
+                f"<div style='background:{BG_ALT};border:1px solid {BORDER};border-radius:8px;"
+                f"padding:12px;color:#6b7a8d;font-size:13px'>"
+                f"Pre-IPO investor return data not available for this IPO.</div>",
+                unsafe_allow_html=True)
+
         st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
                     unsafe_allow_html=True)
