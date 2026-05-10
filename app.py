@@ -83,6 +83,19 @@ section[data-testid="stSidebar"] {{ background: {BG_ALT}; }}
 .stApp > header {{ display: none !important; }}
 .block-container {{ padding-top: 0.5rem !important; }}
 
+/* ── Active nav button → orange ──────────────────────────────────── */
+button[kind="primary"],
+button[data-testid="baseButton-primary"] {{
+    background-color: #ea580c !important;
+    border-color:     #ea580c !important;
+    color: white !important;
+}}
+button[kind="primary"]:hover,
+button[data-testid="baseButton-primary"]:hover {{
+    background-color: #c2410c !important;
+    border-color:     #c2410c !important;
+}}
+
 /* ── Top nav ──────────────────────────────────────────────────────── */
 .topnav-wrap {{
     display: flex;
