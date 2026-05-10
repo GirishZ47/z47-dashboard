@@ -532,14 +532,21 @@ def main_mobile():
     z47_ytd    = pct_since(df, "z47_float", ytd=True)
 
     # ── Header ──────────────────────────────────────────────────────
-    st.markdown(
-        f'<div style="color:#1a0f00;font-size:24px;font-weight:800;margin-bottom:2px">Z47 Index</div>'
-        f'<div style="color:#8b6d4a;font-size:11px;margin-bottom:4px">'
-        f'Free-float market-cap weighted · 47 Indian internet &amp; tech cos</div>'
-        f'<div style="color:#a38060;font-size:11px;margin-bottom:20px">'
-        f'Data as of <b style="color:#4a3520">{last_date_str}</b> &nbsp;·&nbsp; 1 USD = ₹{usdinr}</div>',
-        unsafe_allow_html=True,
-    )
+    mob_logo, mob_title = st.columns([1, 4])
+    with mob_logo:
+        logo_path = os.path.join(os.path.dirname(__file__), "z47_logo.png")
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=70)
+    with mob_title:
+        st.markdown(
+            f'<div style="color:#1a0f00;font-size:22px;font-weight:800;margin-bottom:2px;padding-top:8px">Z47 Index</div>'
+            f'<div style="color:#8b6d4a;font-size:11px;margin-bottom:2px">'
+            f'Free-float market-cap weighted · 47 cos</div>'
+            f'<div style="color:#a38060;font-size:11px">'
+            f'<b style="color:#4a3520">{last_date_str}</b> · ₹{usdinr}/$</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("<div style='margin-bottom:16px'></div>", unsafe_allow_html=True)
 
     # ── KPI cards 2×2 ───────────────────────────────────────────────
     c1, c2 = st.columns(2)
@@ -679,7 +686,11 @@ def main():
     last_date_str = pd.Timestamp(last["date"]).strftime("%d %b %Y")
 
     # ── Header ──────────────────────────────────────────────────────────────
-    col_h, col_u = st.columns([5, 1])
+    col_logo, col_h, col_u = st.columns([1, 5, 1])
+    with col_logo:
+        logo_path = os.path.join(os.path.dirname(__file__), "z47_logo.png")
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=90)
     with col_h:
         st.markdown(
             f'<div style="color:#1a0f00;font-size:34px;font-weight:800;margin-bottom:4px">Z47 Index</div>'
