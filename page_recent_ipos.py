@@ -341,7 +341,7 @@ def render():
             return ""
         return "color:#16a34a;font-weight:600" if val >= 0 else "color:#dc2626;font-weight:600"
 
-    styled = df.style.applymap(_color, subset=["Return from IPO (%)", "Return from Listing (%)"])
+    styled = df.style.map(_color, subset=["Return from IPO (%)", "Return from Listing (%)"])
     st.dataframe(styled, use_container_width=True, height=400,
                  column_config={
                      "Issue Price (₹)":         st.column_config.NumberColumn(format="₹%.2f"),
