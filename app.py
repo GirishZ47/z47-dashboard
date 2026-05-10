@@ -286,24 +286,36 @@ def fetch_long_history() -> dict:
     return results
 
 
+@st.cache_data(ttl=1800)   # news refreshed every 30 min
+def fetch_company_news(yf_tk: str) -> list:
+    try:
+        return yf.Ticker(yf_tk).news or []
+    except Exception:
+        return []
+
+
 @st.cache_data(ttl=3600)
 def fetch_company_details(yf_tk: str) -> dict:
-    """Key stats + financial statements for one company (cached 1 hour)."""
+    """Key stats + financials + earnings + analyst data (cached 1 hour)."""
     try:
         t = yf.Ticker(yf_tk)
         result = {}
         try:    result["info"] = t.info or {}
         except: result["info"] = {}
         for key, attr in [
-            ("income_annual",      "financials"),
-            ("income_quarterly",   "quarterly_financials"),
-            ("balance_annual",     "balance_sheet"),
-            ("balance_quarterly",  "quarterly_balance_sheet"),
-            ("cashflow_annual",    "cashflow"),
-            ("cashflow_quarterly", "quarterly_cashflow"),
+            ("income_annual",        "financials"),
+            ("income_quarterly",     "quarterly_financials"),
+            ("balance_annual",       "balance_sheet"),
+            ("balance_quarterly",    "quarterly_balance_sheet"),
+            ("cashflow_annual",      "cashflow"),
+            ("cashflow_quarterly",   "quarterly_cashflow"),
+            ("earnings_dates",       "earnings_dates"),
+            ("recommendations",      "recommendations_summary"),
         ]:
             try:    result[key] = getattr(t, attr)
             except: result[key] = pd.DataFrame()
+        try:    result["price_targets"] = t.analyst_price_targets
+        except: result["price_targets"] = {}
         return result
     except Exception:
         return {}
@@ -409,6 +421,240 @@ CF_ROWS = [
 ]
 
 
+def _render_news(news_list):
+    from datetime import datetime, timezone
+    if not news_list:
+        st.markdown('<p style="color:#a38060;padding:12px">No recent news available.</p>',
+                    unsafe_allow_html=True)
+        return
+
+    # Separate stories vs press releases
+    stories = [n for n in news_list if n.get("type","").upper() != "PRESS_RELEASE"]
+    releases = [n for n in news_list if n.get("type","").upper() == "PRESS_RELEASE"]
+
+    tab_all, tab_news, tab_pr = st.tabs(["All", "News", "Press Releases"])
+
+    def _article_html(items, limit=20):
+        html = ""
+        for n in items[:limit]:
+            ts = n.get("providerPublishTime", 0)
+            try:
+                dt = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d %b %Y")
+            except Exception:
+                dt = ""
+            pub   = n.get("publisher", "")
+            title = n.get("title", "")
+            link  = n.get("link", "#")
+            html += (
+                f"<div style='padding:12px 0;border-bottom:1px solid {BORDER}'>"
+                f"<a href='{link}' target='_blank' style='color:#1a0f00;font-weight:600;"
+                f"font-size:13px;text-decoration:none;line-height:1.4'>{title}</a>"
+                f"<div style='color:#a38060;font-size:11px;margin-top:4px'>"
+                f"{pub} &nbsp;·&nbsp; {dt}</div></div>"
+            )
+        return html or "<p style='color:#a38060'>None found.</p>"
+
+    with tab_all:
+        st.markdown(f"<div class='card-wrap'>{_article_html(news_list)}</div>",
+                    unsafe_allow_html=True)
+    with tab_news:
+        st.markdown(f"<div class='card-wrap'>{_article_html(stories)}</div>",
+                    unsafe_allow_html=True)
+    with tab_pr:
+        st.markdown(f"<div class='card-wrap'>{_article_html(releases)}</div>",
+                    unsafe_allow_html=True)
+
+
+def _render_earnings_trends(details, sym):
+    earn_df = details.get("earnings_dates", pd.DataFrame())
+    inc_q   = details.get("income_quarterly", pd.DataFrame())
+
+    col_l, col_r = st.columns(2)
+
+    # ── EPS: estimate vs actual ──────────────────────────────────────
+    with col_l:
+        st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Earnings Per Share</div>',
+                    unsafe_allow_html=True)
+        if earn_df is not None and not earn_df.empty:
+            # Keep last 4 quarters with both estimate and actual
+            df = earn_df.dropna(subset=["EPS Estimate", "Reported EPS"]).head(4).iloc[::-1]
+            quarters = [pd.Timestamp(d).strftime("Q%q '%y") if hasattr(d,"strftime")
+                        else str(d)[:7] for d in df.index]
+            estimates = df["EPS Estimate"].tolist()
+            actuals   = df["Reported EPS"].tolist()
+            beats     = [a >= e for a, e in zip(actuals, estimates)]
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=quarters, y=estimates, mode="markers",
+                marker=dict(size=14, color="white", line=dict(color="#8b6d4a", width=2)),
+                name="Estimate",
+            ))
+            fig.add_trace(go.Scatter(
+                x=quarters, y=actuals, mode="markers",
+                marker=dict(size=14,
+                            color=["#16a34a" if b else "#dc2626" for b in beats]),
+                name="Actual",
+            ))
+            # Beat/Miss annotations
+            for i, (q, a, e, b) in enumerate(zip(quarters, actuals, estimates, beats)):
+                diff = round(a - e, 2)
+                fig.add_annotation(
+                    x=q, y=a,
+                    text=f"{'Beat' if b else 'Missed'}<br>{'+' if diff>=0 else ''}{diff}",
+                    showarrow=False, yshift=-28,
+                    font=dict(size=10, color="#16a34a" if b else "#dc2626"),
+                )
+            fig.update_layout(
+                paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=280,
+                margin=dict(l=0, r=0, t=10, b=60),
+                xaxis=dict(showgrid=False, color="#a38060"),
+                yaxis=dict(showgrid=False, color="#a38060", title="EPS"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                            font=dict(color="#4a3520")),
+                showlegend=True,
+            )
+            st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("EPS data not available.")
+
+    # ── Revenue vs Earnings (quarterly) ──────────────────────────────
+    with col_r:
+        st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Revenue vs. Earnings</div>',
+                    unsafe_allow_html=True)
+        if inc_q is not None and not inc_q.empty:
+            df4 = inc_q.iloc[:, :4][::-1]
+            rev_row = next((i for i in df4.index
+                            if "total revenue" in str(i).lower() or "operating revenue" in str(i).lower()), None)
+            ni_row  = next((i for i in df4.index
+                            if "net income common" in str(i).lower() or "net income" == str(i).lower()), None)
+
+            dates = [pd.Timestamp(c).strftime("Q%q '%y") if hasattr(c,"strftime")
+                     else str(c)[:7] for c in df4.columns]
+            rev = [float(df4.loc[rev_row, c])/1e9 if rev_row else 0 for c in df4.columns]
+            ni  = [float(df4.loc[ni_row,  c])/1e9 if ni_row  else 0 for c in df4.columns]
+
+            fig2 = go.Figure()
+            fig2.add_trace(go.Bar(x=dates, y=rev, name="Revenue",
+                                  marker_color="#1d4ed8", opacity=0.85))
+            fig2.add_trace(go.Bar(x=dates, y=ni,  name="Earnings",
+                                  marker_color=["#f59e0b" if v < 0 else "#16a34a" for v in ni]))
+            fig2.update_layout(
+                paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=280,
+                barmode="group", margin=dict(l=0, r=0, t=10, b=40),
+                xaxis=dict(showgrid=False, color="#a38060"),
+                yaxis=dict(showgrid=False, color="#a38060", title=f"{sym}B"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                            font=dict(color="#4a3520")),
+            )
+            st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
+            st.plotly_chart(fig2, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Revenue data not available.")
+
+
+def _render_analyst_insights(details, info, sym):
+    apt  = details.get("price_targets", {})
+    recs = details.get("recommendations", pd.DataFrame())
+
+    col_l, col_r = st.columns(2)
+
+    # ── Price targets ─────────────────────────────────────────────────
+    with col_l:
+        st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Analyst Price Targets</div>',
+                    unsafe_allow_html=True)
+        low  = apt.get("low")
+        high = apt.get("high")
+        mean = apt.get("mean") or info.get("targetMeanPrice")
+        curr = apt.get("current") or info.get("currentPrice") or info.get("previousClose")
+
+        if all(v for v in [low, high, mean, curr]):
+            fig = go.Figure()
+            # Range bar
+            fig.add_trace(go.Scatter(
+                x=[low, high], y=[1, 1], mode="lines",
+                line=dict(color="#d1d5db", width=6), showlegend=False,
+            ))
+            # Mean
+            fig.add_trace(go.Scatter(
+                x=[mean], y=[1], mode="markers+text",
+                marker=dict(size=16, color="#1d4ed8"),
+                text=[f"{sym}{mean:,.0f}<br>Mean"],
+                textposition="top center",
+                textfont=dict(size=11, color="#1d4ed8"),
+                name="Mean Target",
+            ))
+            # Current
+            fig.add_trace(go.Scatter(
+                x=[curr], y=[1], mode="markers+text",
+                marker=dict(size=14, color="#c2410c", symbol="diamond"),
+                text=[f"{sym}{curr:,.0f}<br>Current"],
+                textposition="bottom center",
+                textfont=dict(size=11, color="#c2410c"),
+                name="Current Price",
+            ))
+            fig.update_layout(
+                paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=220,
+                margin=dict(l=40, r=40, t=50, b=50),
+                xaxis=dict(showgrid=False, color="#a38060", tickprefix=sym),
+                yaxis=dict(visible=False),
+                legend=dict(orientation="h", yanchor="bottom", y=1.0, font=dict(color="#4a3520")),
+                annotations=[
+                    dict(x=low,  y=0.85, text=f"{sym}{low:,.0f}<br>Low",
+                         showarrow=False, font=dict(size=10, color="#a38060")),
+                    dict(x=high, y=0.85, text=f"{sym}{high:,.0f}<br>High",
+                         showarrow=False, font=dict(size=10, color="#a38060")),
+                ],
+            )
+            st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Price target data not available.")
+
+    # ── Analyst recommendations ───────────────────────────────────────
+    with col_r:
+        st.markdown('<div style="font-weight:700;color:#1a0f00;margin-bottom:10px">Analyst Recommendations</div>',
+                    unsafe_allow_html=True)
+        if recs is not None and not recs.empty:
+            df = recs.head(4).copy()
+            # Period labels
+            periods = df["period"].tolist() if "period" in df.columns else [str(i) for i in df.index]
+
+            rec_map = [
+                ("strongBuy",  "Strong Buy",  "#15803d"),
+                ("buy",        "Buy",         "#4ade80"),
+                ("hold",       "Hold",        "#f59e0b"),
+                ("underperform","Underperform","#f97316"),
+                ("sell",       "Sell",        "#dc2626"),
+            ]
+            fig = go.Figure()
+            for col_key, label, color in rec_map:
+                vals = df[col_key].tolist() if col_key in df.columns else [0]*len(periods)
+                fig.add_trace(go.Bar(
+                    x=periods, y=vals, name=label,
+                    marker_color=color,
+                    text=vals, textposition="inside",
+                    textfont=dict(color="white", size=10),
+                ))
+            fig.update_layout(
+                paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=220,
+                barmode="stack",
+                margin=dict(l=0, r=0, t=10, b=40),
+                xaxis=dict(showgrid=False, color="#a38060"),
+                yaxis=dict(showgrid=False, color="#a38060"),
+                legend=dict(orientation="v", x=1.02, y=1, font=dict(color="#4a3520", size=10)),
+            )
+            st.markdown('<div class="card-wrap" style="padding:12px">', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Recommendation data not available.")
+
+
 def render_company_deep_dive(c, details, usdinr):
     info = details.get("info", {})
     sym  = "₹" if c["exchange"] == "NSE" else "$"
@@ -468,7 +714,14 @@ def render_company_deep_dive(c, details, usdinr):
             )
 
     st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
-    tab_is, tab_bs, tab_cf = st.tabs(["📊 Income Statement", "🏦 Balance Sheet", "💸 Cash Flow"])
+    tab_is, tab_bs, tab_cf, tab_earn, tab_analyst, tab_news = st.tabs([
+        "📊 Income Statement",
+        "🏦 Balance Sheet",
+        "💸 Cash Flow",
+        "📈 Earnings Trends",
+        "🎯 Analyst Insights",
+        "📰 News & Releases",
+    ])
 
     tk = c["ticker"]
     with tab_is:
@@ -488,6 +741,16 @@ def render_company_deep_dive(c, details, usdinr):
         df = details.get("cashflow_annual" if freq=="Annual" else "cashflow_quarterly", pd.DataFrame())
         st.markdown(f"<div class='card-wrap' style='padding:0'>{_fin_table_html(df, sym, CF_ROWS)}</div>",
                     unsafe_allow_html=True)
+
+    with tab_earn:
+        _render_earnings_trends(details, sym)
+
+    with tab_analyst:
+        _render_analyst_insights(details, info, sym)
+
+    with tab_news:
+        news = fetch_company_news(yf_ticker(c))
+        _render_news(news)
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────
