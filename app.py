@@ -1,6 +1,7 @@
 """Z47 Index — Live Dashboard"""
 
 import os
+import time
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -297,8 +298,12 @@ def fetch_company_news(yf_tk: str) -> list:
 
 def _yf_info_with_fallback(c: dict) -> dict:
     """
-    Fetch yfinance info for a company, trying .NS first then .BO as fallback.
-    Some stocks (e.g. GROWW) are indexed better under .BO on Yahoo Finance.
+    Fetch yfinance info for a company with retry + .NS/.BO fallback.
+
+    Yahoo Finance rate-limits parallel requests. We retry up to 3 times
+    with exponential back-off before falling through to the .BO ticker.
+    All 47 NSE companies work with .NS when the request succeeds; .BO is
+    a belt-and-suspenders safety net.
     """
     def _extract(info):
         return {
@@ -322,27 +327,40 @@ def _yf_info_with_fallback(c: dict) -> dict:
             "marketCap":          info.get("marketCap"),
         }
 
-    # NASDAQ stocks don't need fallback
-    if c["exchange"] != "NSE":
+    def _fetch_with_retry(sym, retries=3):
+        """Fetch yf.Ticker(sym).info with exponential back-off on failure."""
+        for attempt in range(retries):
+            try:
+                info = yf.Ticker(sym).info or {}
+                # Consider it a success if we get any meaningful field
+                if info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose"):
+                    return info
+                # Got a response but it's empty/minimal — may be rate-limited
+                if attempt < retries - 1:
+                    time.sleep(2 ** attempt)   # 1s, 2s back-off
+            except Exception:
+                if attempt < retries - 1:
+                    time.sleep(2 ** attempt)
+        # Last attempt: return whatever we get, even if empty
         try:
-            return _extract(yf.Ticker(yf_ticker(c)).info or {})
+            return yf.Ticker(sym).info or {}
         except Exception:
             return {}
 
-    # Try .NS first
-    ns_data = {}
-    try:
-        ns_info = yf.Ticker(c["ticker"] + ".NS").info or {}
-        ns_data = _extract(ns_info)
-    except Exception:
-        pass
+    # NASDAQ stocks — no exchange suffix needed, no .BO fallback
+    if c["exchange"] != "NSE":
+        return _extract(_fetch_with_retry(yf_ticker(c)))
 
-    # If analyst data is missing, try .BO
+    # NSE: try .NS with retry first
+    ns_info = _fetch_with_retry(c["ticker"] + ".NS")
+    ns_data = _extract(ns_info)
+
+    # If analyst data still missing after retries, try .BO as fallback
     if not ns_data.get("targetMean"):
         try:
-            bo_info = yf.Ticker(c["ticker"] + ".BO").info or {}
+            bo_info = _fetch_with_retry(c["ticker"] + ".BO")
             bo_data = _extract(bo_info)
-            # Merge: .NS for prices, .BO fills in any gaps
+            # Merge: prefer .NS for prices, fill gaps from .BO for analyst fields
             merged = {**ns_data, **{k: v for k, v in bo_data.items() if v and not ns_data.get(k)}}
             return merged
         except Exception:
@@ -353,9 +371,13 @@ def _yf_info_with_fallback(c: dict) -> dict:
 
 @st.cache_data(ttl=86400)  # refresh daily — analyst data changes slowly
 def fetch_all_analyst_data() -> dict:
-    """Pre-fetch analyst price targets + key stats for all 47 companies in parallel."""
+    """Pre-fetch analyst price targets + key stats for all 47 companies.
+
+    Uses 4 workers (not 10) so Yahoo Finance doesn't rate-limit us.
+    Each worker also retries with back-off inside _yf_info_with_fallback.
+    """
     results = {}
-    with ThreadPoolExecutor(max_workers=10) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:
         futures = {ex.submit(_yf_info_with_fallback, c): c for c in COMPANIES}
         for f in as_completed(futures):
             c = futures[f]
@@ -390,10 +412,11 @@ def fetch_company_financials(yf_tk: str) -> dict:
 @st.cache_data(ttl=300)   # same cadence as prices
 def fetch_company_live(yf_tk: str) -> dict:
     """Key stats, analyst targets, recommendations, earnings dates — refreshed with prices."""
+    result = {}
     try:
-        # Try primary ticker, then .BO fallback for NSE stocks
         t = yf.Ticker(yf_tk)
-        result = {}
+
+        # ── info / analyst key stats ────────────────────────────────────
         try:
             info = t.info or {}
             # If analyst data missing and this is an NSE stock, try .BO
@@ -401,36 +424,44 @@ def fetch_company_live(yf_tk: str) -> dict:
                 bo_tk = yf_tk.replace(".NS", ".BO")
                 try:
                     bo_info = yf.Ticker(bo_tk).info or {}
-                    # Merge: keep .NS prices, fill gaps from .BO
                     info = {**info, **{k: v for k, v in bo_info.items() if v and not info.get(k)}}
                 except Exception:
                     pass
             result["info"] = info
-        except: result["info"] = {}
+        except Exception:
+            result["info"] = {}
 
-        # Earnings dates
-        try:    result["earnings_dates"] = t.earnings_dates
-        except: result["earnings_dates"] = pd.DataFrame()
+        # ── Earnings dates ──────────────────────────────────────────────
+        try:
+            result["earnings_dates"] = t.earnings_dates
+        except Exception:
+            result["earnings_dates"] = pd.DataFrame()
 
-        # Recommendations — try summary first, fall back to raw recommendations
+        # ── Recommendations — summary preferred, raw as fallback ────────
+        recs_loaded = False
         try:
             rs = t.recommendations_summary
             if rs is not None and not rs.empty:
                 result["recommendations"] = rs
-            else:
-                raise ValueError("empty")
+                recs_loaded = True
         except Exception:
-            try:    result["recommendations"] = t.recommendations
-            except: result["recommendations"] = pd.DataFrame()
+            pass
+        if not recs_loaded:
+            try:
+                result["recommendations"] = t.recommendations
+            except Exception:
+                result["recommendations"] = pd.DataFrame()
 
-        # Price targets — prefer dedicated endpoint, fall back to info fields
+        # ── Price targets — dedicated endpoint, fallback to info ────────
+        targets_loaded = False
         try:
             apt = t.analyst_price_targets
             if apt and apt.get("mean"):
                 result["price_targets"] = apt
-            else:
-                raise ValueError("empty")
+                targets_loaded = True
         except Exception:
+            pass
+        if not targets_loaded:
             info = result.get("info", {})
             result["price_targets"] = {
                 "low":     info.get("targetLowPrice"),
@@ -1646,29 +1677,36 @@ def main():
         chosen = COMPANIES[idx]
         with st.spinner(f"Loading {chosen['name']} details…"):
             details = fetch_company_details(yf_ticker(chosen))
-        # Enrich with pre-fetched analyst data (overrides missing yfinance info fields)
+        # Enrich with pre-fetched analyst data (fills gaps — never overwrites with None)
         pre = all_analyst.get(chosen["ticker"], {})
         if pre:
-            info_merged = {**details.get("info", {}), **{
-                "targetLowPrice":          pre.get("targetLow"),
-                "targetHighPrice":         pre.get("targetHigh"),
-                "targetMeanPrice":         pre.get("targetMean"),
-                "targetMedianPrice":       pre.get("targetMedian"),
-                "currentPrice":            pre.get("currentPrice"),
-                "trailingPE":              pre.get("trailingPE"),
-                "forwardPE":               pre.get("forwardPE"),
-                "trailingEps":             pre.get("trailingEps"),
-                "beta":                    pre.get("beta"),
-                "fiftyTwoWeekLow":         pre.get("fiftyTwoWeekLow"),
-                "fiftyTwoWeekHigh":        pre.get("fiftyTwoWeekHigh"),
-                "dividendYield":           pre.get("dividendYield"),
-                "averageVolume":           pre.get("averageVolume"),
-                "numberOfAnalystOpinions": pre.get("numberOfAnalysts"),
-                "recommendationKey":       pre.get("recommendationKey"),
-            }}
-            # Only update non-None values
-            details["info"] = {k: v for k, v in info_merged.items() if v is not None}
-            # Also update price_targets from pre-fetched data
+            current_info = details.get("info", {})
+            # Map from pre-fetched keys → yfinance info field names
+            pre_to_info = {
+                "targetLow":       "targetLowPrice",
+                "targetHigh":      "targetHighPrice",
+                "targetMean":      "targetMeanPrice",
+                "targetMedian":    "targetMedianPrice",
+                "currentPrice":    "currentPrice",
+                "trailingPE":      "trailingPE",
+                "forwardPE":       "forwardPE",
+                "trailingEps":     "trailingEps",
+                "beta":            "beta",
+                "fiftyTwoWeekLow": "fiftyTwoWeekLow",
+                "fiftyTwoWeekHigh":"fiftyTwoWeekHigh",
+                "dividendYield":   "dividendYield",
+                "averageVolume":   "averageVolume",
+                "numberOfAnalysts":"numberOfAnalystOpinions",
+                "recommendationKey":"recommendationKey",
+            }
+            # Only update when pre-fetched value is not None (never wipe existing data)
+            for pre_key, info_key in pre_to_info.items():
+                val = pre.get(pre_key)
+                if val is not None:
+                    current_info[info_key] = val
+            details["info"] = current_info
+
+            # Also update price_targets if we have better data
             if pre.get("targetMean"):
                 details["price_targets"] = {
                     "low":     pre.get("targetLow"),
