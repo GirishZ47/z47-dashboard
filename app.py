@@ -286,7 +286,7 @@ def fetch_long_history() -> dict:
     return results
 
 
-@st.cache_data(ttl=1800)   # news refreshed every 30 min
+@st.cache_data(ttl=300)   # same cadence as prices
 def fetch_company_news(yf_tk: str) -> list:
     try:
         return yf.Ticker(yf_tk).news or []
@@ -294,23 +294,38 @@ def fetch_company_news(yf_tk: str) -> list:
         return []
 
 
-@st.cache_data(ttl=3600)
-def fetch_company_details(yf_tk: str) -> dict:
-    """Key stats + financials + earnings + analyst data (cached 1 hour)."""
+@st.cache_data(ttl=86400)  # financial statements are quarterly — refresh daily
+def fetch_company_financials(yf_tk: str) -> dict:
+    """Income statement, balance sheet, cash flow — slow-changing data."""
+    try:
+        t = yf.Ticker(yf_tk)
+        result = {}
+        for key, attr in [
+            ("income_annual",      "financials"),
+            ("income_quarterly",   "quarterly_financials"),
+            ("balance_annual",     "balance_sheet"),
+            ("balance_quarterly",  "quarterly_balance_sheet"),
+            ("cashflow_annual",    "cashflow"),
+            ("cashflow_quarterly", "quarterly_cashflow"),
+        ]:
+            try:    result[key] = getattr(t, attr)
+            except: result[key] = pd.DataFrame()
+        return result
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=300)   # same cadence as prices
+def fetch_company_live(yf_tk: str) -> dict:
+    """Key stats, analyst targets, recommendations, earnings dates — refreshed with prices."""
     try:
         t = yf.Ticker(yf_tk)
         result = {}
         try:    result["info"] = t.info or {}
         except: result["info"] = {}
         for key, attr in [
-            ("income_annual",        "financials"),
-            ("income_quarterly",     "quarterly_financials"),
-            ("balance_annual",       "balance_sheet"),
-            ("balance_quarterly",    "quarterly_balance_sheet"),
-            ("cashflow_annual",      "cashflow"),
-            ("cashflow_quarterly",   "quarterly_cashflow"),
-            ("earnings_dates",       "earnings_dates"),
-            ("recommendations",      "recommendations_summary"),
+            ("earnings_dates",  "earnings_dates"),
+            ("recommendations", "recommendations_summary"),
         ]:
             try:    result[key] = getattr(t, attr)
             except: result[key] = pd.DataFrame()
@@ -319,6 +334,11 @@ def fetch_company_details(yf_tk: str) -> dict:
         return result
     except Exception:
         return {}
+
+
+def fetch_company_details(yf_tk: str) -> dict:
+    """Merge live + financial data for a company."""
+    return {**fetch_company_financials(yf_tk), **fetch_company_live(yf_tk)}
 
 
 # ── Company detail helpers ────────────────────────────────────────────────────
