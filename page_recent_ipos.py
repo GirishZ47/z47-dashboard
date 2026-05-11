@@ -1147,6 +1147,13 @@ def _render_lockup_tab(ipo):
 def render():
     st_autorefresh(interval=900_000, key="recent_ipo_refresh")
 
+    render_z47_assistant(
+        context="recent_ipos",
+        label="💬 Ask Z47 Assistant",
+        extra_context="User is viewing recent Indian new-age tech and fintech IPO data "
+                      "including performance, valuations, anchor investors and lock-up analysis.",
+    )
+
     st.markdown("## 📈 Recent IPOs — New Age Tech & Fintech")
     st.markdown(
         "<p style='color:#6b7a8d;font-size:14px'>Curated list of recent Indian new-age tech & fintech IPOs (last 12–18 months).</p>",
@@ -1551,11 +1558,3 @@ def render():
     with t6:
         _render_lockup_tab(ipo)
 
-    st.markdown("---")
-    render_z47_assistant(
-        context="recent_ipos",
-        extra_context=(f"Currently viewing: {ipo['company']} | Sector: {ipo['sector']} | "
-                       f"Listing: {ipo['listing_date']} | Issue price: ₹{ipo.get('issue_price','N/A')} | "
-                       f"Listing price: ₹{ipo.get('listing_price','N/A')} | "
-                       f"EV/Rev at listing: {ipo.get('ev_rev_at_listing','N/A')}x"),
-    )

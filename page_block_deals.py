@@ -412,6 +412,12 @@ def render():
     if market_open:
         st_autorefresh(interval=300_000, key="block_bulk_refresh")
 
+    render_z47_assistant(
+        context="block_deals",
+        label="💬 Ask Z47 Assistant",
+        extra_context="User is viewing block and bulk deal data for Z47 Index companies.",
+    )
+
     st.markdown("## 💼 Block & Bulk Deals — Z47 Index Companies")
 
     # Status + refresh row
@@ -527,5 +533,3 @@ def render():
     with tab4:
         _render_history_tab()
 
-    st.markdown("---")
-    render_z47_assistant(context="block_deals")

@@ -164,6 +164,12 @@ def _iw_ipos():
 def render():
     st_autorefresh(interval=900_000, key="upcoming_ipo_refresh")
 
+    render_z47_assistant(
+        context="upcoming_ipos",
+        label="💬 Ask Z47 Assistant",
+        extra_context="User is viewing upcoming Indian IPO pipeline, subscription status and GMP data.",
+    )
+
     st.markdown("## 🚀 Upcoming IPOs — New Age Tech & Fintech")
     st.markdown(
         "<p style='color:#6b7a8d;font-size:14px'>Tracks open, upcoming, and pipeline new-age tech & fintech IPOs with live GMP data.</p>",
@@ -362,5 +368,3 @@ def render():
     st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
                 unsafe_allow_html=True)
 
-    st.markdown("---")
-    render_z47_assistant(context="upcoming_ipos")

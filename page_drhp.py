@@ -501,6 +501,12 @@ def _sebi_filings():
 def render():
     st_autorefresh(interval=1_800_000, key="drhp_refresh")
 
+    render_z47_assistant(
+        context="drhp",
+        label="💬 Ask Z47 Assistant",
+        extra_context="User is viewing DRHP and RHP filings and IPO news feed.",
+    )
+
     st.markdown("## 📋 DRHP / RHP Filings Monitor — New Age Tech & Fintech")
     st.markdown(
         "<p style='color:#6b7a8d;font-size:14px'>Tracks DRHP and RHP filings from BSE/SEBI for new-age tech and fintech companies.</p>",
@@ -644,5 +650,3 @@ def render():
         f'Sources: BSE ({bse_src}), SEBI ({sebi_src}), Hardcoded | Updated: {_now_ist()}</div>',
         unsafe_allow_html=True)
 
-    st.markdown("---")
-    render_z47_assistant(context="drhp")
