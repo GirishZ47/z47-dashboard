@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import pytz
+import time
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from bs4 import BeautifulSoup
@@ -10,6 +11,56 @@ from z47_assistant import render_z47_assistant
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
+
+_NEWS_TTL = 1800   # 30-minute cache
+_SCRAPE_HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/120.0.0.0 Safari/537.36"),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+_IPO_KEYWORDS = [
+    "ipo", "drhp", "rhp", "sebi approval", "listing", "public offering",
+    "pre-ipo", "anchor investor", "grey market", "gmp", "book build",
+    "zepto", "phonePe", "flipkart", "boat ipo", "oyo ipo", "fintech ipo",
+    "startup ipo", "new age", "ather", "meesho", "groww", "swiggy ipo",
+    "paytm ipo", "nykaa ipo", "open offer", "rights issue", "fpo",
+]
+_TAG_MAP = {
+    "DRHP Filed":    ["drhp", "draft red herring"],
+    "SEBI Approval": ["sebi approv", "sebi nod", "sebi green"],
+    "Upcoming IPO":  ["upcoming ipo", "plans ipo", "planning ipo", "to list", "eye ipo",
+                      "set to ipo", "files for ipo", "prepares ipo"],
+    "Anchor":        ["anchor investor", "anchor allot"],
+    "GMP":           ["gmp", "grey market premium", "gray market"],
+    "Listing":       ["lists at", "listing price", "listing gain", "listed on", "debut"],
+}
+
+RSS_FEEDS = [
+    ("Google News — IPO DRHP",
+     "https://news.google.com/rss/search?q=IPO+DRHP+India+SEBI&hl=en-IN&gl=IN&ceid=IN:en"),
+    ("Google News — Upcoming IPO",
+     "https://news.google.com/rss/search?q=upcoming+IPO+India+2025+2026&hl=en-IN&gl=IN&ceid=IN:en"),
+    ("Google News — Startups",
+     "https://news.google.com/rss/search?q=NSE+IPO+Zepto+PhonePe+Flipkart+SEBI+filing&hl=en-IN&gl=IN&ceid=IN:en"),
+    ("Google News — Fintech",
+     "https://news.google.com/rss/search?q=India+fintech+startup+IPO+DRHP&hl=en-IN&gl=IN&ceid=IN:en"),
+    ("Economic Times",
+     "https://economictimes.indiatimes.com/markets/ipos/rssfeeds/1715249553.cms"),
+    ("Business Standard",
+     "https://www.business-standard.com/rss/markets/ipo-fpo-rights-12.rss"),
+    ("Mint",
+     "https://www.livemint.com/rss/markets"),
+]
+
+SCRAPE_SOURCES = [
+    ("MoneyControl", "https://www.moneycontrol.com/news/tags/ipo.html",
+     "li.clearfix a", "span.ago", None),
+    ("Inc42",        "https://inc42.com/buzz/?s=IPO",
+     "h2.entry-title a", "time.entry-date", None),
+    ("Entrackr",     "https://entrackr.com/?s=IPO",
+     "h2.entry-title a", "time", None),
+]
 
 
 def _now_ist():
@@ -24,6 +75,304 @@ def _warn(msg):
     )
 
 
+def _parse_dt(raw):
+    """Parse any date string → aware IST datetime, or None."""
+    if not raw:
+        return None
+    if isinstance(raw, datetime):
+        dt = raw
+    else:
+        import email.utils
+        for fn in [
+            lambda s: datetime(*time.strptime(s, "%a, %d %b %Y %H:%M:%S %z")[:6],
+                               tzinfo=pytz.UTC),
+            lambda s: datetime(*email.utils.parsedate(s)[:6], tzinfo=pytz.UTC),
+            lambda s: datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=pytz.UTC),
+            lambda s: datetime.strptime(s[:10], "%Y-%m-%d").replace(tzinfo=pytz.UTC),
+        ]:
+            try:
+                dt = fn(str(raw).strip())
+                break
+            except Exception:
+                dt = None
+        else:
+            return None
+    try:
+        return dt.astimezone(IST) if dt else None
+    except Exception:
+        return None
+
+
+def _tag_article(headline):
+    """Return list of relevant tag badges for a headline."""
+    hl = (headline or "").lower()
+    tags = []
+    for tag, kws in _TAG_MAP.items():
+        if any(k in hl for k in kws):
+            tags.append(tag)
+    return tags or ["IPO News"]
+
+
+def _relevant(headline, snippet=""):
+    text = (headline + " " + snippet).lower()
+    return any(k in text for k in _IPO_KEYWORDS)
+
+
+def _dedupe(articles):
+    """Deduplicate by URL; simple similarity by first 60 chars of headline."""
+    seen_urls = set()
+    seen_heads = []
+    out = []
+    for a in articles:
+        url = a.get("url", "")
+        hl60 = (a.get("headline", "") or "")[:60].lower()
+        if url and url in seen_urls:
+            continue
+        # 80% similarity check via common prefix length
+        duplicate = False
+        for h in seen_heads:
+            common = sum(c1 == c2 for c1, c2 in zip(hl60, h))
+            if len(hl60) > 10 and common / max(len(hl60), 1) > 0.8:
+                duplicate = True
+                break
+        if duplicate:
+            continue
+        if url:
+            seen_urls.add(url)
+        seen_heads.append(hl60)
+        out.append(a)
+    return out
+
+
+def _fetch_rss_feeds():
+    """Fetch all RSS feeds; return list of article dicts."""
+    try:
+        import feedparser
+    except ImportError:
+        return []
+
+    articles = []
+    cutoff = datetime.now(IST) - timedelta(days=180)
+
+    for source_name, url in RSS_FEEDS:
+        try:
+            feed = feedparser.parse(url)
+            for entry in (feed.entries or []):
+                headline = entry.get("title", "").strip()
+                link     = entry.get("link", "")
+                snippet  = BeautifulSoup(
+                    entry.get("summary", entry.get("description", "")), "lxml"
+                ).get_text()[:300]
+                pub_raw  = entry.get("published", entry.get("updated", ""))
+                pub_dt   = _parse_dt(pub_raw)
+
+                if not headline or not _relevant(headline, snippet):
+                    continue
+                if pub_dt and pub_dt < cutoff:
+                    continue
+
+                articles.append({
+                    "headline": headline,
+                    "url":      link,
+                    "source":   source_name,
+                    "snippet":  snippet[:200] if snippet else "",
+                    "pub_dt":   pub_dt,
+                    "pub_str":  pub_dt.strftime("%d %b %Y, %I:%M %p IST") if pub_dt else "—",
+                    "tags":     _tag_article(headline),
+                })
+        except Exception:
+            continue
+    return articles
+
+
+def _fetch_scraped_sources():
+    """Scrape non-RSS sources; return list of article dicts."""
+    articles = []
+    cutoff = datetime.now(IST) - timedelta(days=180)
+
+    for source_name, url, link_sel, date_sel, _ in SCRAPE_SOURCES:
+        try:
+            r = requests.get(url, headers=_SCRAPE_HEADERS, timeout=10)
+            soup = BeautifulSoup(r.text, "lxml")
+            links = soup.select(link_sel)
+            dates = soup.select(date_sel) if date_sel else []
+
+            for i, tag in enumerate(links[:30]):
+                headline = tag.get_text(strip=True)
+                href     = tag.get("href", "")
+                if href and not href.startswith("http"):
+                    from urllib.parse import urljoin
+                    href = urljoin(url, href)
+                date_raw = dates[i].get("datetime", dates[i].get_text(strip=True)) \
+                           if i < len(dates) else ""
+                pub_dt = _parse_dt(date_raw)
+
+                if not headline or not _relevant(headline):
+                    continue
+                if pub_dt and pub_dt < cutoff:
+                    continue
+
+                articles.append({
+                    "headline": headline,
+                    "url":      href,
+                    "source":   source_name,
+                    "snippet":  "",
+                    "pub_dt":   pub_dt,
+                    "pub_str":  pub_dt.strftime("%d %b %Y, %I:%M %p IST") if pub_dt else "—",
+                    "tags":     _tag_article(headline),
+                })
+        except Exception:
+            continue
+    return articles
+
+
+def _load_news_cache(force=False):
+    """Fetch and cache news articles in session_state (30-min TTL)."""
+    now_ts = time.time()
+    last   = st.session_state.get("drhp_news_ts", 0)
+    if not force and now_ts - last < _NEWS_TTL and "drhp_news" in st.session_state:
+        return st.session_state["drhp_news"], False  # (articles, is_new)
+
+    prev_urls = {a["url"] for a in st.session_state.get("drhp_news", [])}
+
+    rss      = _fetch_rss_feeds()
+    scraped  = _fetch_scraped_sources()
+    combined = rss + scraped
+
+    # Sort newest first (articles without date go to end)
+    combined.sort(key=lambda a: a["pub_dt"] or datetime(2000, 1, 1, tzinfo=IST), reverse=True)
+    deduped = _dedupe(combined)
+
+    new_count = sum(1 for a in deduped if a["url"] not in prev_urls and a["url"])
+
+    st.session_state["drhp_news"]    = deduped
+    st.session_state["drhp_news_ts"] = now_ts
+    st.session_state["drhp_news_new"] = new_count
+    return deduped, new_count > 0
+
+
+# Tag badge colours
+_TAG_COLOURS = {
+    "DRHP Filed":    ("#1e40af", "#dbeafe"),
+    "SEBI Approval": ("#166534", "#dcfce7"),
+    "Upcoming IPO":  ("#7c3aed", "#ede9fe"),
+    "Anchor":        ("#92400e", "#fef3cd"),
+    "GMP":           ("#0f766e", "#ccfbf1"),
+    "Listing":       ("#be185d", "#fce7f3"),
+    "IPO News":      ("#374151", "#f3f4f6"),
+}
+
+
+def _badge(tag):
+    fg, bg = _TAG_COLOURS.get(tag, ("#374151", "#f3f4f6"))
+    return (f"<span style='background:{bg};color:{fg};font-size:10px;font-weight:600;"
+            f"padding:2px 7px;border-radius:10px;margin-right:4px'>{tag}</span>")
+
+
+def _render_news_feed():
+    """Render the IPO & DRHP news feed expander."""
+    with st.expander("📰 IPO & DRHP News Feed", expanded=True):
+
+        # Header row
+        nh1, nh2, nh3 = st.columns([5, 3, 1])
+        with nh1:
+            st.markdown(
+                f"<span style='color:#6b7a8d;font-size:12px'>Last updated: {_now_ist()}</span>",
+                unsafe_allow_html=True)
+        with nh2:
+            search_q = st.text_input("🔍 Filter news", placeholder="e.g. Zepto, SEBI, GMP…",
+                                     label_visibility="collapsed", key="drhp_news_search")
+        with nh3:
+            do_refresh = st.button("🔄 Refresh", key="drhp_news_refresh")
+
+        if do_refresh:
+            st.session_state.pop("drhp_news_ts", None)
+
+        with st.spinner("Fetching IPO news…"):
+            articles, is_new = _load_news_cache(force=do_refresh)
+
+        new_count = st.session_state.get("drhp_news_new", 0)
+        if is_new and new_count > 0:
+            st.markdown(
+                f"<div style='background:#dcfce7;border:1px solid #86efac;border-radius:8px;"
+                f"padding:6px 14px;margin-bottom:8px;font-size:13px;color:#166534'>"
+                f"🟢 <b>{new_count} new article{'s' if new_count>1 else ''}</b> since last refresh</div>",
+                unsafe_allow_html=True)
+
+        # Source filter
+        all_sources = sorted(set(a["source"] for a in articles))
+        if all_sources:
+            with st.expander("🗂️ Filter by source", expanded=False):
+                src_cols = st.columns(min(len(all_sources), 4))
+                sel_sources = set()
+                for i, src in enumerate(all_sources):
+                    with src_cols[i % 4]:
+                        if st.checkbox(src, value=True, key=f"drhp_src_{src.replace(' ','_')}"):
+                            sel_sources.add(src)
+        else:
+            sel_sources = set(all_sources)
+
+        # Apply search + source filters
+        filtered = [a for a in articles
+                    if a["source"] in sel_sources
+                    and (not search_q or search_q.lower() in (a["headline"] + a["snippet"]).lower())]
+
+        if not filtered:
+            if not articles:
+                st.info("Unable to fetch news at this time. Will retry in 30 minutes.")
+            else:
+                st.info("No articles match the selected filters.")
+            return
+
+        # Pagination via session_state
+        page_key = "drhp_news_page"
+        if page_key not in st.session_state:
+            st.session_state[page_key] = 20
+        if do_refresh or search_q:
+            st.session_state[page_key] = 20
+
+        page_size = st.session_state[page_key]
+        shown = filtered[:page_size]
+
+        st.markdown(
+            f"<div style='color:#6b7a8d;font-size:12px;margin-bottom:8px'>"
+            f"Showing {len(shown)} of {len(filtered)} articles</div>",
+            unsafe_allow_html=True)
+
+        # Render each card
+        for art in shown:
+            tags_html = "".join(_badge(t) for t in art["tags"])
+            source_html = (
+                f"<span style='color:#6b7a8d;font-size:11px'>"
+                f"📡 {art['source']} &nbsp;·&nbsp; 🕐 {art['pub_str']}</span>"
+            )
+            snippet_html = (
+                f"<div style='color:#4b5563;font-size:12px;margin:4px 0 2px'>"
+                f"{art['snippet']}</div>"
+                if art.get("snippet") else ""
+            )
+            url = art.get("url", "#")
+            st.markdown(
+                f"""<div style='background:{CARD_BG};border:1px solid {BORDER};
+                border-radius:8px;padding:10px 14px;margin-bottom:8px'>
+                <div style='margin-bottom:4px'>{tags_html}</div>
+                <div style='font-size:14px;font-weight:600;margin-bottom:2px'>
+                  <a href='{url}' target='_blank' style='color:#1e40af;text-decoration:none'>
+                  {art['headline']}</a></div>
+                {snippet_html}
+                {source_html}
+                </div>""",
+                unsafe_allow_html=True)
+
+        # Load More button
+        if len(filtered) > page_size:
+            if st.button(f"Load More ({len(filtered) - page_size} remaining)",
+                         key="drhp_news_more"):
+                st.session_state[page_key] += 20
+                st.rerun()
+
+
+# ── DRHP filings data ─────────────────────────────────────────────────────────
 KNOWN_FILINGS = [
     {"company": "Zepto",                "filing_date": "2025-01", "type": "DRHP", "sector": "ecommerce",
      "issue_size": "~₹3,500 cr", "brlms": "Kotak, Goldman Sachs", "pdf_link": None,
@@ -162,7 +511,13 @@ def render():
     with col_b:
         if st.button("🔄 Refresh", key="drhp_ref"):
             st.cache_data.clear()
+            st.session_state.pop("drhp_news_ts", None)
             st.rerun()
+
+    # ── NEWS FEED (first thing visible) ──────────────────────────────────────
+    _render_news_feed()
+
+    st.markdown("---")
 
     with st.spinner("Fetching BSE filings…"):
         bse_data, bse_src, _ = _bse_filings()
