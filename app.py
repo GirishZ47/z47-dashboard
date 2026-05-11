@@ -19,6 +19,7 @@ import page_recent_ipos
 import page_upcoming_ipos
 import page_block_deals
 import page_drhp
+from z47_assistant import render_z47_assistant
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -2027,6 +2028,14 @@ def main():
     """, unsafe_allow_html=True)
 
     st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # ── Z47 Assistant (bottom of index page, collapsible) ────────────────────
+    st.markdown("---")
+    render_z47_assistant(
+        context="z47_index",
+        label="💬 Ask Z47 Assistant",
+        extra_context=build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live),
+    )
 
 
 if __name__ == "__main__":

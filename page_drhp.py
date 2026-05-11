@@ -6,6 +6,7 @@ import pytz
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from bs4 import BeautifulSoup
+from z47_assistant import render_z47_assistant
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
@@ -287,3 +288,6 @@ def render():
         f'<div style="color:#a38060;font-size:11px;text-align:right">'
         f'Sources: BSE ({bse_src}), SEBI ({sebi_src}), Hardcoded | Updated: {_now_ist()}</div>',
         unsafe_allow_html=True)
+
+    st.markdown("---")
+    render_z47_assistant(context="drhp")
