@@ -1979,7 +1979,8 @@ def main():
         fig_pie = go.Figure(go.Pie(
             labels=s_df["Sector"], values=s_df["Count"], hole=0.5,
             marker_colors=s_df["Color"].tolist(),
-            textinfo="label+percent", textfont=dict(size=11, color="#4a3520"),
+            textinfo="label+percent", textfont=dict(size=11, color="white"),
+            insidetextorientation="radial",
             hovertemplate="%{label}: %{value} cos<extra></extra>",
         ))
         fig_pie.update_layout(paper_bgcolor=CARD_BG, showlegend=False,
