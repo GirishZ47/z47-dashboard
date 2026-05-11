@@ -943,50 +943,72 @@ def _hist_prices(ticker, start, end):
 
 def _lockup_price_chart(ticker, expiry_dt, label, ipo_company):
     """Show price chart ±30 days around a lock-up expiry date."""
-    import plotly.graph_objects as go
-    start = (expiry_dt - timedelta(days=10)).strftime("%Y-%m-%d")
-    end   = (expiry_dt + timedelta(days=35)).strftime("%Y-%m-%d")
-    df_p = _hist_prices(ticker, start, end)
-    if df_p is None or df_p.empty:
-        st.caption(f"Price history unavailable for {ticker}.")
-        return
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df_p.index, y=df_p["Close"],
-        mode="lines", name="Price",
-        line=dict(color="#1e40af", width=2),
-    ))
-    fig.add_vline(x=expiry_dt, line_dash="dash", line_color="#dc2626",
-                  annotation_text=f"🔓 {label}", annotation_position="top right")
-
-    # Compute price changes around expiry
     try:
-        prices_before = df_p[df_p.index <= expiry_dt]["Close"]
-        prices_after  = df_p[df_p.index >= expiry_dt]["Close"]
-        if not prices_before.empty and not prices_after.empty:
-            p_before = prices_before.iloc[-1]
-            p_on     = prices_after.iloc[0] if len(prices_after) >= 1 else None
-            p_7d     = prices_after.iloc[min(5, len(prices_after)-1)]
-            p_30d    = prices_after.iloc[min(21, len(prices_after)-1)]
-            chg_30   = round((p_30d - p_before) / p_before * 100, 1) if p_before else None
-            chg_dir  = "fell" if (chg_30 or 0) < 0 else "rose"
-            if chg_30 is not None:
-                st.markdown(
-                    f"<div style='background:#fef3cd;border:1px solid #ffc107;border-radius:6px;"
-                    f"padding:6px 12px;font-size:12px;margin-bottom:4px'>"
-                    f"Stock <b>{chg_dir} {abs(chg_30):.1f}%</b> in 30 days after {label} expired.</div>",
-                    unsafe_allow_html=True)
-    except Exception:
-        pass
+        start = (expiry_dt - timedelta(days=10)).strftime("%Y-%m-%d")
+        end   = (expiry_dt + timedelta(days=35)).strftime("%Y-%m-%d")
+        df_p = _hist_prices(ticker, start, end)
+        if df_p is None or df_p.empty:
+            st.caption(f"Price history unavailable for {ticker}.")
+            return
 
-    fig.update_layout(
-        height=220, margin=dict(l=0, r=0, t=20, b=0),
-        xaxis_title=None, yaxis_title="Price (₹)",
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        showlegend=False,
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        # Convert expiry_dt to string — avoids Plotly datetime compat issues on Cloud
+        expiry_str = expiry_dt.strftime("%Y-%m-%d")
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df_p.index.strftime("%Y-%m-%d"),
+            y=df_p["Close"],
+            mode="lines", name="Price",
+            line=dict(color="#1e40af", width=2),
+        ))
+
+        # Draw expiry line as a shape + annotation (avoids add_vline compat issues)
+        fig.add_shape(
+            type="line",
+            x0=expiry_str, x1=expiry_str,
+            y0=0, y1=1,
+            xref="x", yref="paper",
+            line=dict(color="#dc2626", dash="dash", width=2),
+        )
+        fig.add_annotation(
+            x=expiry_str, y=0.95, xref="x", yref="paper",
+            text=f"🔓 {label}",
+            showarrow=False,
+            font=dict(color="#dc2626", size=11),
+            xanchor="left",
+        )
+
+        # Compute price changes around expiry
+        try:
+            df_idx = df_p.copy()
+            df_idx.index = pd.to_datetime(df_idx.index)
+            exp_ts = pd.Timestamp(expiry_dt)
+            prices_before = df_idx[df_idx.index <= exp_ts]["Close"]
+            prices_after  = df_idx[df_idx.index >= exp_ts]["Close"]
+            if not prices_before.empty and not prices_after.empty:
+                p_before = prices_before.iloc[-1]
+                p_30d    = prices_after.iloc[min(21, len(prices_after)-1)]
+                chg_30   = round((p_30d - p_before) / p_before * 100, 1) if p_before else None
+                chg_dir  = "fell" if (chg_30 or 0) < 0 else "rose"
+                if chg_30 is not None:
+                    st.markdown(
+                        f"<div style='background:#fef3cd;border:1px solid #ffc107;border-radius:6px;"
+                        f"padding:6px 12px;font-size:12px;margin-bottom:4px'>"
+                        f"Stock <b>{chg_dir} {abs(chg_30):.1f}%</b> in 30 days after {label} expired.</div>",
+                        unsafe_allow_html=True)
+        except Exception:
+            pass
+
+        fig.update_layout(
+            height=220, margin=dict(l=0, r=0, t=20, b=0),
+            xaxis_title=None, yaxis_title="Price (₹)",
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.caption(f"Chart unavailable for {label}: {e}")
 
 
 def _render_lockup_tab(ipo):
