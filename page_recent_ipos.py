@@ -1221,29 +1221,46 @@ def render():
         EV/Revenue · P/E · P/B — at listing day and at current price</span></div>""",
         unsafe_allow_html=True)
 
-    val_cols = ["Company", "Listing MCap (₹ Cr)", "Revenue (₹ Cr)",
+    val_cols = ["Company", "Listing MCap (₹ Cr)",
                 "EV/Rev (listing)", "EV/Rev (CMP)",
                 "P/E at Listing", "P/E at CMP",
                 "P/B at Listing", "P/B at CMP"]
     val_df = df[val_cols].copy()
 
-    def _mult_color(val):
+    _listing_cols = ["EV/Rev (listing)", "P/E at Listing", "P/B at Listing"]
+    _cmp_cols     = ["EV/Rev (CMP)",     "P/E at CMP",     "P/B at CMP"]
+
+    def _listing_color(val):
         if val is None or (isinstance(val, float) and pd.isna(val)):
             return ""
-        return ""   # neutral — no color on multiples
+        return "color:#1e40af;font-weight:600"   # blue  — Listing
 
-    st.dataframe(val_df, use_container_width=True, height=400, hide_index=True,
+    def _cmp_color(val):
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return ""
+        return "color:#b45309;font-weight:600"   # amber — CMP
+
+    val_styled = (val_df.style
+                  .map(_listing_color, subset=_listing_cols)
+                  .map(_cmp_color,     subset=_cmp_cols))
+
+    st.dataframe(val_styled, use_container_width=True, height=400, hide_index=True,
                  column_config={
                      "Listing MCap (₹ Cr)": st.column_config.NumberColumn(format="₹%d cr"),
-                     "Revenue (₹ Cr)":      st.column_config.NumberColumn(format="₹%d cr"),
-                     "EV/Rev (listing)":    st.column_config.NumberColumn("EV/Rev (Listing)", format="%.1fx"),
-                     "EV/Rev (CMP)":        st.column_config.NumberColumn("EV/Rev (CMP)",     format="%.1fx"),
-                     "P/E at Listing":      st.column_config.NumberColumn("P/E (Listing)",    format="%.1fx"),
-                     "P/E at CMP":          st.column_config.NumberColumn("P/E (CMP)",        format="%.1fx"),
-                     "P/B at Listing":      st.column_config.NumberColumn("P/B (Listing)",    format="%.1fx"),
-                     "P/B at CMP":          st.column_config.NumberColumn("P/B (CMP)",        format="%.1fx"),
+                     "EV/Rev (listing)":    st.column_config.NumberColumn("EV/Rev (Listing) 🔵", format="%.1fx"),
+                     "EV/Rev (CMP)":        st.column_config.NumberColumn("EV/Rev (CMP) 🟠",     format="%.1fx"),
+                     "P/E at Listing":      st.column_config.NumberColumn("P/E (Listing) 🔵",    format="%.1fx"),
+                     "P/E at CMP":          st.column_config.NumberColumn("P/E (CMP) 🟠",        format="%.1fx"),
+                     "P/B at Listing":      st.column_config.NumberColumn("P/B (Listing) 🔵",    format="%.1fx"),
+                     "P/B at CMP":          st.column_config.NumberColumn("P/B (CMP) 🟠",        format="%.1fx"),
                  })
-    st.caption("EV = MCap + Debt − Cash. P/E only for profitable companies. P/B only for financial-services companies. CMP multiples scaled by current price / listing price ratio.")
+    st.markdown(
+        "<span style='font-size:11px;color:#6b7a8d'>"
+        "<b style='color:#1e40af'>🔵 Blue = At Listing</b> &nbsp;|&nbsp; "
+        "<b style='color:#b45309'>🟠 Amber = At CMP (current price)</b> &nbsp;|&nbsp; "
+        "EV = MCap + Debt − Cash &nbsp;|&nbsp; P/E only for profitable cos &nbsp;|&nbsp; "
+        "P/B only for financial-services cos</span>",
+        unsafe_allow_html=True)
 
     st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
                 unsafe_allow_html=True)
