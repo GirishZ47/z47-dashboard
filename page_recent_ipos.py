@@ -1170,23 +1170,53 @@ def render():
             return ""
         return "color:#16a34a;font-weight:600" if val >= 0 else "color:#dc2626;font-weight:600"
 
-    styled = df.style.map(_color, subset=["Return from IPO (%)", "Return from Listing (%)"])
+    # ── Table 1: Price performance (keep compact — only price/return cols) ────
+    perf_cols = ["Company", "Sector", "Listing Date", "Issue Price (₹)",
+                 "Listing Price (₹)", "Current Price (₹)",
+                 "Return from IPO (%)", "Return from Listing (%)"]
+    styled = df[perf_cols].style.map(_color, subset=["Return from IPO (%)", "Return from Listing (%)"])
     st.dataframe(styled, use_container_width=True, height=400, hide_index=True,
                  column_config={
-                     "Issue Price (₹)":         st.column_config.NumberColumn(format="₹%.2f"),
-                     "Listing Price (₹)":        st.column_config.NumberColumn(format="₹%.2f"),
-                     "Current Price (₹)":        st.column_config.NumberColumn(format="₹%.2f"),
-                     "Return from IPO (%)":      st.column_config.NumberColumn(format="%.2f%%"),
-                     "Return from Listing (%)":  st.column_config.NumberColumn(format="%.2f%%"),
-                     "Listing MCap (₹ Cr)":      st.column_config.NumberColumn(format="₹%d cr"),
-                     "Revenue (₹ Cr)":           st.column_config.NumberColumn(format="₹%d cr"),
-                     "EV/Rev (listing)":         st.column_config.NumberColumn(format="%.1fx"),
-                     "EV/Rev (CMP)":             st.column_config.NumberColumn(format="%.1fx"),
-                     "P/E at Listing":           st.column_config.NumberColumn(format="%.1fx"),
-                     "P/E at CMP":               st.column_config.NumberColumn(format="%.1fx"),
-                     "P/B at Listing":           st.column_config.NumberColumn(format="%.1fx"),
-                     "P/B at CMP":               st.column_config.NumberColumn(format="%.1fx"),
+                     "Issue Price (₹)":        st.column_config.NumberColumn(format="₹%.2f"),
+                     "Listing Price (₹)":       st.column_config.NumberColumn(format="₹%.2f"),
+                     "Current Price (₹)":       st.column_config.NumberColumn(format="₹%.2f"),
+                     "Return from IPO (%)":     st.column_config.NumberColumn(format="%.2f%%"),
+                     "Return from Listing (%)": st.column_config.NumberColumn(format="%.2f%%"),
                  })
+
+    # ── Table 2: Valuation Multiples (always visible, dedicated section) ─────
+    st.markdown(
+        f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+        padding:8px 16px;margin:16px 0 6px'>
+        <b style='color:#1e40af;font-size:14px'>📊 Valuation Multiples at Listing</b>
+        <span style='color:#6b7a8d;font-size:12px;margin-left:10px'>
+        EV/Revenue · P/E · P/B — at listing day and at current price</span></div>""",
+        unsafe_allow_html=True)
+
+    val_cols = ["Company", "Listing MCap (₹ Cr)", "Revenue (₹ Cr)",
+                "EV/Rev (listing)", "EV/Rev (CMP)",
+                "P/E at Listing", "P/E at CMP",
+                "P/B at Listing", "P/B at CMP"]
+    val_df = df[val_cols].copy()
+
+    def _mult_color(val):
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return ""
+        return ""   # neutral — no color on multiples
+
+    st.dataframe(val_df, use_container_width=True, height=400, hide_index=True,
+                 column_config={
+                     "Listing MCap (₹ Cr)": st.column_config.NumberColumn(format="₹%d cr"),
+                     "Revenue (₹ Cr)":      st.column_config.NumberColumn(format="₹%d cr"),
+                     "EV/Rev (listing)":    st.column_config.NumberColumn("EV/Rev (Listing)", format="%.1fx"),
+                     "EV/Rev (CMP)":        st.column_config.NumberColumn("EV/Rev (CMP)",     format="%.1fx"),
+                     "P/E at Listing":      st.column_config.NumberColumn("P/E (Listing)",    format="%.1fx"),
+                     "P/E at CMP":          st.column_config.NumberColumn("P/E (CMP)",        format="%.1fx"),
+                     "P/B at Listing":      st.column_config.NumberColumn("P/B (Listing)",    format="%.1fx"),
+                     "P/B at CMP":          st.column_config.NumberColumn("P/B (CMP)",        format="%.1fx"),
+                 })
+    st.caption("EV = MCap + Debt − Cash. P/E only for profitable companies. P/B only for financial-services companies. CMP multiples scaled by current price / listing price ratio.")
+
     st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
                 unsafe_allow_html=True)
 
