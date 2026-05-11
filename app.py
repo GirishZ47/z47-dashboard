@@ -1974,18 +1974,66 @@ def main():
         for k, v in sorted(sector_counts.items(), key=lambda x: -x[1])
     ])
 
+    # Pastel colors + short display labels for the donut chart only
+    _PIE_PASTELS = {
+        "Fintech / Financial Services": "#D6E4FF",
+        "Consumer / Consumer Tech":     "#D4EDDA",
+        "B2B":                          "#E8D5F5",
+        "SaaS / AI":                    "#D1ECF1",
+    }
+    _PIE_SHORT = {
+        "Fintech / Financial Services": "Fintech / Fin. Services",
+        "Consumer / Consumer Tech":     "Consumer Tech",
+        "B2B":                          "B2B",
+        "SaaS / AI":                    "SaaS / AI",
+    }
+    pie_colors  = [_PIE_PASTELS.get(s, "#eeeeee") for s in s_df["Sector"]]
+    pie_labels  = [_PIE_SHORT.get(s, s)            for s in s_df["Sector"]]
+
     col_pie, col_bar2 = st.columns([1, 2])
     with col_pie:
         fig_pie = go.Figure(go.Pie(
-            labels=s_df["Sector"], values=s_df["Count"], hole=0.5,
-            marker_colors=s_df["Color"].tolist(),
-            textinfo="label+percent", textfont=dict(size=11, color="white"),
-            insidetextorientation="radial",
-            hovertemplate="%{label}: %{value} cos<extra></extra>",
+            labels=pie_labels,
+            values=s_df["Count"],
+            hole=0.5,
+            marker=dict(
+                colors=pie_colors,
+                line=dict(color="#cccccc", width=1.5),
+            ),
+            textinfo="label+percent",
+            textposition="inside",
+            insidetextorientation="horizontal",
+            textfont=dict(size=11, color="#1a1a1a"),
+            automargin=True,
+            hovertext=s_df["Sector"],
+            hovertemplate="%{hovertext}: %{value} companies (%{percent})<extra></extra>",
         ))
-        fig_pie.update_layout(paper_bgcolor=CARD_BG, showlegend=False,
-                              margin=dict(l=0, r=0, t=0, b=0), height=300)
+        fig_pie.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            uniformtext_minsize=9,
+            uniformtext_mode="hide",
+            margin=dict(l=10, r=10, t=10, b=10),
+            height=420,
+        )
         st.plotly_chart(fig_pie, use_container_width=True)
+
+        # Clean HTML legend with full sector names + pastel swatches
+        legend_parts = []
+        for s, v in zip(s_df["Sector"], s_df["Count"]):
+            bg = _PIE_PASTELS.get(s, "#eeeeee")
+            legend_parts.append(
+                f"<span style='display:inline-flex;align-items:center;margin:3px 10px 3px 0'>"
+                f"<span style='width:13px;height:13px;border-radius:3px;background:{bg};"
+                f"border:1px solid #ccc;display:inline-block;margin-right:5px'></span>"
+                f"<span style='font-size:11px;color:#1a1a1a'>{s} ({int(v)})</span></span>"
+            )
+        legend_html = "".join(legend_parts)
+        st.markdown(
+            f"<div style='text-align:center;margin-top:-8px;line-height:1.8'>{legend_html}</div>",
+            unsafe_allow_html=True,
+        )
 
     with col_bar2:
         fig_sb = go.Figure(go.Bar(
