@@ -958,8 +958,7 @@ def _lockup_price_chart(ticker, expiry_dt, label, ipo_company):
         line=dict(color="#1e40af", width=2),
     ))
     fig.add_vline(x=expiry_dt, line_dash="dash", line_color="#dc2626",
-                  annotation_text=f"🔓 {label}", annotation_position="top right",
-                  annotation_font_size=11)
+                  annotation_text=f"🔓 {label}", annotation_position="top right")
 
     # Compute price changes around expiry
     try:
