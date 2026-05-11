@@ -1222,9 +1222,8 @@ def render():
         unsafe_allow_html=True)
 
     val_cols = ["Company", "Listing MCap (₹ Cr)",
-                "EV/Rev (listing)", "EV/Rev (CMP)",
-                "P/E at Listing", "P/E at CMP",
-                "P/B at Listing", "P/B at CMP"]
+                "EV/Rev (listing)", "P/E at Listing", "P/B at Listing",
+                "EV/Rev (CMP)",     "P/E at CMP",     "P/B at CMP"]
     val_df = df[val_cols].copy()
 
     _listing_cols = ["EV/Rev (listing)", "P/E at Listing", "P/B at Listing"]
