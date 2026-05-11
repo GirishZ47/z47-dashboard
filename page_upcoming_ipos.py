@@ -37,7 +37,7 @@ def _warn(msg):
 
 
 UPCOMING_FALLBACK = [
-    {"company": "Zepto",             "sector": "Consumer / Consumertech",
+    {"company": "Zepto",             "sector": "Consumer / Consumer Tech",
      "status": "DRHP Filed", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q3", "price_band": "TBD", "issue_size": "~₹3,500 cr",
      "expected_mcap_cr": 50000, "expected_val_usd_b": 6.0,
@@ -45,7 +45,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": None, "book_value_cr": None,
      "expected_ev_rev": 4.5, "expected_pe": None, "expected_pb": None,
      "description": "10-minute grocery delivery startup. DRHP filed with SEBI in 2025. Valued at ~$6B in last funding round."},
-    {"company": "PhonePe",           "sector": "Fintech/FS",
+    {"company": "PhonePe",           "sector": "Fintech / Financial Services",
      "status": "Expected 2025", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q4", "price_band": "TBD", "issue_size": "TBD",
      "expected_mcap_cr": 83000, "expected_val_usd_b": 10.0,
@@ -53,7 +53,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": None, "book_value_cr": 8200,
      "expected_ev_rev": 10.9, "expected_pe": None, "expected_pb": 10.1,  # fintech/payments — P/B relevant; BV ~₹8,200 cr
      "description": "UPI-based payments giant, Walmart-backed. India's largest digital payments app. Last valued at ~$12B."},
-    {"company": "Meesho",            "sector": "Consumer / Consumertech",
+    {"company": "Meesho",            "sector": "Consumer / Consumer Tech",
      "status": "DRHP Filed", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q3", "price_band": "₹380–400", "issue_size": "~₹5,000 cr",
      "expected_mcap_cr": 33200, "expected_val_usd_b": 4.0,
@@ -61,7 +61,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": None, "book_value_cr": None,
      "expected_ev_rev": 4.4, "expected_pe": None, "expected_pb": None,
      "description": "Social commerce platform, one of India's largest e-commerce players. Last valued at $4.9B."},
-    {"company": "Rebel Foods (Faasos)", "sector": "Consumer / Consumertech",
+    {"company": "Rebel Foods (Faasos)", "sector": "Consumer / Consumer Tech",
      "status": "Expected", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q4", "price_band": "TBD", "issue_size": "~₹2,500 cr",
      "expected_mcap_cr": 13800, "expected_val_usd_b": 1.7,
@@ -69,7 +69,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": None, "book_value_cr": None,
      "expected_ev_rev": 8.4, "expected_pe": None, "expected_pb": None,
      "description": "Cloud kitchen platform (Faasos, Behrouz, Oven Story). Backed by Coatue. Last valued at $1.4B."},
-    {"company": "Boat (Imagine Marketing)", "sector": "Consumer / Consumertech",
+    {"company": "Boat (Imagine Marketing)", "sector": "Consumer / Consumer Tech",
      "status": "DRHP Filed", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q3", "price_band": "TBD", "issue_size": "~₹2,000 cr",
      "expected_mcap_cr": 4500, "expected_val_usd_b": 0.5,
@@ -77,7 +77,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": 82, "book_value_cr": None,
      "expected_ev_rev": 1.5, "expected_pe": 54.9, "expected_pb": None,  # PAT ~₹82 cr FY24
      "description": "Consumer electronics and wearables brand. India's No.1 wearable brand. Backed by Warburg Pincus."},
-    {"company": "Lenskart",          "sector": "Consumer / Consumertech",
+    {"company": "Lenskart",          "sector": "Consumer / Consumer Tech",
      "status": "Expected", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q4", "price_band": "TBD", "issue_size": "~₹3,500 cr",
      "expected_mcap_cr": 41500, "expected_val_usd_b": 5.0,
@@ -85,7 +85,7 @@ UPCOMING_FALLBACK = [
      "pat_cr": None, "book_value_cr": None,
      "expected_ev_rev": 7.6, "expected_pe": None, "expected_pb": None,
      "description": "Omnichannel eyewear retailer. Backed by SoftBank and KKR. Last valued at $4.5B."},
-    {"company": "Ola Cabs",          "sector": "Consumer / Consumertech",
+    {"company": "Ola Cabs",          "sector": "Consumer / Consumer Tech",
      "status": "DRHP Filed", "open_date": None, "close_date": None,
      "expected_listing": "2025-Q3", "price_band": "TBD", "issue_size": "~₹5,000 cr",
      "expected_mcap_cr": None, "expected_val_usd_b": None,

@@ -28,7 +28,7 @@ def _warn(msg):
 # ── IPO data ───────────────────────────────────────────────────────────────────
 IPOS = [
     {
-        "company": "Groww", "sector": "Fintech/FS", "ticker": "GROWW.NS", "exchange": "NSE",
+        "company": "Groww", "sector": "Fintech / Financial Services", "ticker": "GROWW.NS", "exchange": "NSE",
         "listing_date": "2025-11-12", "price_band": "₹100", "issue_price": 100,
         "listing_price": 114.0, "issue_size": "₹6,160 cr", "issue_size_cr": 6160,
         "lot_size": 76, "fresh_issue": "₹6,160 cr", "ofs": "–",
@@ -38,7 +38,7 @@ IPOS = [
         "known_listing_gain_pct": 14.0,
     },
     {
-        "company": "Swiggy", "sector": "Consumer / Consumertech", "ticker": "SWIGGY.NS", "exchange": "NSE",
+        "company": "Swiggy", "sector": "Consumer / Consumer Tech", "ticker": "SWIGGY.NS", "exchange": "NSE",
         "listing_date": "2024-11-13", "price_band": "₹371–390", "issue_price": 390,
         "listing_price": 420.0, "issue_size": "₹11,327 cr", "issue_size_cr": 11327,
         "lot_size": 38, "fresh_issue": "₹4,499 cr", "ofs": "₹6,828 cr",
@@ -48,7 +48,7 @@ IPOS = [
         "known_listing_gain_pct": 7.7,
     },
     {
-        "company": "Ola Electric", "sector": "EV / Mobility", "ticker": "OLAELEC.NS", "exchange": "NSE",
+        "company": "Ola Electric", "sector": "Consumer / Consumer Tech", "ticker": "OLAELEC.NS", "exchange": "NSE",
         "listing_date": "2024-08-09", "price_band": "₹72–76", "issue_price": 76,
         "listing_price": 75.99, "issue_size": "₹6,145 cr", "issue_size_cr": 6145,
         "lot_size": 195, "fresh_issue": "₹5,500 cr", "ofs": "₹645 cr",
@@ -58,7 +58,7 @@ IPOS = [
         "known_listing_gain_pct": 0.0,
     },
     {
-        "company": "Ather Energy", "sector": "EV / Mobility", "ticker": "ATHERENERG.NS", "exchange": "NSE",
+        "company": "Ather Energy", "sector": "Consumer / Consumer Tech", "ticker": "ATHERENERG.NS", "exchange": "NSE",
         "listing_date": "2025-05-06", "price_band": "₹304–321", "issue_price": 321,
         "listing_price": 328.0, "issue_size": "₹2,626 cr", "issue_size_cr": 2626,
         "lot_size": 46, "fresh_issue": "₹2,626 cr", "ofs": "–",
@@ -68,7 +68,7 @@ IPOS = [
         "known_listing_gain_pct": 2.2,
     },
     {
-        "company": "BlackBuck", "sector": "Logistics", "ticker": "BLACKBUCK.NS", "exchange": "NSE",
+        "company": "BlackBuck", "sector": "B2B", "ticker": "BLACKBUCK.NS", "exchange": "NSE",
         "listing_date": "2024-11-26", "price_band": "₹259–273", "issue_price": 273,
         "listing_price": 283.0, "issue_size": "₹1,515 cr", "issue_size_cr": 1515,
         "lot_size": 54, "fresh_issue": "₹1,515 cr", "ofs": "–",
@@ -78,7 +78,7 @@ IPOS = [
         "known_listing_gain_pct": 3.7,
     },
     {
-        "company": "MobiKwik", "sector": "Fintech/FS", "ticker": "MOBIKWIK.NS", "exchange": "NSE",
+        "company": "MobiKwik", "sector": "Fintech / Financial Services", "ticker": "MOBIKWIK.NS", "exchange": "NSE",
         "listing_date": "2024-12-18", "price_band": "₹235–279", "issue_price": 279,
         "listing_price": 442.25, "issue_size": "₹572 cr", "issue_size_cr": 572,
         "lot_size": 53, "fresh_issue": "₹572 cr", "ofs": "–",
@@ -88,7 +88,7 @@ IPOS = [
         "known_listing_gain_pct": 58.5,
     },
     {
-        "company": "Shadowfax", "sector": "Logistics", "ticker": "SHADOWFAX.NS", "exchange": "NSE",
+        "company": "Shadowfax", "sector": "B2B", "ticker": "SHADOWFAX.NS", "exchange": "NSE",
         "listing_date": "2026-01-28", "price_band": "₹118–124", "issue_price": 124,
         "listing_price": 112.60, "issue_size": "₹2,526 cr", "issue_size_cr": 2526,
         "lot_size": 70, "fresh_issue": "₹1,250 cr", "ofs": "₹1,276 cr",
@@ -98,7 +98,7 @@ IPOS = [
         "known_listing_gain_pct": -9.2,
     },
     {
-        "company": "Unicommerce", "sector": "SaaS / B2B Tech", "ticker": "UNIECOM.NS", "exchange": "NSE",
+        "company": "Unicommerce", "sector": "SaaS / AI", "ticker": "UNIECOM.NS", "exchange": "NSE",
         "listing_date": "2024-08-13", "price_band": "₹102–108", "issue_price": 108,
         "listing_price": 235.0, "issue_size": "₹277 cr", "issue_size_cr": 277,
         "lot_size": 138, "fresh_issue": "–", "ofs": "₹277 cr",
@@ -108,7 +108,7 @@ IPOS = [
         "known_listing_gain_pct": 117.6,
     },
     {
-        "company": "Ixigo", "sector": "Travel / Hospitality", "ticker": "IXIGO.NS", "exchange": "NSE",
+        "company": "Ixigo", "sector": "Consumer / Consumer Tech", "ticker": "IXIGO.NS", "exchange": "NSE",
         "listing_date": "2024-06-18", "price_band": "₹88–93", "issue_price": 93,
         "listing_price": 138.1, "issue_size": "₹740 cr", "issue_size_cr": 740,
         "lot_size": 161, "fresh_issue": "₹120 cr", "ofs": "₹620 cr",
@@ -118,7 +118,7 @@ IPOS = [
         "known_listing_gain_pct": 48.5,
     },
     {
-        "company": "BlueStone", "sector": "Consumer / Consumertech", "ticker": "BLUESTONE.NS", "exchange": "NSE",
+        "company": "BlueStone", "sector": "Consumer / Consumer Tech", "ticker": "BLUESTONE.NS", "exchange": "NSE",
         "listing_date": "2025-08-19", "price_band": "₹490–517", "issue_price": 517,
         "listing_price": 510.0, "issue_size": "₹1,000 cr", "issue_size_cr": 1000,
         "lot_size": 26, "fresh_issue": "₹1,000 cr", "ofs": "–",
@@ -128,7 +128,7 @@ IPOS = [
         "known_listing_gain_pct": -1.4,
     },
     {
-        "company": "Smartworks", "sector": "Real Estate / PropTech", "ticker": "SMARTWORKS.NS", "exchange": "NSE",
+        "company": "Smartworks", "sector": "B2B", "ticker": "SMARTWORKS.NS", "exchange": "NSE",
         "listing_date": "2024-08-28", "price_band": "₹387–407", "issue_price": 407,
         "listing_price": 395.0, "issue_size": "₹583 cr", "issue_size_cr": 583,
         "lot_size": 36, "fresh_issue": "₹583 cr", "ofs": "–",
@@ -138,7 +138,7 @@ IPOS = [
         "known_listing_gain_pct": -3.0,
     },
     {
-        "company": "FirstCry", "sector": "Consumer / Consumertech", "ticker": "FIRSTCRY.NS", "exchange": "NSE",
+        "company": "FirstCry", "sector": "Consumer / Consumer Tech", "ticker": "FIRSTCRY.NS", "exchange": "NSE",
         "listing_date": "2024-08-13", "price_band": "₹440–465", "issue_price": 465,
         "listing_price": 651.0, "issue_size": "₹4,194 cr", "issue_size_cr": 4194,
         "lot_size": 32, "fresh_issue": "₹1,666 cr", "ofs": "₹2,528 cr",
@@ -148,7 +148,7 @@ IPOS = [
         "known_listing_gain_pct": 40.0,
     },
     {
-        "company": "Awfis Space", "sector": "Real Estate / PropTech", "ticker": "AWFIS.NS", "exchange": "NSE",
+        "company": "Awfis Space", "sector": "B2B", "ticker": "AWFIS.NS", "exchange": "NSE",
         "listing_date": "2024-05-30", "price_band": "₹364–383", "issue_price": 383,
         "listing_price": 435.0, "issue_size": "₹598 cr", "issue_size_cr": 598,
         "lot_size": 39, "fresh_issue": "₹128 cr", "ofs": "₹470 cr",
@@ -158,7 +158,7 @@ IPOS = [
         "known_listing_gain_pct": 13.6,
     },
     {
-        "company": "PhysicsWallah", "sector": "Edtech", "ticker": "PWL.NS", "exchange": "NSE",
+        "company": "PhysicsWallah", "sector": "Consumer / Consumer Tech", "ticker": "PWL.NS", "exchange": "NSE",
         "listing_date": "2025-01-15", "price_band": "TBD", "issue_price": None,
         "listing_price": None, "issue_size": "TBD", "issue_size_cr": None,
         "lot_size": None, "fresh_issue": "TBD", "ofs": "TBD",
@@ -168,7 +168,7 @@ IPOS = [
         "known_listing_gain_pct": None,
     },
     {
-        "company": "TBO Tek", "sector": "Travel / Hospitality", "ticker": "TBOTEK.NS", "exchange": "NSE",
+        "company": "TBO Tek", "sector": "B2B", "ticker": "TBOTEK.NS", "exchange": "NSE",
         "listing_date": "2024-05-15", "price_band": "₹875–920", "issue_price": 920,
         "listing_price": 1426.0, "issue_size": "₹1,550 cr", "issue_size_cr": 1550,
         "lot_size": 16, "fresh_issue": "₹400 cr", "ofs": "₹1,150 cr",
@@ -178,7 +178,7 @@ IPOS = [
         "known_listing_gain_pct": 55.0,
     },
     {
-        "company": "Go Digit Insurance", "sector": "Fintech/FS", "ticker": "GODIGIT.NS", "exchange": "NSE",
+        "company": "Go Digit Insurance", "sector": "Fintech / Financial Services", "ticker": "GODIGIT.NS", "exchange": "NSE",
         "listing_date": "2024-05-23", "price_band": "₹258–272", "issue_price": 272,
         "listing_price": 286.0, "issue_size": "₹2,615 cr", "issue_size_cr": 2615,
         "lot_size": 55, "fresh_issue": "₹1,125 cr", "ofs": "₹1,490 cr",
@@ -188,7 +188,7 @@ IPOS = [
         "known_listing_gain_pct": 5.1,
     },
     {
-        "company": "Pine Labs", "sector": "Fintech/FS", "ticker": "PINELABS.NS", "exchange": "NSE",
+        "company": "Pine Labs", "sector": "Fintech / Financial Services", "ticker": "PINELABS.NS", "exchange": "NSE",
         "listing_date": "2025-11-14", "price_band": "₹201–221", "issue_price": 221,
         "listing_price": 242.0, "issue_size": "₹6,000 cr", "issue_size_cr": 6000,
         "lot_size": 40, "fresh_issue": "₹2,080 cr", "ofs": "₹3,920 cr",
@@ -198,7 +198,7 @@ IPOS = [
         "known_listing_gain_pct": 9.5,
     },
     {
-        "company": "Urban Company", "sector": "Consumer / Consumertech", "ticker": "URBANCO.NS", "exchange": "NSE",
+        "company": "Urban Company", "sector": "Consumer / Consumer Tech", "ticker": "URBANCO.NS", "exchange": "NSE",
         "listing_date": "2025-09-17", "price_band": "₹93–103", "issue_price": 103,
         "listing_price": 162.25, "issue_size": "₹3,000 cr", "issue_size_cr": 3000,
         "lot_size": 34, "fresh_issue": "₹1,500 cr", "ofs": "₹1,500 cr",
@@ -208,7 +208,7 @@ IPOS = [
         "known_listing_gain_pct": 57.5,
     },
     {
-        "company": "Meesho", "sector": "Consumer / Consumertech", "ticker": "MEESHO.NS", "exchange": "NSE",
+        "company": "Meesho", "sector": "Consumer / Consumer Tech", "ticker": "MEESHO.NS", "exchange": "NSE",
         "listing_date": "2025-06-01", "price_band": "₹380–400", "issue_price": 400,
         "listing_price": None, "issue_size": "₹5,000 cr", "issue_size_cr": 5000,
         "lot_size": 37, "fresh_issue": "₹3,000 cr", "ofs": "₹2,000 cr",
@@ -218,7 +218,7 @@ IPOS = [
         "known_listing_gain_pct": None,
     },
     {
-        "company": "Capillary Technologies", "sector": "SaaS / B2B Tech", "ticker": "CAPILLARY.NS", "exchange": "NSE",
+        "company": "Capillary Technologies", "sector": "SaaS / AI", "ticker": "CAPILLARY.NS", "exchange": "NSE",
         "listing_date": "2025-11-21", "price_band": "₹528–577", "issue_price": 577,
         "listing_price": 571.90, "issue_size": "₹479 cr", "issue_size_cr": 479,
         "lot_size": 57, "fresh_issue": "₹479 cr", "ofs": "–",
@@ -228,7 +228,7 @@ IPOS = [
         "known_listing_gain_pct": -0.9,
     },
     {
-        "company": "Kissht (OnEMI Technology)", "sector": "Fintech/FS", "ticker": "KISSHT.NS", "exchange": "NSE",
+        "company": "Kissht (OnEMI Technology)", "sector": "Fintech / Financial Services", "ticker": "KISSHT.NS", "exchange": "NSE",
         "listing_date": "2026-05-08", "price_band": "₹162–171", "issue_price": 171,
         "listing_price": 190.0, "issue_size": "₹926 cr", "issue_size_cr": 926,
         "lot_size": 87, "fresh_issue": "₹850 cr", "ofs": "₹76 cr",
