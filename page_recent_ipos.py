@@ -10,6 +10,12 @@ from streamlit_autorefresh import st_autorefresh
 from z47_assistant import render_z47_assistant
 import time
 import re
+from ipo_investor_data import (
+    get_investor_blended_data,
+    extract_share_capital_history,
+    match_investor_in_rhp,
+    RHP_URLS,
+)
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
@@ -991,19 +997,163 @@ def _fetch_shareholding(ticker, company_name=""):
     return _save([], [], "—")
 
 
-def _return_popup_md(inv, ipo):
-    """Generate markdown for Return at IPO calculation popover."""
+def _fmt_shares(shares_lakhs: float | None) -> str:
+    """Format share count for display (lakh / cr as appropriate)."""
+    if shares_lakhs is None:
+        return "N/A"
+    if shares_lakhs >= 100:
+        return f"{shares_lakhs / 100:.2f} cr"
+    return f"{shares_lakhs:.1f} lakh"
+
+
+def _fmt_amt(price: float | None, shares_lakhs: float | None) -> str:
+    """Format total amount invested (₹ cr)."""
+    if price is None or shares_lakhs is None:
+        return "—"
+    amt = price * shares_lakhs / 100  # ₹ crore
+    if amt >= 1000:
+        return f"₹{amt/100:.1f}k cr"
+    return f"₹{amt:.1f} cr"
+
+
+def _sanity_flag(multiple: float | None) -> str:
+    """Return ⚠️ if return looks impossibly high or is negative."""
+    if multiple is None:
+        return ""
+    if multiple < 0 or multiple > 500:
+        return " ⚠️"
+    return ""
+
+
+def _return_popup_md(inv: dict, ipo: dict) -> str:
+    """
+    Generate markdown for Return at IPO calculation popover.
+    Uses structured per-round data from ipo_investor_data when available;
+    falls back to regex extraction from the text fields.
+    """
     ret_text   = inv.get("return_at_ipo", "N/A")
     entry_val  = inv.get("entry_val", "N/A")
     ipo_price  = ipo.get("issue_price")
     list_price = ipo.get("listing_price")
     round_str  = inv.get("round", "")
+    company    = ipo.get("company", "")
+    investor   = inv.get("investor", "")
 
     headline = ret_text.split("(")[0].strip()
 
-    lines = [f"**Return at IPO: {headline}**", ""]
+    # ── Try structured blended-cost data first ──────────────────────────────
+    bd = get_investor_blended_data(company, investor)
 
-    # Try to extract per-share entry price from WACA / arrow notation
+    if bd and bd.get("rounds"):
+        rounds   = bd["rounds"]
+        blended  = bd["blended"]
+        method   = bd["method"]
+        src_lbl  = bd["source"]
+        is_multi = bd["is_multi"]
+
+        lines = []
+
+        # Headline return using blended cost
+        if blended and ipo_price:
+            ret_ipo = ipo_price / blended
+            ret_lbl = f"~{ret_ipo:.1f}x at IPO price"
+            if list_price:
+                ret_lst = list_price / blended
+                ret_lbl += f" / ~{ret_lst:.1f}x at listing"
+            if is_multi:
+                ret_lbl += " **(blended)**"
+            flag = _sanity_flag(ret_ipo)
+            lines.append(f"**Return at IPO: {ret_lbl}{flag}**")
+        else:
+            lines.append(f"**Return at IPO: {headline}**")
+
+        lines.append("")
+
+        # ── Investment history table ────────────────────────────────────────
+        has_price_data  = any(r.get("price_per_sh") for r in rounds)
+        has_shares_data = any(r.get("shares_lakhs") for r in rounds)
+
+        if has_price_data:
+            lines.append("**Investment History:**")
+            lines.append("")
+
+            # Table header
+            if has_shares_data:
+                lines.append("| Round | Year | Price/sh | Shares | Amount |")
+                lines.append("|---|---|---|---|---|")
+            else:
+                lines.append("| Round | Year | Price/sh | Source |")
+                lines.append("|---|---|---|---|")
+
+            total_shares = 0.0
+            total_amt    = 0.0
+
+            for r in rounds:
+                rnd   = r.get("round", "—")
+                yr    = str(r.get("year", "—"))
+                px    = r.get("price_per_sh")
+                sh    = r.get("shares_lakhs")
+                src   = r.get("source", "est.")
+                note  = r.get("valuation_note", "")
+
+                px_s  = f"₹{px:,.2f}" if px is not None else (f"*{note}*" if note else "N/A")
+                sh_s  = _fmt_shares(sh)
+                amt_s = _fmt_amt(px, sh)
+
+                if px is not None and sh is not None:
+                    total_shares += sh
+                    total_amt    += px * sh / 100  # crore
+
+                if has_shares_data:
+                    lines.append(f"| {rnd} | {yr} | {px_s} | {sh_s} | {amt_s} |")
+                else:
+                    lines.append(f"| {rnd} | {yr} | {px_s} | *{src}* |")
+
+            lines.append("")
+
+            # Summary block
+            if has_shares_data and total_shares > 0:
+                lines.append(f"**Total shares:** {_fmt_shares(total_shares)}")
+                lines.append(f"**Total invested:** ₹{total_amt:.1f} cr")
+
+            if blended is not None:
+                lines.append(f"**Blended cost:** ₹{blended:.2f}/share  *(via {method})*")
+        else:
+            # Valuation-only rounds
+            lines.append(f"**Entry Valuation:** {entry_val}")
+            lines.append("*Per-share price not available — valuation-based estimate only.*")
+
+        lines.append("")
+
+        # IPO / listing prices + return computation
+        if ipo_price:
+            lines.append(f"**IPO Price:** ₹{ipo_price}/share")
+        if list_price:
+            lines.append(f"**Listing Price:** ₹{list_price}/share")
+        lines.append("")
+
+        if blended and ipo_price:
+            ret_ipo = ipo_price / blended
+            flag    = _sanity_flag(ret_ipo)
+            lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{blended:.2f} = **{ret_ipo:.1f}x**{flag}")
+        if blended and list_price:
+            ret_lst = list_price / blended
+            flag    = _sanity_flag(ret_lst)
+            lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{blended:.2f} = **{ret_lst:.1f}x**{flag}")
+
+        if not blended:
+            lines.append(f"*{entry_val}*")
+
+        lines.append("")
+        lines.append(f"**Investment Round:** {round_str}")
+        lines.append(f"**Source:** {src_lbl} / NSE-BSE official filings")
+        if has_price_data and "Estimated" in src_lbl:
+            lines.append("*⚠️ Share counts are estimates. Exact data requires RHP parsing.*")
+
+        return "\n\n".join(lines)
+
+    # ── Fallback: regex extraction from text fields ──────────────────────────
+    lines    = [f"**Return at IPO: {headline}**", ""]
     combined = entry_val + " " + ret_text
     waca_m   = re.search(r'WACA[:\s~]+₹([\d.]+)', combined, re.IGNORECASE)
     arrow_m  = re.search(r'entry[~\s]+₹([\d.]+)/sh', combined, re.IGNORECASE)
@@ -1012,7 +1162,7 @@ def _return_popup_md(inv, ipo):
     entry_px = None
     if waca_m:
         entry_px = float(waca_m.group(1))
-        lines.append(f"**Entry Price (WACA):** ₹{entry_px}/share")
+        lines.append(f"**Entry Price (WACA from RHP):** ₹{entry_px}/share")
     elif arrow_m:
         entry_px = float(arrow_m.group(1))
         lines.append(f"**Entry Price (est.):** ₹{entry_px}/share")
@@ -1026,21 +1176,20 @@ def _return_popup_md(inv, ipo):
         lines.append(f"**IPO Issue Price:** ₹{ipo_price}/share")
     if list_price:
         lines.append(f"**Listing Price:** ₹{list_price}/share")
-
     lines.append("")
 
     if entry_px and ipo_price:
         ret_x = round(ipo_price / entry_px, 1)
-        lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{entry_px} = **{ret_x}x**")
+        flag  = _sanity_flag(ret_x)
+        lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{entry_px} = **{ret_x}x**{flag}")
     if entry_px and list_price:
         ret_l = round(list_price / entry_px, 1)
-        lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{entry_px} = **{ret_l}x**")
+        flag  = _sanity_flag(ret_l)
+        lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{entry_px} = **{ret_l}x**{flag}")
 
     if not (entry_px and ipo_price) and not (entry_px and list_price):
-        lines.append(f"*Valuation-based estimate — exact per-share entry price not publicly disclosed*")
+        lines.append("*Valuation-based estimate — exact per-share entry price not publicly disclosed*")
         lines.append(f"*{entry_val}*")
-
-    lines.append(f"**Reported as:** {headline}")
 
     paren_m = re.search(r'\(([^)]{10,})\)', ret_text)
     if paren_m:
@@ -1940,6 +2089,9 @@ def render():
                 "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
                 unsafe_allow_html=True)
 
+            _ipo_px  = ipo.get("issue_price")
+            _list_px = ipo.get("listing_price")
+
             for _idx_inv, _inv in enumerate(pripo):
                 _rc = st.columns([3, 2, 2, 1.3, 2])
                 _rc[0].markdown(
@@ -1955,15 +2107,36 @@ def render():
                     f"<div style='font-size:12px'>{_inv.get('pct_held','N/A')}</div>",
                     unsafe_allow_html=True)
 
-                _ret_txt   = _inv.get("return_at_ipo", "N/A")
-                _btn_label = _ret_txt.split("(")[0].strip()
-                if len(_btn_label) > 22:
-                    _btn_label = _btn_label[:20] + "…"
+                # ── Build main-column return label (blended if multi-round) ──
+                _bd = get_investor_blended_data(ipo.get("company", ""), _inv.get("investor", ""))
+                if _bd and _bd.get("blended") and _ipo_px:
+                    _blnd    = _bd["blended"]
+                    _ret_ipo = _ipo_px / _blnd
+                    _flag    = " ⚠️" if (_ret_ipo < 0 or _ret_ipo > 500) else ""
+                    if _list_px:
+                        _ret_lst = _list_px / _blnd
+                        if _bd["is_multi"]:
+                            _btn_label = f"~{_ret_lst:.1f}x listing (blended){_flag}"
+                        else:
+                            _btn_label = f"~{_ret_lst:.1f}x at listing{_flag}"
+                    else:
+                        _sfx = " (blended)" if _bd["is_multi"] else ""
+                        _btn_label = f"~{_ret_ipo:.1f}x at IPO{_sfx}{_flag}"
+                else:
+                    _ret_txt   = _inv.get("return_at_ipo", "N/A")
+                    _btn_label = _ret_txt.split("(")[0].strip()
+
+                if len(_btn_label) > 26:
+                    _btn_label = _btn_label[:24] + "…"
                 with _rc[4]:
                     with st.popover(f"{_btn_label} ↗", use_container_width=True):
                         st.markdown(_return_popup_md(_inv, ipo))
 
-            st.caption("Entry valuations from public VC disclosures & RHP filings. Returns are approximate. Click ↗ for calculation.")
+            st.caption(
+                "Entry prices from RHP Share Capital History (where available) or public VC disclosures. "
+                "Multi-round returns show blended (weighted avg) cost. Click ↗ for full calculation. "
+                "⚠️ = sanity-check flag (>500x or negative — verify manually)."
+            )
         else:
             st.markdown(
                 f"<div style='background:{BG_ALT};border:1px solid {BORDER};border-radius:8px;"
