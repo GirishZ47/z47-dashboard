@@ -1609,46 +1609,6 @@ def main():
             unsafe_allow_html=True,
         )
 
-    # ── Top: three rebased index metric blocks ──────────────────────────────
-    _z47_now  = last["z47_float"]
-    _nif_now  = last["nifty_indexed"]
-    _sen_now  = last["sensex_indexed"]
-    _z47_all  = pct_since(df, "z47_float")
-    _nif_all  = pct_since(df, "nifty_indexed")
-    _sen_all  = pct_since(df, "sensex_indexed")
-    _z47_ytd  = pct_since(df, "z47_float",      ytd=True)
-    _nif_ytd  = pct_since(df, "nifty_indexed",  ytd=True)
-    _sen_ytd  = pct_since(df, "sensex_indexed", ytd=True)
-
-    def _rebase_card(label, level, ret_all, ret_ytd, accent):
-        arrow = "▲" if (ret_all or 0) >= 0 else "▼"
-        ret_color = "#16a34a" if (ret_all or 0) >= 0 else "#dc2626"
-        all_str = f"{ret_all:+.1f}%" if ret_all is not None else "N/A"
-        ytd_str = f"{ret_ytd:+.1f}%" if ret_ytd is not None else "N/A"
-        return (
-            f"<div style='background:{CARD_BG};border:1px solid {accent}40;"
-            f"border-left:4px solid {accent};border-radius:10px;padding:14px 18px'>"
-            f"<div style='font-size:11px;color:#8b6d4a;font-weight:600;letter-spacing:.5px;"
-            f"text-transform:uppercase;margin-bottom:6px'>{label}</div>"
-            f"<div style='font-size:28px;font-weight:800;color:#1a0f00;line-height:1'>"
-            f"{level:.1f}</div>"
-            f"<div style='font-size:11px;color:#6b7a8d;margin-top:2px'>Rebased to 100 on 1 Jan 2024</div>"
-            f"<div style='display:flex;gap:16px;margin-top:8px'>"
-            f"<span style='font-size:13px;font-weight:700;color:{ret_color}'>"
-            f"{arrow} {all_str} since Jan 2024</span>"
-            f"<span style='font-size:12px;color:#6b7a8d'>YTD {ytd_str}</span>"
-            f"</div></div>"
-        )
-
-    rb1, rb2, rb3 = st.columns(3)
-    with rb1:
-        st.markdown(_rebase_card("Z47's 47 Index",  _z47_now, _z47_all, _z47_ytd, "#c2410c"), unsafe_allow_html=True)
-    with rb2:
-        st.markdown(_rebase_card("Nifty 50",        _nif_now, _nif_all, _nif_ytd, "#1d4ed8"), unsafe_allow_html=True)
-    with rb3:
-        st.markdown(_rebase_card("Sensex",          _sen_now, _sen_all, _sen_ytd, "#15803d"), unsafe_allow_html=True)
-    st.markdown("<div style='margin-bottom:12px'></div>", unsafe_allow_html=True)
-
     # ── Fetch all market data early (needed by chatbox + rest of page) ─────────
     with st.spinner("Loading market data…"):
         returns_1m      = fetch_1m_returns()
@@ -1658,7 +1618,7 @@ def main():
 
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
-    # ── AI Chatbox ──────────────────────────────────────────────────────────
+    # ── AI Chatbox (absolute top) ────────────────────────────────────────────
     st.markdown('<div class="section-header" style="margin-top:8px">Ask Z47 Assistant</div>',
                 unsafe_allow_html=True)
 
@@ -1692,7 +1652,7 @@ def main():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── KPI cards ───────────────────────────────────────────────────────────
+    # ── KPI cards (live values) ──────────────────────────────────────────────
     z47_ret    = pct_since(df, "z47_float")
     nifty_ret  = pct_since(df, "nifty_indexed")
     sensex_ret = pct_since(df, "sensex_indexed")
@@ -1731,10 +1691,75 @@ def main():
             unsafe_allow_html=True,
         )
 
-    # ── Performance chart ────────────────────────────────────────────────────
+    # ── Performance chart + period selector ─────────────────────────────────
     st.markdown('<div class="section-header">Performance (rebased to 100)</div>', unsafe_allow_html=True)
     period = st.radio("Period", ["1M", "3M", "6M", "1Y", "YTD", "All"],
                       index=5, horizontal=True, label_visibility="collapsed")
+
+    # ── Rebased blocks — read directly from the same data the chart uses ────
+    # Replicate make_perf_chart's slicing + reindexing (no new logic)
+    if period == "All":
+        _plot = df.copy()
+    elif period == "YTD":
+        _plot = df[df["date"] >= pd.Timestamp(df["date"].iloc[-1].year, 1, 1)].copy()
+    else:
+        _days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
+        _cutoff = df["date"].iloc[-1] - pd.Timedelta(days=_days)
+        _plot = df[df["date"] >= _cutoff].copy()
+
+    if not _plot.empty and period != "All":
+        for _col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
+            _b = _plot[_col].iloc[0]
+            if _b:
+                _plot[_col] = _plot[_col] / _b * 100
+
+    # Current rebased level = last value in the (possibly reindexed) plot
+    # Return for this period = last - first (first is always 100 after reindex, or raw for "All")
+    def _rb_level(col):
+        return float(_plot[col].iloc[-1]) if not _plot.empty else 100.0
+
+    def _rb_ret(col):
+        if _plot.empty:
+            return None
+        start = float(_plot[col].iloc[0])
+        end   = float(_plot[col].iloc[-1])
+        return round((end - start) / start * 100, 1) if start else None
+
+    _period_label = {
+        "1M": "in 1 month", "3M": "in 3 months", "6M": "in 6 months",
+        "1Y": "in 1 year",  "YTD": "year-to-date", "All": "since Jan 2024",
+    }[period]
+
+    def _rebase_card(label, col, accent):
+        lv  = _rb_level(col)
+        ret = _rb_ret(col)
+        arrow     = "▲" if (ret or 0) >= 0 else "▼"
+        ret_color = "#16a34a" if (ret or 0) >= 0 else "#dc2626"
+        ret_str   = f"{ret:+.1f}%" if ret is not None else "N/A"
+        return (
+            f"<div style='background:{CARD_BG};border:1px solid {accent}40;"
+            f"border-left:4px solid {accent};border-radius:10px;padding:14px 18px'>"
+            f"<div style='font-size:11px;color:#8b6d4a;font-weight:600;letter-spacing:.5px;"
+            f"text-transform:uppercase;margin-bottom:6px'>{label}</div>"
+            f"<div style='font-size:28px;font-weight:800;color:#1a0f00;line-height:1'>"
+            f"{lv:.1f}</div>"
+            f"<div style='font-size:11px;color:#6b7a8d;margin-top:2px'>Rebased to 100 on 1 Jan 2024</div>"
+            f"<div style='display:flex;gap:16px;margin-top:8px'>"
+            f"<span style='font-size:13px;font-weight:700;color:{ret_color}'>"
+            f"{arrow} {ret_str} {_period_label}</span>"
+            f"</div></div>"
+        )
+
+    rb1, rb2, rb3 = st.columns(3)
+    with rb1:
+        st.markdown(_rebase_card("Z47's 47 Index", "z47_float",      "#c2410c"), unsafe_allow_html=True)
+    with rb2:
+        st.markdown(_rebase_card("Nifty 50",       "nifty_indexed",  "#1d4ed8"), unsafe_allow_html=True)
+    with rb3:
+        st.markdown(_rebase_card("Sensex",         "sensex_indexed", "#15803d"), unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom:12px'></div>", unsafe_allow_html=True)
+
+    # Chart uses the same period already selected above
     st.markdown('<div class="card-wrap" style="padding:16px">', unsafe_allow_html=True)
     st.plotly_chart(make_perf_chart(df, period), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
