@@ -1469,6 +1469,13 @@ def render():
         with p1:
             st.metric(ev_rev_label, f"{ev_rev_listing:.1f}x" if ev_rev_listing else "N/A",
                       help=ev_rev_help)
+            if ev_rev_listing and listing_mcap and rev_cr:
+                with st.popover("🧮 How calculated?"):
+                    st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at Listing**")
+                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
+                    st.markdown(f"- Revenue ({rev_yr}): **₹{rev_cr:,} cr**")
+                    st.markdown(f"- EV ≈ MCap (debt/cash adjustment minimal)")
+                    st.markdown(f"- **{ev_rev_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{rev_cr:,}")
         with p2:
             pe_warn = " ⚠" if ipo.get("company") == "Urban Company" else ""
             st.metric("P/E at Listing",
@@ -1478,10 +1485,24 @@ def render():
                             "⚠ Urban Company PAT includes ₹211 cr one-time deferred tax credit; "
                             "underlying PBT was ~₹29 cr." if pe_warn else
                             "Market Cap ÷ PAT at listing day (only for profitable companies)"))
+            if pe_listing and listing_mcap and pat_cr:
+                with st.popover("🧮 How calculated?"):
+                    st.markdown("**P/E at Listing**")
+                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
+                    st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
+                    st.markdown(f"- **{pe_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{pat_cr:,}")
+                    if pe_warn:
+                        st.warning("⚠ Urban Company PAT includes ₹211 cr one-time deferred tax credit; underlying PBT ~₹29 cr.")
         with p3:
             st.metric("P/B at Listing",
                       f"{pb_listing:.1f}x" if pb_listing else "N/A",
                       help="Market Cap ÷ Book Value at listing day (financial services companies only)")
+            if pb_listing and listing_mcap and bv_cr:
+                with st.popover("🧮 How calculated?"):
+                    st.markdown("**P/B at Listing**")
+                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
+                    st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
+                    st.markdown(f"- **{pb_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{bv_cr:,}")
 
         # Row 3 — Multiples at CMP
         ev_rev_cmp_label = "P/NEP (CMP)" if is_insurer else "EV/Revenue (CMP)"
@@ -1491,14 +1512,36 @@ def render():
         with q1:
             delta_evr = f"{(ev_rev_now - ev_rev_listing):+.1f}x" if (ev_rev_now and ev_rev_listing) else None
             st.metric(ev_rev_cmp_label, f"{ev_rev_now:.1f}x" if ev_rev_now else "N/A", delta=delta_evr)
+            if ev_rev_now and price and lp and rev_cr:
+                cmp_mcap = round(listing_mcap * price / lp, 0) if (listing_mcap and lp and lp > 0) else None
+                with st.popover("🧮 How calculated?"):
+                    st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at CMP**")
+                    st.markdown(f"- Current Price: **₹{price:.2f}**")
+                    st.markdown(f"- Listing Price: **₹{lp:.2f}**  →  Price ratio: **{price/lp:.3f}x**")
+                    if cmp_mcap:
+                        st.markdown(f"- CMP MCap ≈ **₹{int(cmp_mcap):,} cr** (listing MCap × ratio)")
+                    st.markdown(f"- Revenue ({rev_yr}): **₹{rev_cr:,} cr**")
+                    st.markdown(f"- **{ev_rev_now:.1f}x** = {ev_rev_listing:.1f}x (listing) × {price/lp:.3f}")
         with q2:
             delta_pe = f"{(pe_now - pe_listing):+.1f}x" if (pe_now and pe_listing) else None
             st.metric("P/E at CMP",
                       f"{pe_now:.1f}x" if pe_now else ("Loss-making" if profitable is False else "N/A"),
                       delta=delta_pe)
+            if pe_now and pat_cr and price and lp:
+                with st.popover("🧮 How calculated?"):
+                    st.markdown("**P/E at CMP**")
+                    st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
+                    st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
+                    st.markdown(f"- **{pe_now:.1f}x** = {pe_listing:.1f}x (listing) × {price/lp:.3f}")
         with q3:
             delta_pb = f"{(pb_now - pb_listing):+.1f}x" if (pb_now and pb_listing) else None
             st.metric("P/B at CMP", f"{pb_now:.1f}x" if pb_now else "N/A", delta=delta_pb)
+            if pb_now and bv_cr and price and lp:
+                with st.popover("🧮 How calculated?"):
+                    st.markdown("**P/B at CMP**")
+                    st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
+                    st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
+                    st.markdown(f"- **{pb_now:.1f}x** = {pb_listing:.1f}x (listing) × {price/lp:.3f}")
 
         if profitable is not None:
             badge_col, badge_txt = ("#d1fae5", "✅ Profitable at listing") if profitable else ("#fee2e2", "❌ Loss-making at listing")

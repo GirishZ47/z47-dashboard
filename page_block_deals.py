@@ -17,12 +17,35 @@ Z47_SYMBOLS  = {c["ticker"] for c in COMPANIES if c["exchange"] == "NSE"}
 Z47_NAME_MAP = {c["ticker"]: c["name"] for c in COMPANIES}
 
 NSE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.nseindia.com/",
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/122.0.0.0 Safari/537.36"),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Referer": "https://www.nseindia.com/market-data/block-deal",
+    "Origin": "https://www.nseindia.com",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
     "X-Requested-With": "XMLHttpRequest",
 }
+
+
+def _nse_session():
+    """Create a properly authenticated NSE session with cookies."""
+    s = requests.Session()
+    try:
+        # First hit the main page to get cookies
+        s.get("https://www.nseindia.com", headers=NSE_HEADERS, timeout=8)
+        time.sleep(0.8)
+        # Also hit the market-data page to get the correct cookie scope
+        s.get("https://www.nseindia.com/market-data/block-deal", headers=NSE_HEADERS, timeout=6)
+        time.sleep(0.5)
+    except Exception:
+        pass
+    return s
 
 
 def _now_ist():
@@ -57,24 +80,90 @@ def _filter_z47(deals, sym_col="symbol"):
     return out
 
 
-@st.cache_data(ttl=300)
-def _block_deals():
+def _fetch_nse_today_csv(deal_type="Block"):
+    """Try to fetch today's block/bulk deal CSV from NSE CDN (usually accessible)."""
+    today = datetime.now().date()
+    dd = today.strftime("%d%m%Y")
+    prefix = "bd" if deal_type == "Block" else "bulk"
+    url = f"https://nsearchives.nseindia.com/content/equities/{prefix}{dd}.zip"
     try:
-        s = requests.Session()
-        s.get("https://www.nseindia.com", headers=NSE_HEADERS, timeout=6)
-        time.sleep(1)
-        r = s.get("https://www.nseindia.com/api/block-deal", headers=NSE_HEADERS, timeout=10)
-        if r.status_code == 200:
-            return r.json().get("data", []), "NSE", datetime.now(IST)
+        import zipfile, io
+        r = requests.get(url, headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=8)
+        if r.status_code == 200 and r.content:
+            zf = zipfile.ZipFile(io.BytesIO(r.content))
+            rows = []
+            for name in zf.namelist():
+                if name.endswith(".csv"):
+                    df_csv = pd.read_csv(io.StringIO(zf.read(name).decode("utf-8", errors="ignore")))
+                    df_csv.columns = [c.strip() for c in df_csv.columns]
+                    for _, row in df_csv.iterrows():
+                        sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
+                        ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper().strip()
+                        try:    qty_i = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
+                        except: qty_i = 0
+                        try:    px = float(str(row.get("Trade Price / Wght Avg Price", row.get("PRICE", 0))).replace(",", ""))
+                        except: px = 0.0
+                        rows.append({
+                            "symbol": sym,
+                            "clientName": str(row.get("Client Name", row.get("CLIENT_NAME", ""))).strip(),
+                            "buyOrSell": ttype,
+                            "quantity": qty_i,
+                            "tradePrice": px,
+                        })
+            if rows:
+                return rows, "NSE CDN"
     except Exception:
         pass
+    return [], None
+
+
+@st.cache_data(ttl=300)
+def _block_deals():
+    # Source 1: NSE API with proper session + cookies
+    try:
+        s = _nse_session()
+        r = s.get("https://www.nseindia.com/api/block-deal", headers=NSE_HEADERS, timeout=12)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            if data:
+                return data, "NSE API", datetime.now(IST)
+    except Exception:
+        pass
+    # Source 2: NSE CDN CSV for today
+    rows, src = _fetch_nse_today_csv("Block")
+    if rows:
+        return rows, f"NSE CDN ({src})", datetime.now(IST)
+    # Source 3: BSE API
     try:
         r = requests.get(
             "https://api.bseindia.com/BseIndiaAPI/api/BlockBulkDeals/w?Type=B",
-            headers={"User-Agent": "Mozilla/5.0"}, timeout=10,
+            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
         )
         if r.status_code == 200:
-            return r.json().get("Table", []), "BSE", datetime.now(IST)
+            data = r.json().get("Table", [])
+            if data:
+                return data, "BSE API", datetime.now(IST)
+    except Exception:
+        pass
+    # Source 4: BSE alternative endpoint
+    try:
+        r = requests.get(
+            "https://www.bseindia.com/markets/equity/EQReports/bdDeals.aspx",
+            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
+        )
+        if r.status_code == 200 and r.text:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table", id=lambda x: x and "grid" in str(x).lower())
+            if table:
+                rows = []
+                for tr in table.find_all("tr")[1:]:
+                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+                    if len(tds) >= 5:
+                        rows.append({"Symbol": tds[0], "clientName": tds[1],
+                                     "buyOrSell": tds[2], "quantity": tds[3], "tradePrice": tds[4]})
+                if rows:
+                    return rows, "BSE Web", datetime.now(IST)
     except Exception:
         pass
     return [], "No data", datetime.now(IST)
@@ -82,22 +171,51 @@ def _block_deals():
 
 @st.cache_data(ttl=300)
 def _bulk_deals():
+    # Source 1: NSE API with proper session + cookies
     try:
-        s = requests.Session()
-        s.get("https://www.nseindia.com", headers=NSE_HEADERS, timeout=6)
-        time.sleep(1)
-        r = s.get("https://www.nseindia.com/api/bulk-deal", headers=NSE_HEADERS, timeout=10)
+        s = _nse_session()
+        r = s.get("https://www.nseindia.com/api/bulk-deal", headers=NSE_HEADERS, timeout=12)
         if r.status_code == 200:
-            return r.json().get("data", []), "NSE", datetime.now(IST)
+            data = r.json().get("data", [])
+            if data:
+                return data, "NSE API", datetime.now(IST)
     except Exception:
         pass
+    # Source 2: NSE CDN CSV for today
+    rows, src = _fetch_nse_today_csv("Bulk")
+    if rows:
+        return rows, f"NSE CDN ({src})", datetime.now(IST)
+    # Source 3: BSE API
     try:
         r = requests.get(
             "https://api.bseindia.com/BseIndiaAPI/api/BlockBulkDeals/w?Type=BU",
-            headers={"User-Agent": "Mozilla/5.0"}, timeout=10,
+            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
         )
         if r.status_code == 200:
-            return r.json().get("Table", []), "BSE", datetime.now(IST)
+            data = r.json().get("Table", [])
+            if data:
+                return data, "BSE API", datetime.now(IST)
+    except Exception:
+        pass
+    # Source 4: BSE alternative endpoint
+    try:
+        r = requests.get(
+            "https://www.bseindia.com/markets/equity/EQReports/BulkDeals.aspx",
+            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
+        )
+        if r.status_code == 200 and r.text:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table", id=lambda x: x and "grid" in str(x).lower())
+            if table:
+                rows = []
+                for tr in table.find_all("tr")[1:]:
+                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+                    if len(tds) >= 5:
+                        rows.append({"Symbol": tds[0], "clientName": tds[1],
+                                     "buyOrSell": tds[2], "quantity": tds[3], "tradePrice": tds[4]})
+                if rows:
+                    return rows, "BSE Web", datetime.now(IST)
     except Exception:
         pass
     return [], "No data", datetime.now(IST)
