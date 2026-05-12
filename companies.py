@@ -56,10 +56,18 @@ def yf_ticker(c: dict) -> str:
     return c["ticker"] + ".NS" if c["exchange"] == "NSE" else c["ticker"]
 
 SECTOR_COLORS = {
-    "Fintech / Financial Services": "#16a34a",   # green
-    "Consumer / Consumer Tech":     "#2563eb",   # blue
-    "B2B":                          "#7c3aed",   # purple
-    "SaaS / AI":                    "#0891b2",   # teal
+    "Fintech / Financial Services": "#D6E4FF",   # pastel blue
+    "Consumer / Consumer Tech":     "#D4EDDA",   # pastel green
+    "B2B":                          "#E8D5F5",   # pastel purple
+    "SaaS / AI":                    "#D1ECF1",   # pastel teal
+}
+
+# Dark text/badge colors that pair with the pastel backgrounds above
+SECTOR_BADGE_COLORS = {
+    "Fintech / Financial Services": "#1d4ed8",   # deep blue
+    "Consumer / Consumer Tech":     "#166534",   # deep green
+    "B2B":                          "#6d28d9",   # deep purple
+    "SaaS / AI":                    "#0e7490",   # deep teal
 }
 
 MKT_CAP_DATE = "March 2026"  # date of Excel data used for base market cap

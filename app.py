@@ -14,7 +14,7 @@ import anthropic
 from streamlit_js_eval import streamlit_js_eval
 from streamlit_autorefresh import st_autorefresh
 
-from companies import COMPANIES, SECTOR_COLORS, yf_ticker
+from companies import COMPANIES, SECTOR_COLORS, SECTOR_BADGE_COLORS, yf_ticker
 import page_recent_ipos
 import page_upcoming_ipos
 import page_block_deals
@@ -1184,8 +1184,9 @@ def _fmt_chg(v, decimals=2):
 
 
 def badge(sector):
-    color = SECTOR_COLORS.get(sector, "#8b6d4a")
-    return (f'<span style="background:{color}18;color:{color};padding:2px 8px;'
+    bg   = SECTOR_COLORS.get(sector, "#f3ede4")
+    text = SECTOR_BADGE_COLORS.get(sector, "#5a3e28")
+    return (f'<span style="background:{bg};color:{text};padding:2px 8px;'
             f'border-radius:4px;font-size:11px;font-weight:600">{sector}</span>')
 
 

@@ -1269,7 +1269,7 @@ def render():
     selected = st.selectbox("Select IPO", [i["company"] for i in IPOS], key="ri_deep")
     ipo = next(i for i in IPOS if i["company"] == selected)
 
-    t1, t2, t3, t4, t5, t6 = st.tabs(["📋 Overview", "📊 Performance", "🔮 GMP", "📬 Subscription", "🏦 Investors", "🔒 Lock-Up Analysis"])
+    t1, t2, t4, t5, t6 = st.tabs(["📋 Overview", "📊 Performance", "📬 Subscription", "🏦 Investors", "🔒 Lock-Up Analysis"])
 
     with t1:
         a, b = st.columns(2)
@@ -1291,6 +1291,19 @@ def render():
     with t2:
         price, h52, l52 = _live_price(ipo["ticker"])
         ip, lp = ipo["issue_price"], ipo["listing_price"]
+
+        # Listing Day Gain — first item in Performance
+        ldg_pct = ipo.get("known_listing_gain_pct")
+        if ldg_pct is not None:
+            ldg_color = "#16a34a" if ldg_pct >= 0 else "#dc2626"
+            st.markdown(
+                f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:10px 16px;font-size:15px;margin-bottom:12px'>
+                🏁 <b>Listing Day Gain:</b>
+                <b style='color:{ldg_color}'>{ldg_pct:+.1f}%</b>
+                over issue price</div>""",
+                unsafe_allow_html=True)
+
         m1, m2, m3, m4 = st.columns(4)
         with m1: st.metric("Current Price", f"₹{price:.2f}" if price else "N/A")
         with m2: st.metric("Listing Price", f"₹{lp:.2f}" if lp else "N/A")
@@ -1390,27 +1403,6 @@ def render():
 
         if not price:
             _warn(f"Live price unavailable for {ipo['ticker']}.")
-        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
-                    unsafe_allow_html=True)
-
-    with t3:
-        st.markdown("**Grey Market Premium (GMP)**")
-        with st.spinner("Fetching GMP…"):
-            gmp = _scrape_gmp(ipo["company"])
-        if gmp:
-            g1, g2 = st.columns(2)
-            g1.metric("Current GMP", gmp.get("gmp", "N/A"))
-            g2.metric("Expected Listing", gmp.get("expected_listing", "N/A"))
-        else:
-            _warn("GMP data unavailable. Company may have already listed.")
-            if ipo.get("known_listing_gain_pct") is not None:
-                pct = ipo["known_listing_gain_pct"]
-                color = "#16a34a" if pct >= 0 else "#dc2626"
-                st.markdown(
-                    f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                    padding:14px;font-size:15px;margin-top:8px'>
-                    Listing day gain: <b style='color:{color}'>{pct:+.1f}%</b> over issue price</div>""",
-                    unsafe_allow_html=True)
         st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
                     unsafe_allow_html=True)
 
@@ -1534,12 +1526,6 @@ def render():
                     "% Held (Pre-IPO)": inv.get("pct_held", "N/A"),
                     "Return at IPO":    inv.get("return_at_ipo", "N/A"),
                 }
-                if price_now and inv.get("entry_price_per_share"):
-                    ep = inv["entry_price_per_share"]
-                    ret_now = round((price_now - ep) / ep * 100, 1)
-                    row["Return at CMP"] = f"{ret_now:+.1f}%"
-                else:
-                    row["Return at CMP"] = inv.get("return_at_cmp", "—")
                 rows_pi.append(row)
 
             pi_df = pd.DataFrame(rows_pi)
@@ -1556,7 +1542,7 @@ def render():
                     return "color:#dc2626;font-weight:600"
                 return ""
 
-            ret_cols = [c for c in ["Return at IPO", "Return at CMP"] if c in pi_df.columns]
+            ret_cols = [c for c in ["Return at IPO"] if c in pi_df.columns]
             styled_pi = pi_df.style.map(_ret_color, subset=ret_cols)
             st.dataframe(styled_pi, use_container_width=True, hide_index=True)
             st.caption("Entry valuations sourced from public VC funding disclosures & RHP filings. Returns are approximate.")
