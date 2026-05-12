@@ -1809,6 +1809,193 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# VERIFIED_INVESTOR_DATA  (v2 — exact integer share counts, CA-certified)
+# ─────────────────────────────────────────────────────────────────────────────
+# This is the authoritative source going forward.
+# All share counts are exact integers (NOT lakhs or crores).
+#
+# Per-investor fields:
+#   type             — "investor" | "promoter"
+#   waca             — ₹/share (0.01 = negligible founding cost)
+#   waca_source      — provenance / CA firm
+#   pre_offer_shares — total shares held before IPO offer (integer, or None)
+#   ofs_shares       — shares sold in OFS (integer, or None = no OFS)
+#
+# OFS verification: sum(ofs_shares for all sellers) == ofs_total_shares
+# ─────────────────────────────────────────────────────────────────────────────
+
+VERIFIED_INVESTOR_DATA: dict[str, dict] = {
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # OLA ELECTRIC
+    # IPO Aug 2024. ₹76 issue, ₹75.99 listing. OFS ₹645 cr.
+    # WACA certified by B.B. & Associates (CA firm stated in RHP).
+    # OFS total: 79,205,502 shares × ₹76 = ₹602 cr (matches RHP OFS component).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Ola Electric": {
+        "ipo_price":        76,
+        "listing_price":    75.99,
+        "listing_date":     "2024-08-09",
+        "ca_firm":          "B.B. & Associates",
+        "ofs_total_shares": 79_206_510,  # verified sum: all 9 OFS sellers
+        "investors": {
+            "Bhavish Aggarwal": {
+                "type": "promoter",
+                "waca": 0.01,
+                "waca_source": "Founding stake — negligible par value (₹0.01/sh RHP figure)",
+                "pre_offer_shares": 1_361_875_240,
+                "ofs_shares":         37_915_211,
+            },
+            "Matrix Partners India": {
+                "type": "investor",
+                "waca": 8.22,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 129_646_570,
+                "ofs_shares":         3_727_534,
+            },
+            "Internet Fund III (Tiger Global)": {
+                "type": "investor",
+                "waca": 11.70,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 222_436_381,
+                "ofs_shares":         6_360_891,
+            },
+            "SVF II Ostrich (SoftBank Vision Fund)": {
+                "type": "investor",
+                "waca": 51.37,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": None,
+                "ofs_shares":       23_857_268,
+            },
+            "Alpha Wave Ventures II": {
+                "type": "investor",
+                "waca": 62.38,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 128_503_423,
+                "ofs_shares":         3_782_883,
+            },
+            "Alpine Opportunity Fund VI": {
+                "type": "investor",
+                "waca": 111.51,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 21_412_329,
+                "ofs_shares":         630_336,
+            },
+            "MacRitchie Investments": {
+                "type": "investor",
+                "waca": 75.11,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 46_028_218,
+                "ofs_shares":         1_354_978,
+            },
+            "Tekne Private Ventures XV": {
+                "type": "investor",
+                "waca": 113.12,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": None,
+                "ofs_shares":       975_581,
+            },
+            "Ashna Advisors": {
+                "type": "investor",
+                "waca": 71.15,
+                "waca_source": "RHP — WACA certified by B.B. & Associates (CA)",
+                "pre_offer_shares": 601_828,
+                "ofs_shares":       601_828,
+            },
+        },
+    },
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# calculate_returns()  — new authoritative returns engine (uses integer shares)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def calculate_returns(
+    seller_name: str,
+    waca: float | None,
+    ofs_shares: int | None,
+    pre_offer_shares: int | None,
+    ipo_price: float,
+    listing_price: float | None,
+    seller_type: str = "investor",
+    ca_firm: str = "",
+) -> dict:
+    """
+    Compute all return metrics for a pre-IPO investor.
+
+    Promoter branch (waca ≤ 0.01 OR seller_type == "promoter"):
+        → Returns ofs_proceeds_cr only; no MOIC shown.
+
+    Investor branch:
+        → Realised MOIC  = (ofs_shares × ipo_price) / (ofs_shares × waca)
+        → Total MOIC     = (ofs_proceeds + retained × listing) / (pre_offer × waca)
+        → moic_at_listing = listing / waca  (for non-OFS holders)
+    """
+    is_promoter = (waca is not None and waca <= 0.01) or seller_type == "promoter"
+
+    if is_promoter:
+        proceeds = round((ofs_shares or 0) * ipo_price / 1e7, 2) if ofs_shares else 0.0
+        return {
+            "type": "promoter",
+            "ofs_proceeds_cr": proceeds,
+            "ofs_shares": ofs_shares,
+            "note": "Promoter/Founder — negligible cost basis",
+        }
+
+    if waca is None or waca <= 0:
+        return {"type": "investor", "error": "WACA not available"}
+
+    warnings: list[str] = []
+    result: dict = {"type": "investor", "waca": waca, "ca_firm": ca_firm,
+                    "pre_offer_shares": pre_offer_shares, "ofs_shares": ofs_shares}
+
+    # ── Realised return (OFS only) ───────────────────────────────────────────
+    if ofs_shares and ofs_shares > 0:
+        cost_of_ofs   = ofs_shares * waca
+        ofs_proceeds  = ofs_shares * ipo_price
+        realised_moic = ofs_proceeds / cost_of_ofs
+        realised_pct  = (realised_moic - 1) * 100
+        if waca > ipo_price:
+            warnings.append(f"WACA ₹{waca:.2f} > IPO ₹{ipo_price} — loss at IPO")
+        if realised_moic > 500:
+            warnings.append("Verify: MOIC >500×")
+        result.update({
+            "cost_of_ofs_cr":  round(cost_of_ofs / 1e7, 2),
+            "ofs_proceeds_cr": round(ofs_proceeds / 1e7, 2),
+            "realised_moic":   round(realised_moic, 2),
+            "realised_pct":    round(realised_pct, 1),
+        })
+    else:
+        result.update({"realised_moic": None, "realised_pct": None,
+                        "ofs_proceeds_cr": None, "cost_of_ofs_cr": None})
+
+    # ── Total return (realised + unrealised at listing) ──────────────────────
+    if (pre_offer_shares and ofs_shares and ofs_shares > 0
+            and ipo_price and listing_price):
+        retained      = pre_offer_shares - ofs_shares
+        unrealised    = retained * listing_price
+        total_cost    = pre_offer_shares * waca
+        total_value   = (ofs_shares * ipo_price) + unrealised
+        total_moic    = total_value / total_cost if total_cost > 0 else None
+        result.update({
+            "retained_shares":  max(retained, 0),
+            "unrealised_cr":    round(unrealised / 1e7, 2) if retained >= 0 else 0,
+            "total_cost_cr":    round(total_cost / 1e7, 2),
+            "total_value_cr":   round(total_value / 1e7, 2),
+            "total_moic":       round(total_moic, 2) if total_moic else None,
+        })
+    else:
+        result["total_moic"] = None
+
+    # ── Per-share MOIC at IPO / listing (for non-OFS holders too) ───────────
+    result["moic_at_ipo"]     = round(ipo_price / waca, 2) if ipo_price else None
+    result["moic_at_listing"] = round(listing_price / waca, 2) if listing_price else None
+    result["warnings"]        = warnings
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # HELPER FUNCTIONS
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1817,23 +2004,19 @@ def _normalize(name: str) -> str:
     return name.lower().strip()
 
 
-def get_investor_data(company_name: str, investor_display_name: str) -> dict | None:
+def _fuzzy_lookup(investor_display_name: str, investors: dict,
+                   meta: dict | None = None) -> dict | None:
     """
-    Return verified data dict for an investor in a company.
-    Tries exact match, then rapidfuzz fuzzy match, then alias match.
-    Returns None if not found.
+    Fuzzy-look up investor_display_name in an investors dict.
+    Returns matched data dict (with _matched_key) or None.
+    Optionally merges meta fields (e.g. _source, _ca_firm) into result.
     """
-    company = VERIFIED_IPO_DATA.get(company_name)
-    if not company:
-        return None
-    investors = company.get("investors", {})
-    if not investors:
-        return None
-
     # 1. Exact match
     if investor_display_name in investors:
         d = dict(investors[investor_display_name])
         d["_matched_key"] = investor_display_name
+        if meta:
+            d.update(meta)
         return d
 
     # 2. Rapidfuzz fuzzy match
@@ -1845,20 +2028,55 @@ def get_investor_data(company_name: str, investor_display_name: str) -> dict | N
         if result and result[1] >= 72:
             d = dict(investors[result[0]])
             d["_matched_key"] = result[0]
+            if meta:
+                d.update(meta)
             return d
 
     # 3. Alias / substring match
     inv_lower = _normalize(investor_display_name)
     for key, data in investors.items():
         key_lower = _normalize(key)
-        # Check if major words overlap
         words = [w for w in inv_lower.split() if len(w) >= 4]
         if any(w in key_lower for w in words):
             d = dict(data)
             d["_matched_key"] = key
+            if meta:
+                d.update(meta)
             return d
 
     return None
+
+
+def get_investor_data(company_name: str, investor_display_name: str) -> dict | None:
+    """
+    Return verified data dict for an investor in a company.
+    Checks VERIFIED_INVESTOR_DATA (v2, exact integer shares) first,
+    then falls back to VERIFIED_IPO_DATA (v1, lakh-based).
+    Returns None if not found in either source.
+    """
+    # ── Priority 1: VERIFIED_INVESTOR_DATA (exact shares, CA-certified) ──────
+    v2_company = VERIFIED_INVESTOR_DATA.get(company_name)
+    if v2_company:
+        v2_investors = v2_company.get("investors", {})
+        meta = {
+            "_source":      "v2",
+            "_ca_firm":     v2_company.get("ca_firm", ""),
+            "_ipo_price":   v2_company.get("ipo_price"),
+            "_listing_price": v2_company.get("listing_price"),
+        }
+        found = _fuzzy_lookup(investor_display_name, v2_investors, meta)
+        if found:
+            return found
+
+    # ── Priority 2: VERIFIED_IPO_DATA (existing lakh-based data) ─────────────
+    company = VERIFIED_IPO_DATA.get(company_name)
+    if not company:
+        return None
+    investors = company.get("investors", {})
+    if not investors:
+        return None
+
+    return _fuzzy_lookup(investor_display_name, investors, {"_source": "v1"})
 
 
 def compute_returns(inv_data: dict, ipo_price: float | None,

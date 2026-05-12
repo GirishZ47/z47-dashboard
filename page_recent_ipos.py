@@ -13,7 +13,9 @@ import re
 from ipo_investor_data import (
     get_investor_data,
     compute_returns,
+    calculate_returns,
     get_ipo_comparison_data,
+    VERIFIED_INVESTOR_DATA,
     extract_share_capital_history,
     match_investor_in_rhp,
     RHP_URLS,
@@ -316,10 +318,15 @@ _ANCHOR_DATA = {
             {"investor": "Axis MF",                 "category": "Mutual Fund",       "allocation_cr": 169},
         ],
         "pripo_investors": [
-            {"investor": "SoftBank Vision Fund",     "round": "Series C–D (2019–21)", "entry_val": "~$1.5–3B valuation",   "pct_held": "~25%", "return_at_ipo": "~Loss to breakeven (OLA IPO MCap ~$4B vs SVF avg entry ~$3B; early tranches marginally positive)", "return_at_cmp": "—"},
-            {"investor": "Tiger Global Management",  "round": "Series B (2017)",       "entry_val": "~$250M valuation; WACA ₹11.7/sh", "pct_held": "~5%", "return_at_ipo": "~6.5x at listing (WACA ₹11.7 → listing ₹75.99)", "return_at_cmp": "—"},
-            {"investor": "Matrix Partners India (Z47)", "round": "Series A (2016)",   "entry_val": "~$50M valuation; WACA ~₹8.3/sh", "pct_held": "~8%", "return_at_ipo": "~9.2x at listing (WACA ~₹8.3 → listing ₹75.99)", "return_at_cmp": "—"},
-            {"investor": "Alpha Wave Global",        "round": "Series D (2021)",       "entry_val": "~$3B valuation",        "pct_held": "~3%",  "return_at_ipo": "~1.3x at listing",    "return_at_cmp": "—"},
+            {"investor": "Bhavish Aggarwal",                 "round": "Founder (2017)",        "entry_val": "Negligible par value",             "pct_held": "~33%", "return_at_ipo": "Promoter — OFS exit proceeds shown", "return_at_cmp": "—"},
+            {"investor": "Matrix Partners India",            "round": "Series A (2016)",        "entry_val": "WACA ₹8.22/sh (RHP certified)",    "pct_held": "~3%",  "return_at_ipo": "~9.3× at IPO",                        "return_at_cmp": "—"},
+            {"investor": "Internet Fund III (Tiger Global)", "round": "Series B (2017)",        "entry_val": "WACA ₹11.70/sh (RHP certified)",   "pct_held": "~5%",  "return_at_ipo": "~6.5× at IPO",                        "return_at_cmp": "—"},
+            {"investor": "SVF II Ostrich (SoftBank Vision Fund)", "round": "Series C–D (2019–21)", "entry_val": "WACA ₹51.37/sh (RHP certified)", "pct_held": "~6%", "return_at_ipo": "~1.48× at IPO",                      "return_at_cmp": "—"},
+            {"investor": "Alpha Wave Ventures II",           "round": "Series D (2021)",        "entry_val": "WACA ₹62.38/sh (RHP certified)",   "pct_held": "~3%",  "return_at_ipo": "~1.22× at IPO",                       "return_at_cmp": "—"},
+            {"investor": "MacRitchie Investments",           "round": "Series D (2021)",        "entry_val": "WACA ₹75.11/sh (RHP certified)",   "pct_held": "~1%",  "return_at_ipo": "~1.01× at IPO",                       "return_at_cmp": "—"},
+            {"investor": "Alpine Opportunity Fund VI",       "round": "Series E (2022)",        "entry_val": "WACA ₹111.51/sh (RHP certified)",  "pct_held": "~0.5%","return_at_ipo": "⚠ LOSS —31.8% at IPO",                "return_at_cmp": "—"},
+            {"investor": "Tekne Private Ventures XV",        "round": "Series E (2022)",        "entry_val": "WACA ₹113.12/sh (RHP certified)",  "pct_held": "~0.2%","return_at_ipo": "⚠ LOSS —32.8% at IPO",                "return_at_cmp": "—"},
+            {"investor": "Ashna Advisors",                   "round": "Series E (2022)",        "entry_val": "WACA ₹71.15/sh (RHP certified)",   "pct_held": "<0.1%","return_at_ipo": "~1.07× at IPO",                       "return_at_cmp": "—"},
         ],
     },
     "Ather Energy": {
@@ -625,11 +632,11 @@ _ANCHOR_DATA = {
              "pct_held": "~40%",
              "return_at_ipo": "~7.1x at listing (WACA ₹61.1 → listing ₹435; sold large OFS block at ₹383)",
              "return_at_cmp": "—"},
-            {"investor": "Link Investment Trust",
+            {"investor": "Bisque Limited (NBFC / promoter-linked entity)",
              "round": "Series B–C (2019–22)",
              "entry_val": "WACA ~₹96/sh",
              "pct_held": "~20%",
-             "return_at_ipo": "~4.5x at listing (WACA ₹96 → listing ₹435; sold partial in OFS)",
+             "return_at_ipo": "~4.5× at listing (WACA ₹96 → listing ₹435; sold partial in OFS)",
              "return_at_cmp": "—"},
             {"investor": "Amit Ramani (Founder & CEO)",
              "round": "Founding (2015)",
@@ -2213,148 +2220,232 @@ def render():
         _company = ipo.get("company", "")
 
         if pripo and _ipo_px:
-            # ── Comparison chart (OFS sellers only) ──────────────────────────
-            _cmp_data = get_ipo_comparison_data(_company, _ipo_px)
-            if _cmp_data:
-                st.markdown("**📊 OFS Seller Comparison — Realised MOIC**")
-                _names  = [d["investor"][:28] for d in _cmp_data]
-                _moics  = [d["realised_moic"] for d in _cmp_data]
-                _srcs   = [d.get("waca_type", "") for d in _cmp_data]
-                _colors = [
-                    "#16a34a" if m >= 1.0 else "#dc2626"
-                    for m in _moics
-                ]
-                _src_sym = {
-                    "RHP": "✅", "RHP-blended": "✅",
-                    "derived": "🔢", "estimated": "~",
-                }
-                _text_vals = [
-                    f"{m:.2f}× {_src_sym.get(s,'')}"
-                    for m, s in zip(_moics, _srcs)
-                ]
-                _fig_cmp = go.Figure(go.Bar(
-                    x=_moics,
-                    y=_names,
-                    orientation="h",
-                    marker_color=_colors,
-                    text=_text_vals,
-                    textposition="outside",
-                    customdata=[d.get("ofs_shares_lakhs", 0) for d in _cmp_data],
-                    hovertemplate="%{y}<br>Realised MOIC: %{x:.2f}×<br>OFS: %{customdata:.1f}L shares<extra></extra>",
-                ))
-                _fig_cmp.update_layout(
-                    height=max(180, 44 * len(_cmp_data)),
-                    margin=dict(l=10, r=80, t=10, b=10),
-                    xaxis=dict(title="Realised MOIC (×)", zeroline=True,
-                               zerolinecolor="#888", tickformat=".1f"),
-                    yaxis=dict(autorange="reversed"),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(size=11),
-                    showlegend=False,
-                )
-                _fig_cmp.add_vline(x=1.0, line_dash="dash",
-                                   line_color="#888", annotation_text="1× breakeven")
-                st.plotly_chart(_fig_cmp, use_container_width=True, config={"displayModeBar": False})
-                st.caption(
-                    "✅ = exact WACA from RHP  |  🔢 = derived from stated MOIC  |  "
-                    "~ = estimated  |  Green = profit, Red = loss at IPO"
-                )
-                st.markdown("---")
 
-            # ── Per-investor rows ─────────────────────────────────────────────
-            _hcols = st.columns([3, 1.8, 2.2, 2.2, 1.5])
-            for _hc, _hl in zip(_hcols, ["**Investor**", "**Round**",
-                                          "**Realised Return**",
-                                          "**Total Return**",
-                                          "**Details**"]):
+            # ── OFS Verification log (console) ───────────────────────────────
+            _v2 = VERIFIED_INVESTOR_DATA.get(_company)
+            if _v2:
+                _ofs_exp = _v2.get("ofs_total_shares", 0)
+                _ofs_act = sum(
+                    (v.get("ofs_shares") or 0)
+                    for v in _v2.get("investors", {}).values()
+                )
+                _match = _ofs_act == _ofs_exp
+                print(
+                    f"[OFS VERIFY] {_company}: "
+                    f"sum={_ofs_act:,}  RHP={_ofs_exp:,}  MATCH={_match}"
+                )
+
+            # ── Column headers (6 cols) ───────────────────────────────────────
+            _hcols = st.columns([2.5, 1.5, 1.2, 2.0, 2.0, 1.5])
+            for _hc, _hl in zip(_hcols,
+                ["**Investor**", "**Round**", "**WACA (₹/sh)**",
+                 "**Realised Return**", "**Total Return at Listing**", "**Details**"]):
                 _hc.markdown(_hl)
             st.markdown(
                 "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
                 unsafe_allow_html=True)
 
+            def _moic_color(moic: float) -> str:
+                """GREEN >1.1×  ORANGE 0.9–1.1×  RED <0.9×"""
+                if moic >= 1.1:   return "#16a34a"  # green
+                if moic >= 0.9:   return "#d97706"  # orange (near breakeven)
+                return "#dc2626"                    # red
+
             for _idx_inv, _inv in enumerate(pripo):
-                _rc = st.columns([3, 1.8, 2.2, 2.2, 1.5])
+                _inv_name = _inv.get("investor", "")
+                _rc = st.columns([2.5, 1.5, 1.2, 2.0, 2.0, 1.5])
+
+                # Investor name (bold, 15px+)
                 _rc[0].markdown(
-                    f"<div style='font-size:14px;font-weight:600;line-height:1.4'>{_inv.get('investor','')}</div>",
+                    f"<div style='font-size:15px;font-weight:700;line-height:1.4'>"
+                    f"{_inv_name}</div>",
                     unsafe_allow_html=True)
+                # Round
                 _rc[1].markdown(
-                    f"<div style='font-size:12px;color:#6b7a8d'>{_inv.get('round','')}</div>",
+                    f"<div style='font-size:12px;color:#6b7a8d'>"
+                    f"{_inv.get('round','')}</div>",
                     unsafe_allow_html=True)
 
-                # ── Compute returns with new API ──────────────────────────────
-                _inv_data = get_investor_data(_company, _inv.get("investor", ""))
-                _r = compute_returns(_inv_data, _ipo_px, _list_px) if _inv_data else {}
-                _waca = _r.get("waca")
-                _flag = " ⚠️" if (_r.get("sanity_notes")) else ""
+                # ── Look up investor data ─────────────────────────────────────
+                _inv_data = get_investor_data(_company, _inv_name)
+                _src      = (_inv_data or {}).get("_source", "v1")
 
-                # Realised MOIC column
-                _realised = _r.get("realised_moic")
-                if _realised is not None:
-                    _pct = (_realised - 1) * 100
-                    _pct_s = f"+{_pct:.0f}%" if _pct >= 0 else f"{_pct:.0f}%"
-                    _col_r = "#16a34a" if _pct >= 0 else "#dc2626"
+                # ── Compute returns ───────────────────────────────────────────
+                if _src == "v2" and _inv_data:
+                    # New exact-integer path
+                    _r = calculate_returns(
+                        seller_name     = _inv_data.get("_matched_key", _inv_name),
+                        waca            = _inv_data.get("waca"),
+                        ofs_shares      = _inv_data.get("ofs_shares"),
+                        pre_offer_shares= _inv_data.get("pre_offer_shares"),
+                        ipo_price       = _ipo_px,
+                        listing_price   = _list_px,
+                        seller_type     = _inv_data.get("type", "investor"),
+                        ca_firm         = _inv_data.get("_ca_firm", ""),
+                    )
+                    _waca_display = _inv_data.get("waca")
+                    _waca_src_lbl = _inv_data.get("waca_source", "")
+                else:
+                    # Legacy lakh-based path
+                    _r = compute_returns(_inv_data, _ipo_px, _list_px) if _inv_data else {}
+                    _waca_display = _r.get("waca")
+                    _wt = (_inv_data or {}).get("waca_type", "")
+                    _waca_src_lbl = {"RHP": "✅ RHP", "RHP-blended": "✅ RHP-blended",
+                                     "derived": "🔢 derived", "estimated": "~ estimated"}.get(_wt, _wt)
+
+                # ── WACA column ───────────────────────────────────────────────
+                if _waca_display:
                     _rc[2].markdown(
-                        f"<div style='font-size:14px;color:{_col_r};font-weight:700'>"
-                        f"{_realised:.2f}×  ({_pct_s}){_flag}</div>",
+                        f"<div style='font-size:13px;font-weight:600'>₹{_waca_display:,.2f}</div>",
                         unsafe_allow_html=True)
-                elif _waca and _ipo_px:
-                    # No OFS but WACA known — show IPO return as unrealised
-                    _moic_ipo = _r.get("moic_at_ipo")
+                else:
+                    _rc[2].markdown(
+                        f"<div style='font-size:12px;color:#6b7a8d'>—</div>",
+                        unsafe_allow_html=True)
+
+                # ── Realised Return column ────────────────────────────────────
+                _rtype = _r.get("type", "investor")
+
+                if _rtype == "promoter":
+                    # Promoter: show OFS proceeds, no MOIC
+                    _proc = _r.get("ofs_proceeds_cr", 0)
+                    _rc[3].markdown(
+                        f"<div style='font-size:13px;color:#6b7a8d;font-style:italic'>"
+                        f"Promoter<br><span style='font-weight:600;color:#374151'>"
+                        f"₹{_proc:,.1f} cr proceeds</span></div>",
+                        unsafe_allow_html=True)
+
+                elif _r.get("realised_moic") is not None:
+                    _realised = _r["realised_moic"]
+                    _pct      = _r.get("realised_pct", (_realised - 1) * 100)
+                    _pct_s    = f"+{_pct:.1f}%" if _pct >= 0 else f"{_pct:.1f}%"
+                    _flag     = " ⚠️" if (_r.get("warnings") or _r.get("sanity_notes")) else ""
+                    _col_r    = _moic_color(_realised)
+                    _rc[3].markdown(
+                        f"<div style='font-size:14px;color:{_col_r};font-weight:700'>"
+                        f"{_realised:.2f}×&nbsp;&nbsp;({_pct_s}){_flag}</div>",
+                        unsafe_allow_html=True)
+
+                elif _waca_display and _ipo_px:
+                    # No OFS — show moic at IPO as "No OFS"
+                    _moic_ipo = (_r.get("moic_at_ipo") or
+                                 (round(_ipo_px / _waca_display, 2) if _waca_display else None))
                     if _moic_ipo:
-                        _rc[2].markdown(
-                            f"<div style='font-size:13px;color:#6b7a8d'>"
-                            f"No OFS sold</div>",
+                        _col_r = _moic_color(_moic_ipo)
+                        _rc[3].markdown(
+                            f"<div style='font-size:13px;color:{_col_r}'>"
+                            f"No OFS — {_moic_ipo:.2f}× at IPO</div>",
                             unsafe_allow_html=True)
                     else:
-                        _rc[2].markdown(
-                            f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
+                        _rc[3].markdown(
+                            "<div style='font-size:13px;color:#6b7a8d'>No OFS</div>",
                             unsafe_allow_html=True)
                 else:
-                    # Fallback to text field
-                    _ret_txt = _inv.get("return_at_ipo", "N/A")
-                    _short   = _ret_txt.split("(")[0].strip()
-                    if len(_short) > 22: _short = _short[:20] + "…"
-                    _rc[2].markdown(
-                        f"<div style='font-size:13px;color:#6b7a8d'>{_short}</div>",
+                    _rc[3].markdown(
+                        "<div style='font-size:13px;color:#6b7a8d'>—</div>",
                         unsafe_allow_html=True)
 
-                # Total MOIC column
-                _total = _r.get("total_moic")
-                if _total is not None:
-                    _col_t = "#16a34a" if _total >= 1.0 else "#dc2626"
-                    _rc[3].markdown(
+                # ── Total Return at Listing column ────────────────────────────
+                if _rtype == "promoter":
+                    _rc[4].markdown(
+                        "<div style='font-size:12px;color:#6b7a8d'>—</div>",
+                        unsafe_allow_html=True)
+
+                elif _r.get("total_moic") is not None:
+                    _total = _r["total_moic"]
+                    _col_t = _moic_color(_total)
+                    _rc[4].markdown(
                         f"<div style='font-size:14px;color:{_col_t};font-weight:600'>"
                         f"{_total:.2f}× total</div>",
                         unsafe_allow_html=True)
-                elif _waca and _list_px:
-                    # Show per-share return at listing
-                    _moic_lst = _r.get("moic_at_listing")
-                    if _moic_lst:
-                        _col_t = "#16a34a" if _moic_lst >= 1.0 else "#dc2626"
-                        _rc[3].markdown(
-                            f"<div style='font-size:14px;color:{_col_t};font-weight:600'>"
-                            f"{_moic_lst:.2f}× listing</div>",
-                            unsafe_allow_html=True)
-                    else:
-                        _rc[3].markdown(
-                            f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
-                            unsafe_allow_html=True)
+
+                elif _waca_display and _list_px:
+                    _moic_lst = _r.get("moic_at_listing") or round(_list_px / _waca_display, 2)
+                    _col_t    = _moic_color(_moic_lst)
+                    _rc[4].markdown(
+                        f"<div style='font-size:14px;color:{_col_t};font-weight:600'>"
+                        f"{_moic_lst:.2f}× listing</div>",
+                        unsafe_allow_html=True)
                 else:
-                    _rc[3].markdown(
-                        f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
+                    _rc[4].markdown(
+                        "<div style='font-size:13px;color:#6b7a8d'>—</div>",
                         unsafe_allow_html=True)
 
-                # Details popover
-                with _rc[4]:
+                # ── Details popover ───────────────────────────────────────────
+                with _rc[5]:
                     with st.popover("Details ↗", use_container_width=True):
-                        st.markdown(_return_popup_md(_inv, ipo))
+                        if _src == "v2" and _inv_data and _rtype != "error":
+                            # ── New v2 detailed popup ─────────────────────────
+                            _ca   = _inv_data.get("_ca_firm", "")
+                            _wsrc = _inv_data.get("waca_source", "")
+                            st.markdown(f"**{_inv_data.get('_matched_key', _inv_name)}**")
+                            if _ca:
+                                st.markdown(
+                                    f"<div style='font-size:12px;color:#6b7a8d'>"
+                                    f"✅ WACA certified by {_ca}</div>",
+                                    unsafe_allow_html=True)
+                            st.divider()
+
+                            if _rtype == "promoter":
+                                _os = _r.get("ofs_shares", 0) or 0
+                                st.markdown(
+                                    f"**Type:** Promoter / Founder  \n"
+                                    f"**OFS shares sold:** {_os:,}  \n"
+                                    f"**IPO price:** ₹{_ipo_px}  \n"
+                                    f"**OFS proceeds:** ₹{_r.get('ofs_proceeds_cr', 0):,.2f} cr  \n"
+                                    f"*Cost basis negligible — no return multiple shown.*"
+                                )
+                            else:
+                                _os   = _inv_data.get("ofs_shares")
+                                _pre  = _inv_data.get("pre_offer_shares")
+                                _w    = _inv_data.get("waca")
+                                st.markdown(f"**WACA:** ₹{_w:,.2f}/sh  \n*{_wsrc}*")
+                                st.divider()
+                                if _os:
+                                    st.markdown(
+                                        f"**Pre-offer shares:** {_pre:,}" if _pre else ""
+                                    )
+                                    st.markdown(
+                                        f"**OFS shares sold:** {_os:,}  \n"
+                                        f"**OFS proceeds:** {_os:,} × ₹{_ipo_px} = "
+                                        f"₹{_r.get('ofs_proceeds_cr', 0):,.2f} cr  \n"
+                                        f"**Cost of OFS:** {_os:,} × ₹{_w:,.2f} = "
+                                        f"₹{_r.get('cost_of_ofs_cr', 0):,.2f} cr  \n"
+                                        f"**Realised MOIC:** ₹{_ipo_px} ÷ ₹{_w:,.2f} = "
+                                        f"**{_r.get('realised_moic', '—')}×**"
+                                    )
+                                    if _r.get("total_moic"):
+                                        _ret = (_pre or 0) - _os
+                                        st.markdown(
+                                            f"**Retained shares:** {_ret:,}  \n"
+                                            f"**Unrealised:** {_ret:,} × ₹{_list_px} = "
+                                            f"₹{_r.get('unrealised_cr', 0):,.2f} cr  \n"
+                                            f"**Total cost:** {_pre:,} × ₹{_w:,.2f} = "
+                                            f"₹{_r.get('total_cost_cr', 0):,.2f} cr  \n"
+                                            f"**Total MOIC:** ₹{_r.get('total_value_cr', 0):,.2f} cr ÷ "
+                                            f"₹{_r.get('total_cost_cr', 0):,.2f} cr = "
+                                            f"**{_r.get('total_moic', '—')}×**"
+                                        )
+                                else:
+                                    st.markdown(
+                                        f"No OFS shares sold.  \n"
+                                        f"**MOIC at IPO:** ₹{_ipo_px} ÷ ₹{_w:,.2f} = "
+                                        f"**{_r.get('moic_at_ipo', '—')}×**  \n"
+                                        f"**MOIC at listing:** ₹{_list_px} ÷ ₹{_w:,.2f} = "
+                                        f"**{_r.get('moic_at_listing', '—')}×**"
+                                    )
+                                if _r.get("warnings"):
+                                    for _w_msg in _r["warnings"]:
+                                        st.warning(_w_msg)
+                        else:
+                            # ── Legacy popup (unchanged) ──────────────────────
+                            st.markdown(_return_popup_md(_inv, ipo))
 
             st.caption(
-                "**Realised Return** = OFS shares sold × IPO price ÷ cost basis.  "
-                "**Total Return** = (OFS proceeds + retained shares × listing price) ÷ total invested.  "
-                "WACA sourced from RHP (✅) or derived from stated MOIC (🔢).  "
-                "⚠️ = flagged by sanity check — verify manually."
+                "**Realised Return** = OFS shares × IPO price ÷ cost basis.  "
+                "**Total Return** = (OFS proceeds + retained × listing price) ÷ total invested.  "
+                "🟢 >1.1×  🟠 0.9–1.1× (near breakeven)  🔴 <0.9× (loss).  "
+                "✅ = WACA from RHP CA-certified."
             )
         else:
             st.markdown(
