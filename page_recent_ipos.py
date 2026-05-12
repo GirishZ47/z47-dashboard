@@ -941,6 +941,105 @@ def _hist_prices(ticker, start, end):
     return None
 
 
+def _combined_lockup_chart(ticker, listing_dt, anchor_expiry, pripo_expiry, promoter_expiry, ipo_company):
+    """Single chart: full price history from listing with all 3 expiry lines + 7/30-day impact table."""
+    try:
+        start = listing_dt.strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
+        df_p = _hist_prices(ticker, start, today)
+        if df_p is None or df_p.empty:
+            return False
+
+        df_p.index = pd.to_datetime(df_p.index)
+        x_str = df_p.index.strftime("%Y-%m-%d").tolist()
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x_str,
+            y=df_p["Close"].tolist(),
+            mode="lines", name="Price",
+            line=dict(color="#1e40af", width=2),
+            fill="tozeroy", fillcolor="rgba(29,78,216,0.06)",
+        ))
+
+        # Draw all 3 expiry lines
+        _expiry_lines = [
+            (anchor_expiry,   "Anchor (30d)",     "#f59e0b"),
+            (pripo_expiry,    "Pre-IPO (6M)",     "#7c3aed"),
+            (promoter_expiry, "Promoter (18M)",   "#dc2626"),
+        ]
+        for exp_dt, exp_lbl, exp_color in _expiry_lines:
+            exp_str = exp_dt.strftime("%Y-%m-%d")
+            # Only draw if within our data range
+            if exp_dt <= datetime.now() + timedelta(days=730):
+                fig.add_shape(
+                    type="line",
+                    x0=exp_str, x1=exp_str,
+                    y0=0, y1=1,
+                    xref="x", yref="paper",
+                    line=dict(color=exp_color, dash="dash", width=1.5),
+                )
+                fig.add_annotation(
+                    x=exp_str, y=0.97,
+                    xref="x", yref="paper",
+                    text=f"🔓 {exp_lbl}",
+                    showarrow=False,
+                    font=dict(color=exp_color, size=10),
+                    xanchor="left",
+                    bgcolor="rgba(255,255,255,0.75)",
+                )
+
+        fig.update_layout(
+            height=300, margin=dict(l=0, r=0, t=30, b=0),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            xaxis=dict(showgrid=False, color="#a38060"),
+            yaxis=dict(showgrid=True, gridcolor="#e5e7eb", color="#a38060", title="Price (₹)"),
+            showlegend=False,
+            title=dict(text="Price History with Lock-Up Expiry Lines", font=dict(size=13, color="#1a0f00"), x=0.01),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ── 7-day and 30-day price impact around each expiry ───────────
+        impact_rows = []
+        for exp_dt, exp_lbl, _ in _expiry_lines:
+            if exp_dt > datetime.now():
+                impact_rows.append({"Lock-Up": exp_lbl, "7-Day Impact": "—", "30-Day Impact": "—", "Status": "⏳ Pending"})
+                continue
+            try:
+                prices_before = df_p[df_p.index <= exp_dt]["Close"]
+                prices_after  = df_p[df_p.index >= exp_dt]["Close"]
+                p0 = prices_before.iloc[-1] if not prices_before.empty else None
+                p7 = prices_after.iloc[min(5,  len(prices_after)-1)] if not prices_after.empty else None
+                p30= prices_after.iloc[min(21, len(prices_after)-1)] if not prices_after.empty else None
+                chg7  = f"{(p7 -p0)/p0*100:+.1f}%" if (p0 and p7  and p0>0) else "N/A"
+                chg30 = f"{(p30-p0)/p0*100:+.1f}%" if (p0 and p30 and p0>0) else "N/A"
+                impact_rows.append({
+                    "Lock-Up": exp_lbl,
+                    "7-Day Impact":  chg7,
+                    "30-Day Impact": chg30,
+                    "Status": "✅ Expired",
+                })
+            except Exception:
+                impact_rows.append({"Lock-Up": exp_lbl, "7-Day Impact": "N/A", "30-Day Impact": "N/A", "Status": "✅ Expired"})
+
+        def _impact_color(val):
+            v = str(val)
+            if v.startswith("+"):
+                return "color:#16a34a;font-weight:600"
+            if v.startswith("-"):
+                return "color:#dc2626;font-weight:600"
+            return ""
+
+        impact_df = pd.DataFrame(impact_rows)
+        styled_impact = impact_df.style.map(_impact_color, subset=["7-Day Impact", "30-Day Impact"])
+        st.markdown("<div style='font-size:12px;color:#6b7a8d;margin:8px 0 4px'>Price impact relative to day before expiry:</div>",
+                    unsafe_allow_html=True)
+        st.dataframe(styled_impact, use_container_width=True, hide_index=True)
+        return True
+    except Exception:
+        return False
+
+
 def _lockup_price_chart(ticker, expiry_dt, label, ipo_company):
     """Show price chart ±30 days around a lock-up expiry date."""
     try:
@@ -1096,9 +1195,9 @@ def _render_lockup_tab(ipo):
         "% figures are approximate estimates."
     )
 
-    # ── Price impact analysis ────────────────────────────────────────────────
+    # ── Combined price chart with all 3 expiry lines ────────────────────────
     st.markdown("---")
-    st.markdown("#### 📉 Price Impact Around Lock-Up Expiries")
+    st.markdown("#### 📉 Lock-Up Expiry — Price History & Impact")
 
     past_expiries = [
         (anchor_expiry,   "Anchor Lock-Up"),
@@ -1108,11 +1207,18 @@ def _render_lockup_tab(ipo):
     upcoming_expiries = [(dt, lbl) for dt, lbl in past_expiries if dt > today]
     passed_expiries   = [(dt, lbl) for dt, lbl in past_expiries if dt <= today]
 
+    # Combined chart — all 3 expiry lines in one chart
+    combined_ok = _combined_lockup_chart(
+        ticker, listing_dt,
+        anchor_expiry, pripo_expiry, promoter_expiry,
+        ipo["company"],
+    )
+
     # Upcoming expiries warning
     if upcoming_expiries:
+        price_now, _, _ = _live_price(ticker)
         for exp_dt, exp_lbl in upcoming_expiries:
             days_left = (exp_dt - today).days
-            price_now, _, _ = _live_price(ticker)
             # Rough estimate of unlocking value
             if exp_lbl == "Anchor Lock-Up":
                 val_est_cr = ipo.get("anchor_total_cr") or 0
@@ -1131,12 +1237,12 @@ def _render_lockup_tab(ipo):
                 </div>""",
                 unsafe_allow_html=True)
 
-    # Price charts for expired lock-ups
-    if passed_expiries:
+    # Individual zoomed charts for expired lock-ups (supplementary)
+    if passed_expiries and not combined_ok:
         for exp_dt, exp_lbl in passed_expiries:
             st.markdown(f"**Price around {exp_lbl} expiry ({exp_dt.strftime('%d %b %Y')})**")
             _lockup_price_chart(ticker, exp_dt, exp_lbl, ipo["company"])
-    else:
+    elif not combined_ok and not passed_expiries:
         st.info("No lock-up periods have expired yet for this IPO. Charts will appear after each expiry.")
 
     st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',

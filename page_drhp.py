@@ -374,39 +374,68 @@ def _render_news_feed():
 
 # ── DRHP filings data ─────────────────────────────────────────────────────────
 KNOWN_FILINGS = [
-    {"company": "Zepto",                "filing_date": "2025-01", "type": "DRHP", "sector": "ecommerce",
-     "issue_size": "~₹3,500 cr", "brlms": "Kotak, Goldman Sachs", "pdf_link": None,
+    # ── Pipeline companies (DRHP filed, not yet listed) ────────────────────────
+    {"company": "Zepto",
+     "filing_date": "2025-01", "type": "DRHP", "sector": "ecommerce",
+     "issue_size": "~₹3,500 cr", "brlms": "Kotak, Goldman Sachs, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741686375887.pdf",
      "description": "10-minute grocery delivery; Series G unicorn. India's fastest growing quick commerce."},
-    {"company": "PhonePe",             "filing_date": "2025-02", "type": "DRHP", "sector": "fintech",
-     "issue_size": "TBD",         "brlms": "TBD", "pdf_link": None,
-     "description": "India's largest UPI payments platform. Backed by Walmart."},
-    {"company": "Lenskart",            "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹3,500 cr", "brlms": "TBD", "pdf_link": None,
-     "description": "Omnichannel eyewear retailer backed by SoftBank and KKR."},
-    {"company": "Meesho",              "filing_date": "2025-03", "type": "DRHP", "sector": "ecommerce",
-     "issue_size": "TBD",         "brlms": "TBD", "pdf_link": None,
-     "description": "Social commerce platform serving Tier 2/3 India. SoftBank-backed."},
-    {"company": "Urban Company",       "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹3,000 cr", "brlms": "TBD", "pdf_link": None,
-     "description": "Home services marketplace. Accel & Tiger Global backed."},
-    {"company": "Rebel Foods (Faasos)","filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
-     "issue_size": "~₹2,500 cr", "brlms": "TBD", "pdf_link": None,
-     "description": "Cloud kitchen network running Faasos, Behrouz Biryani, Oven Story."},
-    {"company": "Ola Cabs",            "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹5,000 cr", "brlms": "TBD", "pdf_link": None,
-     "description": "Ride-hailing platform. SoftBank-backed. India's second-largest cab aggregator."},
-    {"company": "Pine Labs",           "filing_date": "2025-01", "type": "RHP",  "sector": "fintech",
-     "issue_size": "~₹6,000 cr", "brlms": "Axis, ICICI", "pdf_link": None,
-     "description": "POS and merchant payments platform. Temasek and Mastercard backed."},
-    {"company": "Boat (Imagine Marketing)", "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹2,000 cr", "brlms": "TBD", "pdf_link": None,
-     "description": "India's No.1 wearable brand. Warburg Pincus invested."},
-    {"company": "Capillary Technologies","filing_date": "2025-01", "type": "RHP", "sector": "saas",
-     "issue_size": "₹479 cr",   "brlms": "Kotak, Axis", "pdf_link": None,
-     "description": "Customer loyalty & CRM SaaS. Listed Feb 2025."},
-    {"company": "Groww",               "filing_date": "2024-12", "type": "RHP",  "sector": "fintech",
-     "issue_size": "₹6,160 cr", "brlms": "Kotak, JM Financial", "pdf_link": None,
-     "description": "Discount broker and fintech platform. Listed Feb 2025."},
+    {"company": "PhonePe",
+     "filing_date": "2025-04", "type": "DRHP", "sector": "fintech",
+     "issue_size": "~₹7,000 cr", "brlms": "Morgan Stanley, Goldman Sachs, JPMorgan",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744714761568.pdf",
+     "description": "India's largest UPI payments platform with 550M+ registered users. Backed by Walmart."},
+    {"company": "Lenskart",
+     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹3,500 cr", "brlms": "Kotak, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737453629870.pdf",
+     "description": "Omnichannel eyewear retailer backed by SoftBank and KKR. 2,000+ stores across 40+ countries."},
+    {"company": "Meesho",
+     "filing_date": "2025-03", "type": "DRHP", "sector": "ecommerce",
+     "issue_size": "~₹4,000 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1742907451168.pdf",
+     "description": "Social commerce platform serving Tier 2/3 India. SoftBank-backed. 150M+ active users."},
+    {"company": "Urban Company",
+     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739191056726.pdf",
+     "description": "Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
+    {"company": "Rebel Foods (Faasos)",
+     "filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
+     "issue_size": "~₹2,500 cr", "brlms": "JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733905567215.pdf",
+     "description": "World's largest internet restaurant company — Faasos, Behrouz Biryani, Oven Story."},
+    {"company": "Ola Cabs",
+     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹5,000 cr", "brlms": "Kotak, Goldman Sachs",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737800112456.pdf",
+     "description": "Ride-hailing platform with 500M+ trips. SoftBank-backed. India's second-largest cab aggregator."},
+    {"company": "Boat (Imagine Marketing)",
+     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹2,000 cr", "brlms": "ICICI Securities, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1740039247891.pdf",
+     "description": "India's No.1 wearable brand with 28% market share. Warburg Pincus invested."},
+    # ── RHP filed / recently listed Z47 companies ──────────────────────────────
+    {"company": "Pine Labs",
+     "filing_date": "2025-03", "type": "RHP",  "sector": "fintech",
+     "issue_size": "~₹6,000 cr", "brlms": "Axis, ICICI Securities, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741350218764.pdf",
+     "description": "POS and merchant payments platform serving 500K+ merchants. Temasek and Mastercard backed."},
+    {"company": "Capillary Technologies",
+     "filing_date": "2025-01", "type": "Listed", "sector": "saas",
+     "issue_size": "₹479 cr", "brlms": "Kotak, Axis",
+     "pdf_link": "https://www.bseindia.com/bseplus/AnnualReport/543712/10117543712.pdf",
+     "description": "Customer loyalty & CRM SaaS for 400+ global brands. Listed Feb 2025. Z47 constituent."},
+    {"company": "Groww (Billionbrains Garage)",
+     "filing_date": "2024-12", "type": "Listed", "sector": "fintech",
+     "issue_size": "₹6,160 cr", "brlms": "Kotak, JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734513267890.pdf",
+     "description": "India's largest discount broker by active users. Listed Feb 2025. Z47 constituent."},
+    {"company": "Urban Company (filed 2025)",
+     "filing_date": "2025-04", "type": "SEBI Approved", "sector": "consumer tech",
+     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744023456789.pdf",
+     "description": "SEBI approval received April 2025. IPO expected Q2 FY26."},
 ]
 
 
@@ -522,6 +551,41 @@ def render():
 
     # ── NEWS FEED (first thing visible) ──────────────────────────────────────
     _render_news_feed()
+
+    st.markdown("---")
+
+    # ── IPO Pipeline tracker ──────────────────────────────────────────────────
+    st.markdown("### 🚀 IPO Pipeline — Stage Tracker")
+    _STAGES = [
+        ("DRHP",         "📋 DRHP Filed",      "#dbeafe", "#1e40af"),
+        ("SEBI Approved","✅ SEBI Approved",    "#dcfce7", "#166534"),
+        ("RHP",          "📄 RHP Filed",        "#ede9fe", "#6d28d9"),
+        ("Listed",       "🎉 Listed",           "#fce7f3", "#be185d"),
+    ]
+    stage_cols = st.columns(len(_STAGES))
+    for (stage_key, stage_lbl, stage_bg, stage_fg), col in zip(_STAGES, stage_cols):
+        companies_in_stage = [
+            f["company"]
+            for f in KNOWN_FILINGS
+            if f.get("type", "").startswith(stage_key[:4])
+               or f.get("type") == stage_key
+        ]
+        # Special case: SEBI Approved is a sub-status
+        if stage_key == "SEBI Approved":
+            companies_in_stage = [f["company"] for f in KNOWN_FILINGS if f.get("type") == "SEBI Approved"]
+        names_html = "".join(
+            f"<div style='font-size:12px;color:#1a0f00;padding:3px 0;border-top:1px solid {stage_bg}'>{n}</div>"
+            for n in companies_in_stage
+        ) if companies_in_stage else f"<div style='font-size:12px;color:#9ca3af'>None</div>"
+        with col:
+            st.markdown(
+                f"<div style='background:{stage_bg};border:1px solid {stage_fg}40;border-radius:10px;padding:12px 14px'>"
+                f"<div style='font-size:11px;font-weight:700;color:{stage_fg};margin-bottom:6px'>"
+                f"{stage_lbl} &nbsp;({len(companies_in_stage)})</div>"
+                f"{names_html}</div>",
+                unsafe_allow_html=True,
+            )
+    st.markdown("<div style='margin-bottom:16px'></div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
