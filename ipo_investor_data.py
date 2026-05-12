@@ -1166,19 +1166,39 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca": 61.1,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~7.1× at listing ₹435  →  435 ÷ 7.1 = ₹61.3/sh. "
-                               "Using ₹61.1/sh.",
+                               "Primary OFS seller in the IPO.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 97.0,   # ~₹372 cr of the ₹470 cr OFS at ₹383
+                "ofs_source": "Estimated: ~₹372 cr (79% of OFS) ÷ ₹383 = ~97L shares (approximate)",
                 "first_year": 2016,
-                "notes": "Sold substantial portion in OFS.",
+                "notes": "Primary OFS seller. Sold substantial portion in IPO. "
+                         "⚠️ OFS share count is approximate — verify from RHP.",
+                "rounds": [
+                    {"label": "Series A–C", "years": "2016–2022",
+                     "shares_cr": None, "waca": 61.1,
+                     "source": "Derived from stated 7.1× at listing"},
+                ],
             },
             "Link Investment Trust": {
                 "waca": 96.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~4.5× at listing ₹435  →  435 ÷ 4.5 = ₹96.7/sh.",
+                "waca_source": "Derived: stated ~4.5× at listing ₹435  →  435 ÷ 4.5 = ₹96.7/sh. "
+                               "Partial OFS seller.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 25.0,   # ~₹96 cr (remainder) ÷ ₹383 ≈ 25L
+                "ofs_source": "Estimated: remainder of OFS after Peak XV ÷ ₹383 ≈ 25L (approximate)",
+                "first_year": 2019,
+                "notes": "Partial OFS exit. ⚠️ OFS share count is approximate — verify from RHP.",
+            },
+            "Amit Ramani (Founder & CEO)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2015). Nominal cost ~₹2/sh estimated. "
+                               "Exact WACA TBD from RHP.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2019,
+                "first_year": 2015,
+                "notes": "~8% stake post-IPO. No OFS. Pure paper gain at listing.",
             },
         },
     },
@@ -1332,9 +1352,11 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca_source": "Derived: stated ~8–15× at listing ₹190  →  190 ÷ 11.5 = ₹16.5/sh. "
                                "Using ₹18/sh (seed–Series A, WACA ~₹13–23 noted in filing).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 5.35,
+                "ofs_source": "RHP Selling Shareholders — stated 5.35 lakh shares sold in OFS",
                 "first_year": 2015,
-                "notes": "Sold 5.35L shares in OFS at ₹190 listing per stated data.",
+                "notes": "Realised 9.5× at IPO on OFS shares. "
+                         "(₹18/sh WACA → ₹171 IPO = 9.5×). Early seed backer.",
             },
             "AION Capital Partners (Apollo-ICICI JV)": {
                 "waca": 65.0,
@@ -1443,8 +1465,27 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
             "Keppel Land": {
                 "waca": 90.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~4.4× at listing ₹395  →  395 ÷ 4.4 = ₹89.8/sh.",
-                "ofs_shares_lakhs": None, "first_year": 2019,
+                "waca_source": "Derived: stated ~4.4× at listing ₹395  →  395 ÷ 4.4 = ₹89.8/sh. "
+                               "Lead investor since 2019; ~78% pre-IPO stake.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "No OFS. Pure fresh-issue IPO. ~4.4× paper gain at listing vs entry.",
+                "rounds": [
+                    {"label": "Series A–C", "years": "2019–2022",
+                     "shares_cr": None, "waca": 90.0,
+                     "source": "Derived from stated ~4.4× at listing"},
+                ],
+            },
+            "Harsh Binani (Founder & MD)": {
+                "waca": 0.5,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2017). Nominal par value ~₹0.5/sh estimated. "
+                               "Exact WACA TBD from RHP.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "~18% stake. No OFS. Pure fresh-issue IPO. >400× paper gain at listing.",
             },
         },
     },
@@ -1455,13 +1496,27 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "investors": {
             "GSV Ventures": {
                 "waca": None, "waca_type": None,
-                "waca_source": "IPO pending. WACA TBD from RHP when filed.",
+                "waca_source": "Series A (2022) at ~$1.1B valuation. WACA TBD from RHP when filed.",
                 "ofs_shares_lakhs": None, "first_year": 2022,
+                "notes": "IPO pending — price band not yet announced.",
             },
             "Westbridge Capital": {
                 "waca": None, "waca_type": None,
-                "waca_source": "IPO pending. WACA TBD from RHP when filed.",
+                "waca_source": "Series B (2022) at ~$2.8B valuation. WACA TBD from RHP when filed.",
                 "ofs_shares_lakhs": None, "first_year": 2022,
+                "notes": "IPO pending.",
+            },
+            "Lightspeed Venture Partners": {
+                "waca": None, "waca_type": None,
+                "waca_source": "Series B (2022). WACA TBD from RHP when filed.",
+                "ofs_shares_lakhs": None, "first_year": 2022,
+                "notes": "IPO pending.",
+            },
+            "Alven Capital": {
+                "waca": None, "waca_type": None,
+                "waca_source": "Series A (2022). WACA TBD from RHP when filed.",
+                "ofs_shares_lakhs": None, "first_year": 2022,
+                "notes": "IPO pending.",
             },
         },
     },
@@ -1471,19 +1526,57 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 3000.0, "ofs_total_cr": 2000.0,
         "investors": {
             "SoftBank": {
-                "waca": None, "waca_type": "estimated",
-                "waca_source": "Series F (2021) at ~$4.9B valuation. Per-share WACA TBD from RHP.",
-                "ofs_shares_lakhs": None, "first_year": 2021,
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Series F–G (2021–22) at ~$4.9B valuation. "
+                               "Entry price per share TBD from RHP — valuation implies ~₹380–420/sh "
+                               "depending on total diluted share count (near IPO ₹400 → ~1× at IPO).",
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "~24% stake. Likely large OFS seller. Listing pending.",
             },
-            "Sequoia Capital": {
-                "waca": None, "waca_type": "estimated",
-                "waca_source": "Series B–C (2019) at ~$500M valuation. WACA TBD from RHP.",
-                "ofs_shares_lakhs": None, "first_year": 2019,
+            "Sequoia Capital / Peak XV": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Series B–D (2019–21) at $500M–$2.1B valuations. "
+                               "Multi-round blended WACA TBD from RHP.",
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "~12% stake. Earlier investor — lower WACA than SoftBank. Listing pending.",
             },
             "Fidelity": {
-                "waca": None, "waca_type": "estimated",
-                "waca_source": "Series F (2021). WACA TBD from RHP when filed.",
-                "ofs_shares_lakhs": None, "first_year": 2021,
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Series F (2021) at ~$4.9B valuation. WACA TBD from RHP.",
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "~5% stake. Listing pending.",
+            },
+            "B Capital Group": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Series E (2021) at ~$2.1B valuation. WACA TBD from RHP.",
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "~6% stake. Possible OFS seller. Listing pending.",
+            },
+            "Prosus (Naspers)": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Series D (2020) at ~$2.1B valuation. WACA TBD from RHP.",
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "~4% stake. Listing pending.",
+            },
+            "Founders: Vidit Aatrey & Sanjeev Barnwal": {
+                "waca": 1.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2015). Nominal par value ~₹1/sh estimated. "
+                               "Exact WACA TBD from RHP.",
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "~18% combined. Did not sell in OFS (listing pending). "
+                         ">400× paper gain at IPO issue price if listing near ₹400.",
             },
         },
     },
