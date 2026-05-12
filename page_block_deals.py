@@ -73,8 +73,16 @@ def _fetch_deals_today(deal_type="bulk"):
                 sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
                 try:    qty = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
                 except: qty = 0
-                try:    px  = float(str(row.get("Trade Price / Wght Avg Price", row.get("PRICE", 0))).replace(",", ""))
-                except: px  = 0.0
+                # NSE CSV uses "Trade Price / Wt. Avg. Price" (dots) — try several variants
+                _px_keys = [
+                    "Trade Price / Wt. Avg. Price",
+                    "Trade Price / Wght Avg Price",
+                    "Trade Price/Wt. Avg. Price",
+                    "PRICE", "Price", "Rate", "Avg. Price",
+                ]
+                _px_raw = next((row.get(k) for k in _px_keys if row.get(k) is not None), 0)
+                try:    px = float(str(_px_raw).replace(",", "").replace("₹", "").strip() or 0)
+                except: px = 0.0
                 rows.append({
                     "symbol":     sym,
                     "clientName": str(row.get("Client Name", row.get("CLIENT_NAME", ""))).strip(),
@@ -374,7 +382,15 @@ def _fetch_nse_csv_history(days=90):
                                     continue
                                 try:    qty_i = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
                                 except: qty_i = 0
-                                try:    px = float(str(row.get("Trade Price / Wght Avg Price", row.get("PRICE", row.get("Rate", 0)))).replace(",", ""))
+                                # NSE archive CSV uses "Trade Price / Wt. Avg. Price" (dots)
+                                _px_keys_h = [
+                                    "Trade Price / Wt. Avg. Price",
+                                    "Trade Price / Wght Avg Price",
+                                    "Trade Price/Wt. Avg. Price",
+                                    "PRICE", "Price", "Rate", "Avg. Price",
+                                ]
+                                _px_raw_h = next((row.get(k) for k in _px_keys_h if row.get(k) is not None), 0)
+                                try:    px = float(str(_px_raw_h).replace(",", "").replace("₹", "").strip() or 0)
                                 except: px = 0.0
                                 ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper().strip()
                                 all_rows.append({

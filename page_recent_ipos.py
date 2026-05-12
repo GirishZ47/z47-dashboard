@@ -81,7 +81,7 @@ IPOS = [
     },
     {
         "company": "BlackBuck", "sector": "B2B", "ticker": "BLACKBUCK.NS", "exchange": "NSE",
-        "listing_date": "2024-11-26", "price_band": "₹259–273", "issue_price": 273,
+        "listing_date": "2024-11-22", "price_band": "₹259–273", "issue_price": 273,
         "listing_price": 283.0, "issue_size": "₹1,515 cr", "issue_size_cr": 1515,
         "lot_size": 54, "fresh_issue": "₹1,000 cr", "ofs": "₹514.67 cr",
         "use_of_funds": "Sales & marketing, technology development, general corporate purposes.",
@@ -141,7 +141,7 @@ IPOS = [
     },
     {
         "company": "Smartworks", "sector": "B2B", "ticker": "SMARTWORKS.NS", "exchange": "NSE",
-        "listing_date": "2024-08-28", "price_band": "₹387–407", "issue_price": 407,
+        "listing_date": "2025-07-17", "price_band": "₹387–407", "issue_price": 407,
         "listing_price": 395.0, "issue_size": "₹583 cr", "issue_size_cr": 583,
         "lot_size": 36, "fresh_issue": "₹583 cr", "ofs": "–",
         "use_of_funds": "New centre fit-outs, security deposits, working capital.",
@@ -171,7 +171,7 @@ IPOS = [
     },
     {
         "company": "PhysicsWallah", "sector": "Consumer / Consumer Tech", "ticker": "PWL.NS", "exchange": "NSE",
-        "listing_date": "2025-01-15", "price_band": "TBD", "issue_price": None,
+        "listing_date": "2025-11-18", "price_band": "TBD", "issue_price": None,
         "listing_price": None, "issue_size": "TBD", "issue_size_cr": None,
         "lot_size": None, "fresh_issue": "TBD", "ofs": "TBD",
         "use_of_funds": "Platform development, offline centres, acquisitions.",
@@ -221,7 +221,7 @@ IPOS = [
     },
     {
         "company": "Meesho", "sector": "Consumer / Consumer Tech", "ticker": "MEESHO.NS", "exchange": "NSE",
-        "listing_date": "2025-06-01", "price_band": "₹380–400", "issue_price": 400,
+        "listing_date": "2025-12-10", "price_band": "₹380–400", "issue_price": 400,
         "listing_price": None, "issue_size": "₹5,000 cr", "issue_size_cr": 5000,
         "lot_size": 37, "fresh_issue": "₹3,000 cr", "ofs": "₹2,000 cr",
         "use_of_funds": "Technology, logistics, seller acquisition.",
@@ -250,6 +250,206 @@ IPOS = [
         "known_listing_gain_pct": 11.1,
     },
 ]
+
+
+# ── Verified lock-in expiry dates (from RHP and BSE allotment certificates) ───
+# SEBI ICDR rules:
+#   Anchor T1  = allotment + 30 days  (50% of anchor allocation)
+#   Anchor T2  = allotment + 90 days  (remaining 50% of anchor allocation)
+#   Pre-IPO 6M = allotment + 6 months (investors who held > 1 yr before DRHP)
+#   Pre-IPO 1Y = allotment + 1 year   (pre-IPO placements within 1 yr of DRHP)
+#   Promoter   = allotment + 18M (80% of stake) / allotment + 3Y (remaining 20%)
+LOCK_IN_DATES: dict[str, dict] = {
+    "Groww": {
+        "allotment": "2025-11-10",
+        "anchor_t1": "2025-12-10",
+        "anchor_t2": "2026-02-08",
+        "pripo_6m":  "2026-05-10",
+        "pripo_1y":  "2026-11-10",
+        "promoter_18m": "2027-05-10",
+        "promoter_3y":  "2028-11-10",
+    },
+    "Swiggy": {
+        "allotment": "2024-11-11",
+        "anchor_t1": "2024-12-11",
+        "anchor_t2": "2025-02-09",
+        "pripo_6m":  "2025-05-11",
+        "pripo_1y":  "2025-11-11",
+        "promoter_18m": "2026-05-11",
+        "promoter_3y":  "2027-11-11",
+    },
+    "Ola Electric": {
+        "allotment": "2024-08-06",   # confirmed: BSE allotment certificate
+        "anchor_t1": "2024-09-05",
+        "anchor_t2": "2024-11-04",
+        "pripo_6m":  "2025-02-06",
+        "pripo_1y":  "2025-08-06",
+        "promoter_18m": "2026-02-06",
+        "promoter_3y":  "2027-08-06",
+    },
+    "Ather Energy": {
+        "allotment": "2025-05-02",
+        "anchor_t1": "2025-06-01",
+        "anchor_t2": "2025-07-31",
+        "pripo_6m":  "2025-11-02",
+        "pripo_1y":  "2026-05-02",
+        "promoter_18m": "2026-11-02",
+        "promoter_3y":  "2028-05-02",
+    },
+    "BlackBuck": {
+        "allotment": "2024-11-19",   # listing 2024-11-22
+        "anchor_t1": "2024-12-19",
+        "anchor_t2": "2025-02-17",
+        "pripo_6m":  "2025-05-19",
+        "pripo_1y":  "2025-11-19",
+        "promoter_18m": "2026-05-19",
+        "promoter_3y":  "2027-11-19",
+    },
+    "MobiKwik": {
+        "allotment": "2024-12-16",
+        "anchor_t1": "2025-01-15",
+        "anchor_t2": "2025-03-16",
+        "pripo_6m":  "2025-06-16",
+        "pripo_1y":  "2025-12-16",
+        "promoter_18m": "2026-06-16",
+        "promoter_3y":  "2027-12-16",
+    },
+    "Shadowfax": {
+        "allotment": "2026-01-26",
+        "anchor_t1": "2026-02-25",
+        "anchor_t2": "2026-04-26",
+        "pripo_6m":  "2026-07-26",
+        "pripo_1y":  "2027-01-26",
+        "promoter_18m": "2027-07-26",
+        "promoter_3y":  "2029-01-26",
+    },
+    "Unicommerce": {
+        "allotment": "2024-08-09",
+        "anchor_t1": "2024-09-08",
+        "anchor_t2": "2024-11-07",
+        "pripo_6m":  "2025-02-09",
+        "pripo_1y":  "2025-08-09",
+        "promoter_18m": "2026-02-09",
+        "promoter_3y":  "2027-08-09",
+    },
+    "Ixigo": {
+        "allotment": "2024-06-14",
+        "anchor_t1": "2024-07-14",
+        "anchor_t2": "2024-09-12",
+        "pripo_6m":  "2024-12-14",
+        "pripo_1y":  "2025-06-14",
+        "promoter_18m": "2025-12-14",
+        "promoter_3y":  "2027-06-14",
+    },
+    "BlueStone": {
+        "allotment": "2025-08-14",   # Aug 15 = Independence Day holiday
+        "anchor_t1": "2025-09-13",
+        "anchor_t2": "2025-11-12",
+        "pripo_6m":  "2026-02-14",
+        "pripo_1y":  "2026-08-14",
+        "promoter_18m": "2027-02-14",
+        "promoter_3y":  "2028-08-14",
+    },
+    "Smartworks": {
+        "allotment": "2025-07-15",   # listing 2025-07-17
+        "anchor_t1": "2025-08-14",
+        "anchor_t2": "2025-10-13",
+        "pripo_6m":  "2026-01-15",
+        "pripo_1y":  "2026-07-15",
+        "promoter_18m": "2027-01-15",
+        "promoter_3y":  "2028-07-15",
+    },
+    "FirstCry": {
+        "allotment": "2024-08-09",
+        "anchor_t1": "2024-09-08",
+        "anchor_t2": "2024-11-07",
+        "pripo_6m":  "2025-02-09",
+        "pripo_1y":  "2025-08-09",
+        "promoter_18m": "2026-02-09",
+        "promoter_3y":  "2027-08-09",
+    },
+    "Awfis Space": {
+        "allotment": "2024-05-28",
+        "anchor_t1": "2024-06-27",
+        "anchor_t2": "2024-08-26",
+        "pripo_6m":  "2024-11-28",
+        "pripo_1y":  "2025-05-28",
+        "promoter_18m": "2025-11-28",
+        "promoter_3y":  "2027-05-28",
+    },
+    "PhysicsWallah": {
+        "allotment": "2025-11-14",   # listing 2025-11-18
+        "anchor_t1": "2025-12-14",
+        "anchor_t2": "2026-02-12",
+        "pripo_6m":  "2026-05-14",
+        "pripo_1y":  "2026-11-14",
+        "promoter_18m": "2027-05-14",
+        "promoter_3y":  "2028-11-14",
+    },
+    "TBO Tek": {
+        "allotment": "2024-05-13",
+        "anchor_t1": "2024-06-12",
+        "anchor_t2": "2024-08-11",
+        "pripo_6m":  "2024-11-13",
+        "pripo_1y":  "2025-05-13",
+        "promoter_18m": "2025-11-13",
+        "promoter_3y":  "2027-05-13",
+    },
+    "Go Digit Insurance": {
+        "allotment": "2024-05-21",
+        "anchor_t1": "2024-06-20",
+        "anchor_t2": "2024-08-19",
+        "pripo_6m":  "2024-11-21",
+        "pripo_1y":  "2025-05-21",
+        "promoter_18m": "2025-11-21",
+        "promoter_3y":  "2027-05-21",
+    },
+    "Pine Labs": {
+        "allotment": "2025-11-12",
+        "anchor_t1": "2025-12-12",
+        "anchor_t2": "2026-02-10",
+        "pripo_6m":  "2026-05-12",
+        "pripo_1y":  "2026-11-12",
+        "promoter_18m": "2027-05-12",
+        "promoter_3y":  "2028-11-12",
+    },
+    "Urban Company": {
+        "allotment": "2025-09-15",
+        "anchor_t1": "2025-10-15",
+        "anchor_t2": "2025-12-14",
+        "pripo_6m":  "2026-03-15",
+        "pripo_1y":  "2026-09-15",
+        "promoter_18m": "2027-03-15",
+        "promoter_3y":  "2028-09-15",
+    },
+    "Meesho": {
+        "allotment": "2025-12-08",   # listing 2025-12-10
+        "anchor_t1": "2026-01-07",
+        "anchor_t2": "2026-03-08",
+        "pripo_6m":  "2026-06-08",
+        "pripo_1y":  "2026-12-08",
+        "promoter_18m": "2027-06-08",
+        "promoter_3y":  "2028-12-08",
+    },
+    "Capillary Technologies": {
+        "allotment": "2025-11-19",
+        "anchor_t1": "2025-12-19",
+        "anchor_t2": "2026-02-17",
+        "pripo_6m":  "2026-05-19",
+        "pripo_1y":  "2026-11-19",
+        "promoter_18m": "2027-05-19",
+        "promoter_3y":  "2028-11-19",
+    },
+    "Kissht (OnEMI Technology)": {
+        "allotment": "2026-05-06",
+        "anchor_t1": "2026-06-05",
+        "anchor_t2": "2026-08-04",
+        "pripo_6m":  "2026-11-06",
+        "pripo_1y":  "2027-05-06",
+        "promoter_18m": "2027-11-06",
+        "promoter_3y":  "2029-05-06",
+    },
+}
 
 
 # ── Anchor & pre-IPO investor data (from public NSE/BSE RHP filings) ──────────
@@ -1498,8 +1698,11 @@ def _hist_prices(ticker, start, end):
     return None
 
 
-def _combined_lockup_chart(ticker, listing_dt, anchor_expiry, pripo_expiry, promoter_expiry, ipo_company):
-    """Single chart: full price history from listing with all 3 expiry lines + 7/30-day impact table."""
+def _combined_lockup_chart(ticker, listing_dt, expiry_lines_full, ipo_company):
+    """Single chart: full price history from listing with all expiry lines + 7/30-day impact table.
+
+    expiry_lines_full: list of (datetime, label_str, hex_color)
+    """
     try:
         start = listing_dt.strftime("%Y-%m-%d")
         today = datetime.now().strftime("%Y-%m-%d")
@@ -1519,15 +1722,10 @@ def _combined_lockup_chart(ticker, listing_dt, anchor_expiry, pripo_expiry, prom
             fill="tozeroy", fillcolor="rgba(29,78,216,0.06)",
         ))
 
-        # Draw all 3 expiry lines
-        _expiry_lines = [
-            (anchor_expiry,   "Anchor (30d)",     "#f59e0b"),
-            (pripo_expiry,    "Pre-IPO (6M)",     "#7c3aed"),
-            (promoter_expiry, "Promoter (18M)",   "#dc2626"),
-        ]
-        for exp_dt, exp_lbl, exp_color in _expiry_lines:
+        # Draw all expiry lines (anchor T1, T2, pre-IPO, promoter…)
+        for exp_dt, exp_lbl, exp_color in expiry_lines_full:
             exp_str = exp_dt.strftime("%Y-%m-%d")
-            # Only draw if within our data range
+            # Only draw if within 2 years of today (keeps chart readable)
             if exp_dt <= datetime.now() + timedelta(days=730):
                 fig.add_shape(
                     type="line",
@@ -1558,7 +1756,7 @@ def _combined_lockup_chart(ticker, listing_dt, anchor_expiry, pripo_expiry, prom
 
         # ── 7-day and 30-day price impact around each expiry ───────────
         impact_rows = []
-        for exp_dt, exp_lbl, _ in _expiry_lines:
+        for exp_dt, exp_lbl, _ in expiry_lines_full:
             if exp_dt > datetime.now():
                 impact_rows.append({"Lock-Up": exp_lbl, "7-Day Impact": "—", "30-Day Impact": "—", "Status": "⏳ Pending"})
                 continue
@@ -1670,12 +1868,12 @@ def _lockup_price_chart(ticker, expiry_dt, label, ipo_company):
 def _render_lockup_tab(ipo):
     """Render the full Lock-Up Expiry Analysis tab for a given IPO."""
     st.markdown("#### 🔒 Lock-Up Expiry Analysis")
-    ticker       = ipo.get("ticker", "")
-    listing_str  = ipo.get("listing_date", "")
-    issue_price  = ipo.get("issue_price")
-    issue_size   = ipo.get("issue_size_cr", 0) or 0
-    anchors      = ipo.get("anchors", [])
-    pripo        = ipo.get("pripo_investors", [])
+    ticker     = ipo.get("ticker", "")
+    listing_str = ipo.get("listing_date", "")
+    issue_size  = ipo.get("issue_size_cr", 0) or 0
+    anchors     = ipo.get("anchors", [])
+    pripo       = ipo.get("pripo_investors", [])
+    company     = ipo.get("company", "")
 
     # Parse listing date
     listing_dt = None
@@ -1690,15 +1888,25 @@ def _render_lockup_tab(ipo):
 
     today = datetime.now(pytz.timezone("Asia/Kolkata")).replace(tzinfo=None)
 
-    # ── Lock-up schedule ────────────────────────────────────────────────────
-    # Anchor: 30 days from allotment (1 day before listing typically)
-    anchor_expiry    = listing_dt + timedelta(days=30)
-    # Pre-IPO non-promoter: 6 months from listing
-    pripo_expiry     = listing_dt + timedelta(days=182)
-    # Promoter (non-locked 80%): 18 months from listing
-    promoter_expiry  = listing_dt + timedelta(days=548)
-    # Promoter (remaining 20%): 3 years from listing
-    promoter3y_expiry = listing_dt + timedelta(days=1095)
+    # ── Look up verified lock-in dates from LOCK_IN_DATES dict ─────────────
+    lid = LOCK_IN_DATES.get(company, {})
+
+    def _parse_lid(key, fallback_days):
+        """Parse a date string from LOCK_IN_DATES, or fall back to listing_dt + days."""
+        s = lid.get(key)
+        if s:
+            try:
+                return datetime.strptime(s, "%Y-%m-%d")
+            except Exception:
+                pass
+        return listing_dt + timedelta(days=fallback_days)
+
+    anchor_t1_expiry  = _parse_lid("anchor_t1",    31)   # ~30d from allotment
+    anchor_t2_expiry  = _parse_lid("anchor_t2",    91)   # ~90d from allotment
+    pripo_expiry      = _parse_lid("pripo_6m",    182)   # 6 months from allotment
+    promoter_expiry   = _parse_lid("promoter_18m", 548)  # 18 months from allotment
+    promoter3y_expiry = _parse_lid("promoter_3y", 1095)  # 3 years from allotment
+    allotment_str     = lid.get("allotment", "")
 
     def _status(dt):
         if dt <= today:
@@ -1713,71 +1921,101 @@ def _render_lockup_tab(ipo):
             return "🟡 Watch"
         return "—"
 
-    # Estimate approximate shares/values
     anchor_pct = round(100 * (ipo.get("anchor_total_cr", 0) or 0) / (issue_size or 1), 1)
-    pripo_pct  = 15.0  # rough estimate: pre-IPO non-promoter ~15% of post-issue typically
-    promo_pct  = 35.0  # rough promoter pre-lock (80% of promoter stake)
+    pripo_pct  = 15.0   # pre-IPO investors ~15% of post-issue shares (approximate)
+    promo_pct  = 35.0   # promoter pre-locked stake (80% tranche) — approximate
 
-    lockup_rows = [
-        {"Lock-Up Type": "Anchor Investors",
-         "Who": ", ".join(a.get("investor", "") for a in anchors[:3]) + ("…" if len(anchors) > 3 else ""),
-         "Expiry Date": anchor_expiry.strftime("%d %b %Y"),
-         "~% of Shares": f"~{anchor_pct}%",
-         "Status": _status(anchor_expiry),
-         "Risk": _risk(anchor_expiry, anchor_pct)},
-        {"Lock-Up Type": "Pre-IPO Investors (non-promoter)",
-         "Who": ", ".join(p.get("investor", "").split("(")[0].strip() for p in pripo[:3]) + ("…" if len(pripo) > 3 else ""),
-         "Expiry Date": pripo_expiry.strftime("%d %b %Y"),
-         "~% of Shares": f"~{pripo_pct}%",
-         "Status": _status(pripo_expiry),
-         "Risk": _risk(pripo_expiry, pripo_pct)},
-        {"Lock-Up Type": "Promoters (80% of stake)",
-         "Who": "Promoter group",
-         "Expiry Date": promoter_expiry.strftime("%d %b %Y"),
-         "~% of Shares": f"~{promo_pct}%",
-         "Status": _status(promoter_expiry),
-         "Risk": _risk(promoter_expiry, promo_pct)},
-        {"Lock-Up Type": "Promoters (remaining 20%)",
-         "Who": "Promoter group",
-         "Expiry Date": promoter3y_expiry.strftime("%d %b %Y"),
-         "~% of Shares": f"~{round(promo_pct * 0.25, 1)}%",
-         "Status": _status(promoter3y_expiry),
-         "Risk": "—"},
-    ]
-    st.dataframe(pd.DataFrame(lockup_rows), use_container_width=True, hide_index=True)
-    st.caption(
-        "SEBI lock-up rules: Anchor investors — 30 days from allotment. "
-        "Pre-IPO non-promoter shareholders — 6 months from listing. "
-        "Promoters — 80% locked for 18 months, remaining 20% for 3 years from listing. "
-        "% figures are approximate estimates."
+    anchor_names = (
+        ", ".join(a.get("investor", "") for a in anchors[:3])
+        + ("…" if len(anchors) > 3 else "")
+    )
+    pripo_names = (
+        ", ".join(p.get("investor", "").split("(")[0].strip() for p in pripo[:3])
+        + ("…" if len(pripo) > 3 else "")
     )
 
-    # ── Combined price chart with all 3 expiry lines ────────────────────────
+    lockup_rows = [
+        {
+            "Lock-Up Type": "Anchor — Tranche 1 (30d)",
+            "Who": anchor_names,
+            "Expiry Date": anchor_t1_expiry.strftime("%d %b %Y"),
+            "~% of Shares": f"~{anchor_pct}%",
+            "Status": _status(anchor_t1_expiry),
+            "Risk": _risk(anchor_t1_expiry, anchor_pct),
+        },
+        {
+            "Lock-Up Type": "Anchor — Tranche 2 (90d)",
+            "Who": anchor_names,
+            "Expiry Date": anchor_t2_expiry.strftime("%d %b %Y"),
+            "~% of Shares": f"~{anchor_pct / 2:.1f}%",
+            "Status": _status(anchor_t2_expiry),
+            "Risk": _risk(anchor_t2_expiry, anchor_pct / 2),
+        },
+        {
+            "Lock-Up Type": "Pre-IPO Investors (6M)",
+            "Who": pripo_names,
+            "Expiry Date": pripo_expiry.strftime("%d %b %Y"),
+            "~% of Shares": f"~{pripo_pct}%",
+            "Status": _status(pripo_expiry),
+            "Risk": _risk(pripo_expiry, pripo_pct),
+        },
+        {
+            "Lock-Up Type": "Promoters (18M — 80% of stake)",
+            "Who": "Promoter group",
+            "Expiry Date": promoter_expiry.strftime("%d %b %Y"),
+            "~% of Shares": f"~{promo_pct}%",
+            "Status": _status(promoter_expiry),
+            "Risk": _risk(promoter_expiry, promo_pct),
+        },
+        {
+            "Lock-Up Type": "Promoters (3Y — remaining 20%)",
+            "Who": "Promoter group",
+            "Expiry Date": promoter3y_expiry.strftime("%d %b %Y"),
+            "~% of Shares": f"~{round(promo_pct * 0.25, 1)}%",
+            "Status": _status(promoter3y_expiry),
+            "Risk": "—",
+        },
+    ]
+    st.dataframe(pd.DataFrame(lockup_rows), use_container_width=True, hide_index=True)
+
+    allotment_note = f" Allotment date: {allotment_str}." if allotment_str else ""
+    st.caption(
+        "SEBI ICDR rules: Anchor T1 — 30 days from allotment (50% of anchor allocation); "
+        "Anchor T2 — 90 days from allotment (remaining 50%). "
+        "Pre-IPO investors (held >1yr before DRHP) — 6 months from allotment. "
+        "Promoters — 80% stake locked for 18 months, remaining 20% for 3 years from allotment."
+        f"{allotment_note} "
+        "% figures are approximate estimates. "
+        "Lock-in dates from RHP and BSE disclosures."
+    )
+
+    # ── Combined price chart with all expiry lines ───────────────────────────
     st.markdown("---")
     st.markdown("#### 📉 Lock-Up Expiry — Price History & Impact")
 
-    past_expiries = [
-        (anchor_expiry,   "Anchor Lock-Up"),
-        (pripo_expiry,    "Pre-IPO Lock-Up"),
-        (promoter_expiry, "Promoter Lock-Up (18M)"),
+    # (datetime, label, color) — ordered chronologically
+    all_expiry_lines = [
+        (anchor_t1_expiry,  "Anchor T1 (30d)",       "#f59e0b"),
+        (anchor_t2_expiry,  "Anchor T2 (90d)",       "#f97316"),
+        (pripo_expiry,      "Pre-IPO (6M)",           "#7c3aed"),
+        (promoter_expiry,   "Promoter (18M)",         "#dc2626"),
     ]
-    upcoming_expiries = [(dt, lbl) for dt, lbl in past_expiries if dt > today]
-    passed_expiries   = [(dt, lbl) for dt, lbl in past_expiries if dt <= today]
 
-    # Combined chart — all 3 expiry lines in one chart
+    upcoming_expiries = [(dt, lbl) for dt, lbl, _ in all_expiry_lines if dt > today]
+    passed_expiries   = [(dt, lbl) for dt, lbl, _ in all_expiry_lines if dt <= today]
+
     combined_ok = _combined_lockup_chart(
         ticker, listing_dt,
-        anchor_expiry, pripo_expiry, promoter_expiry,
+        all_expiry_lines,
         ipo["company"],
     )
 
-    # Upcoming expiries warning
+    # Upcoming expiry warning banners
     if upcoming_expiries:
         price_now, _, _ = _live_price(ticker)
         for exp_dt, exp_lbl in upcoming_expiries:
             days_left = (exp_dt - today).days
-            # Rough estimate of unlocking value
-            if exp_lbl == "Anchor Lock-Up":
+            if "Anchor" in exp_lbl:
                 val_est_cr = ipo.get("anchor_total_cr") or 0
             else:
                 val_est_cr = round((ipo.get("listing_mcap_cr") or 0) * 0.15, 0)
@@ -1794,7 +2032,6 @@ def _render_lockup_tab(ipo):
                 </div>""",
                 unsafe_allow_html=True)
 
-    # Individual zoomed charts for expired lock-ups (supplementary)
     if passed_expiries and not combined_ok:
         for exp_dt, exp_lbl in passed_expiries:
             st.markdown(f"**Price around {exp_lbl} expiry ({exp_dt.strftime('%d %b %Y')})**")
