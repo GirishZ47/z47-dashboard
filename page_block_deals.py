@@ -124,7 +124,7 @@ def _search_news_price(company_name, client_name, quantity, date_str, action):
             encoded = urllib.parse.quote(query)
             rss_url = (f"https://news.google.com/rss/search"
                        f"?q={encoded}&hl=en-IN&gl=IN&ceid=IN:en")
-            r = requests.get(rss_url, timeout=6, headers={"User-Agent": _UA})
+            r = requests.get(rss_url, timeout=4, headers={"User-Agent": _UA})
             if r.status_code != 200:
                 continue
             soup  = BeautifulSoup(r.content, "xml")
@@ -243,26 +243,64 @@ def _enrich_zero_prices(rows, date_str):
     return rows
 
 
-def _enrich_hist_df(df):
+def _fast_enrich_df(df, today_str=None):
     """
-    Enrich a history DataFrame (display-format columns) where Price (₹) == 0.
-    Adds 'Src' and 'Price Source' columns. Modifies df in-place.
+    Fast yfinance-only price enrichment for zero-price rows in a display DataFrame.
+    Safe to call during render — no news search, no long timeouts.
+    Deduplicates yfinance calls per symbol (px_cache).
     """
-    if "Price (₹)" not in df.columns:
+    if df is None or df.empty or "Price (₹)" not in df.columns:
         return df
     if "Src" not in df.columns:
+        df = df.copy()
+        df["Src"] = "🔵"
+    if today_str is None:
+        today_str = datetime.now(IST).strftime('%Y-%m-%d')
+    zero_mask = df["Price (₹)"].fillna(0) <= 0.5
+    for idx in df[zero_mask].index:
+        sym    = str(df.at[idx, "Symbol"]).upper().strip()
+        qty    = int(df.at[idx, "Quantity"] or 0)
+        date_s = str(df.at[idx, "Date"])[:10] if "Date" in df.columns else today_str
+        # Check px cache first (avoids repeated yfinance calls for same symbol/date)
+        cached = _px_cache_get(sym, date_s, "", qty)
+        if cached:
+            px, emoji, _ = cached
+        else:
+            px = _get_yfinance_price(sym, date_s)
+            if not px and date_s == today_str:
+                px = _get_live_price(sym)
+            emoji = "📈" if (px and px > 0.5) else "❓"
+            if px and px > 0.5:
+                _px_cache_set(sym, date_s, "", qty, px, emoji, f"NSE closing {date_s}")
+        if px and px > 0.5:
+            df.at[idx, "Price (₹)"]    = px
+            df.at[idx, "Value (₹ Cr)"] = round(qty * px / 1e7, 2)
+            df.at[idx, "Src"]          = emoji
+    return df
+
+
+def _news_enrich_df(df, today_str=None):
+    """
+    Full news + yfinance enrichment. SLOW — only call from a manual button, never
+    during automatic render. Adds 'Src' and 'Price Source' columns.
+    """
+    if df is None or df.empty or "Price (₹)" not in df.columns:
+        return df
+    if "Src" not in df.columns:
+        df = df.copy()
         df["Src"] = "🔵"
     if "Price Source" not in df.columns:
         df["Price Source"] = "NSE/BSE data"
+    if today_str is None:
+        today_str = datetime.now(IST).strftime('%Y-%m-%d')
     zero_mask = df["Price (₹)"].fillna(0) <= 0.5
     for idx in df[zero_mask].index:
-        row    = df.loc[idx]
-        sym    = str(row.get("Symbol", "")).upper()
-        co     = str(row.get("Company", ""))
-        cli    = str(row.get("Client / Party", ""))
-        qty    = int(row.get("Quantity", 0) or 0)
-        action = str(row.get("Buy/Sell", "B")).upper()
-        date_s = str(row.get("Date", ""))[:10]
+        sym    = str(df.at[idx, "Symbol"]).upper()
+        co     = str(df.at[idx, "Company"]) if "Company" in df.columns else ""
+        cli    = str(df.at[idx, "Client / Party"]) if "Client / Party" in df.columns else ""
+        qty    = int(df.at[idx, "Quantity"] or 0)
+        action = str(df.at[idx, "Buy/Sell"]) if "Buy/Sell" in df.columns else "B"
+        date_s = str(df.at[idx, "Date"])[:10] if "Date" in df.columns else today_str
         price, emoji, detail = _resolve_price(sym, co, cli, qty, date_s, action, 0)
         df.at[idx, "Price (₹)"]    = price
         df.at[idx, "Value (₹ Cr)"] = round(qty * price / 1e7, 2)
@@ -289,9 +327,8 @@ def _fetch_deals_today(deal_type="bulk"):
         return c["rows"], c["src"], c["ts"]
 
     def _save(rows, src):
-        today_d = datetime.now(IST).strftime('%Y-%m-%d')
-        rows = _enrich_zero_prices(list(rows), today_d)  # fill zero prices
-        ts   = datetime.now(IST)
+        # NOTE: no enrichment here — enrichment happens AFTER display, not during fetch
+        ts = datetime.now(IST)
         st.session_state[cache_key]    = {"rows": rows, "src": src, "ts": ts}
         st.session_state[cache_ts_key] = now_ts
         return rows, src, ts
@@ -303,7 +340,7 @@ def _fetch_deals_today(deal_type="bulk"):
         from io import StringIO
         prefix = "bulk" if dt == "bulk" else "block"
         url = f"https://nsearchives.nseindia.com/content/equities/{prefix}.csv"
-        r = requests.get(url, headers={"User-Agent": _UA}, timeout=10)
+        r = requests.get(url, headers={"User-Agent": _UA}, timeout=5)
         if r.status_code == 200 and r.content:
             df_csv = pd.read_csv(StringIO(r.content.decode("utf-8", errors="ignore")))
             df_csv.columns = [c.strip() for c in df_csv.columns]
@@ -337,11 +374,9 @@ def _fetch_deals_today(deal_type="bulk"):
     # ── Source 2: NSE API with session + cookies ─────────────────────────────
     try:
         s = requests.Session()
-        s.get("https://www.nseindia.com", headers=_BASE_HEADERS, timeout=15)
-        time.sleep(1)
-        s.get(f"https://www.nseindia.com/market-data/{dt}-deal", headers=_BASE_HEADERS, timeout=15)
-        time.sleep(0.5)
-        r = s.get(f"https://www.nseindia.com/api/{dt}-deal", headers=_BASE_HEADERS, timeout=15)
+        s.get("https://www.nseindia.com", headers=_BASE_HEADERS, timeout=6)
+        s.get(f"https://www.nseindia.com/market-data/{dt}-deal", headers=_BASE_HEADERS, timeout=6)
+        r = s.get(f"https://www.nseindia.com/api/{dt}-deal", headers=_BASE_HEADERS, timeout=6)
         if r.status_code == 200:
             data = r.json().get("data", [])
             if data:
@@ -357,7 +392,7 @@ def _fetch_deals_today(deal_type="bulk"):
             "https://www.bseindia.com/markets/equity/EQReports/bdDeals.aspx"
         )
         bse_hdrs = {**_BASE_HEADERS, "Referer": "https://www.bseindia.com/"}
-        r = requests.get(bse_url, headers=bse_hdrs, timeout=12)
+        r = requests.get(bse_url, headers=bse_hdrs, timeout=6)
         if r.status_code == 200 and r.text:
             tables = pd.read_html(r.text)
             if tables:
@@ -385,7 +420,7 @@ def _fetch_deals_today(deal_type="bulk"):
         r = requests.get(
             "https://trendlyne.com/equity/bulk-block-deals/",
             headers={**_BASE_HEADERS, "Referer": "https://trendlyne.com/"},
-            timeout=12,
+            timeout=6,
         )
         if r.status_code == 200 and r.text:
             soup = BeautifulSoup(r.text, "lxml")
@@ -417,7 +452,7 @@ def _fetch_deals_today(deal_type="bulk"):
         r = requests.get(
             "https://www.moneycontrol.com/stocks/marketinfo/bulk_deals/",
             headers={**_BASE_HEADERS, "Referer": "https://www.moneycontrol.com/"},
-            timeout=12,
+            timeout=6,
         )
         if r.status_code == 200 and r.text:
             tables = pd.read_html(r.text)
@@ -679,8 +714,8 @@ def _load_history_cache():
     df = df.dropna(subset=["Date"]).sort_values("Date", ascending=False)
     df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
 
-    # Enrich any rows where Price (₹) == 0 (e.g., from NSE CSV archives)
-    df = _enrich_hist_df(df)
+    # Fast yfinance-only enrichment for zero-price rows (no news, won't hang)
+    df = _fast_enrich_df(df)
 
     st.session_state["bd_hist_df"]  = df
     st.session_state["bd_hist_ts"]  = now_ts
@@ -858,16 +893,30 @@ def render():
                              horizontal=True, key="bd_type")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Fetch ────────────────────────────────────────────────────────────────
-    with st.spinner("Fetching block deals…"):
+    # ── Fetch — fast, no enrichment inside ───────────────────────────────────
+    with st.spinner("Fetching today's deals from NSE…"):
         br, bsrc, bts = _fetch_deals_today("block")
-    with st.spinner("Fetching bulk deals…"):
         ur, usrc, uts = _fetch_deals_today("bulk")
 
     block_df = _build(br, "NSE")
     bulk_df  = _build(ur, "NSE")
     all_df   = pd.concat([block_df, bulk_df], ignore_index=True) \
                if not (block_df.empty and bulk_df.empty) else pd.DataFrame()
+
+    # ── Fast yfinance enrichment for any zero prices (no news, 2-3s max) ─────
+    today_str = datetime.now(IST).strftime('%Y-%m-%d')
+    has_zeros = (
+        (not block_df.empty and "Price (₹)" in block_df.columns
+         and (block_df["Price (₹)"].fillna(0) <= 0.5).any()) or
+        (not bulk_df.empty  and "Price (₹)" in bulk_df.columns
+         and (bulk_df["Price (₹)"].fillna(0)  <= 0.5).any())
+    )
+    if has_zeros:
+        with st.spinner("Looking up missing prices…"):
+            block_df = _fast_enrich_df(block_df, today_str)
+            bulk_df  = _fast_enrich_df(bulk_df,  today_str)
+            all_df   = pd.concat([block_df, bulk_df], ignore_index=True) \
+                       if not (block_df.empty and bulk_df.empty) else pd.DataFrame()
 
     # KPI
     k1, k2, k3 = st.columns(3)
@@ -935,6 +984,28 @@ def render():
         _show(all_df, "deals", f"{bsrc}/{usrc}")
         st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
                     unsafe_allow_html=True)
+
+    # ── Optional news enrichment — manual, never auto ────────────────────────
+    still_zero = (
+        not all_df.empty and "Price (₹)" in all_df.columns
+        and (all_df["Price (₹)"].fillna(0) <= 0.5).any()
+    )
+    if still_zero:
+        with st.expander("📰 Some prices still missing — search news for exact deal prices"):
+            st.caption(
+                "Large block deals are always covered by ET/Mint/MC. "
+                "Click below to search Google News for the exact trade prices. "
+                "This takes 10–30 seconds."
+            )
+            if st.button("🔍 Search news for exact prices", key="bd_news_enrich"):
+                with st.spinner("Searching financial news for deal prices…"):
+                    block_df = _news_enrich_df(block_df.copy(), today_str)
+                    bulk_df  = _news_enrich_df(bulk_df.copy(),  today_str)
+                    # Persist enriched prices so Refresh picks them up
+                    for row in st.session_state.get("bd_live_block", {}).get("rows", []):
+                        pass  # px_cache already updated inside _resolve_price
+                st.success("Done — prices updated from news where found.")
+                st.rerun()
 
     with tab4:
         _render_history_tab()
