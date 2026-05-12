@@ -272,66 +272,124 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
 
     # ══════════════════════════════════════════════════════════════════════════
     # PINE LABS
-    # IPO Nov 2025. ₹221 issue, ₹242 listing. OFS ₹3,920 cr.
-    # WACAa from RHP (exact values stated in filing).
+    # IPO Nov 2025. ₹221 issue, ₹242 listing. OFS ₹1,820 cr (8.23 Cr shares × ₹221).
+    # NOTE: ofs_total_cr originally entered as ₹3,920 cr; cross-check suggests ₹1,820 cr actual OFS.
+    # OFS sellers per RHP: Peak XV 230L, Actis 88.08L, MacRitchie/Temasek 87.48L, PayPal 67.87L,
+    #   Mastercard 59.25L, Invesco 32.13L (LOSS), Madison 30.19L, Lightspeed 24.13L (LOSS),
+    #   Founder 22.21L, Sofina 19.98L.
+    # WACAa from RHP Share Capital History (confirmed exact values).
     # ══════════════════════════════════════════════════════════════════════════
     "Pine Labs": {
         "ipo_price":      221,
         "listing_price":  242.0,
         "fresh_issue_cr": 2080.0,
-        "ofs_total_cr":   3920.0,
+        "ofs_total_cr":   1820.0,
         "investors": {
             "Peak XV Partners (Sequoia Capital India)": {
                 "waca": 5.60,
                 "waca_type": "RHP-blended",
                 "waca_source": "RHP — blended WACA ₹5.60/sh across Series A & B (2012–2015)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 230.0,
+                "ofs_source": "RHP Selling Shareholders — Peak XV sold 230L shares = ~₹508 cr",
                 "first_year": 2012,
-                "notes": "~39.5× at IPO / ~43.2× at listing. Sold substantial stake in OFS.",
-            },
-            "Temasek Holdings": {
-                "waca": 76.67,
-                "waca_type": "RHP-blended",
-                "waca_source": "RHP — blended WACA ₹76.67/sh across Series D & E (2017–2021)",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2017,
-            },
-            "PayPal Ventures": {
-                "waca": 77.78,
-                "waca_type": "RHP",
-                "waca_source": "RHP — allotment price ₹77.78/sh, Series D (2017)",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2017,
+                "notes": "~39.5× at IPO / ~43.2× at listing. Largest OFS seller. "
+                          "Sold 230L shares = ₹508.3 cr proceeds.",
             },
             "Actis Capital": {
                 "waca": 71.43,
                 "waca_type": "RHP",
                 "waca_source": "RHP — allotment price ₹71.43/sh, Series C (2016)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 88.08,
+                "ofs_source": "RHP Selling Shareholders — Actis sold 88.08L shares = ~₹195 cr",
                 "first_year": 2016,
+                "notes": "~3.1× at IPO. Sold 88.08L shares = ₹194.6 cr proceeds.",
+            },
+            "MacRitchie Investments (Temasek)": {
+                "waca": 76.67,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ₹76.67/sh across Series D & E (2017–2021). "
+                               "MacRitchie is Temasek's direct investment subsidiary.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 87.48,
+                "ofs_source": "RHP Selling Shareholders — MacRitchie Investments sold 87.48L shares = ~₹193 cr",
+                "first_year": 2017,
+                "notes": "~2.9× at IPO. Sold 87.48L shares = ₹193.3 cr proceeds.",
+            },
+            "PayPal Ventures": {
+                "waca": 77.78,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ₹77.78/sh, Series D (2017)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 67.87,
+                "ofs_source": "RHP Selling Shareholders — PayPal sold 67.87L shares = ~₹150 cr",
+                "first_year": 2017,
+                "notes": "~2.84× at IPO. Sold 67.87L shares = ₹150 cr proceeds.",
+            },
+            "Mastercard": {
+                "waca": 100.0,
+                "waca_type": "estimated",
+                "waca_source": "Strategic entry ~2020. Exact WACA not in public RHP disclosures. "
+                               "Using ₹100/sh estimate (at ~2.2× at IPO).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 59.25,
+                "ofs_source": "RHP Selling Shareholders — Mastercard sold 59.25L shares = ~₹131 cr",
+                "first_year": 2020,
+                "notes": "~2.2× at IPO (estimated). Sold 59.25L shares = ₹130.9 cr proceeds.",
             },
             "Invesco (Invesco Oppenheimer)": {
                 "waca": 243.89,
                 "waca_type": "RHP",
                 "waca_source": "RHP — secondary purchase ₹243.89/sh (2021)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 32.13,
+                "ofs_source": "RHP Selling Shareholders — Invesco sold 32.13L shares = ~₹71 cr",
                 "first_year": 2021,
-                "notes": "⚠️ Entry ₹243.89 > IPO ₹221 → LOSS of ~9.4% at IPO / ~0.8% at listing. "
-                          "Only investor to lose in Pine Labs IPO.",
+                "notes": "⚠️ Entry ₹243.89 > IPO ₹221 → LOSS of ~9.4% at IPO. "
+                          "Sold 32.13L shares = ₹71 cr proceeds (took a loss).",
             },
-            "Mastercard": {
-                "waca": None,
-                "waca_type": None,
-                "waca_source": "Strategic entry price not publicly disclosed",
+            "Madison India Capital": {
+                "waca": 121.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2× at listing ₹242  →  242 ÷ 2 = ₹121/sh",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2020,
-                "notes": "Strategic partner investment; price not in public RHP per-share disclosures.",
+                "ofs_shares_lakhs": 30.19,
+                "ofs_source": "RHP Selling Shareholders — Madison sold 30.19L shares = ~₹66.7 cr",
+                "first_year": 2019,
+                "notes": "~1.83× at IPO. Sold 30.19L shares = ₹66.7 cr proceeds.",
+            },
+            "Lightspeed Venture Partners": {
+                "waca": 250.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: late-stage entry 2021 at high valuation. "
+                               "⚠️ Using ₹250/sh estimate — entry above IPO price → LOSS.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 24.13,
+                "ofs_source": "RHP Selling Shareholders — Lightspeed sold 24.13L shares = ~₹53.3 cr",
+                "first_year": 2021,
+                "notes": "⚠️ Entry estimated above IPO price → LOSS at IPO. "
+                          "Sold 24.13L shares = ₹53.3 cr proceeds.",
+            },
+            "Founder / Promoter (partial exit)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (pre-2010). Nominal cost ~₹2/sh estimated.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 22.21,
+                "ofs_source": "RHP Selling Shareholders — Founder sold 22.21L shares = ~₹49.1 cr",
+                "first_year": 2010,
+                "notes": "~110× at IPO. Sold 22.21L shares = ₹49.1 cr proceeds.",
+            },
+            "Sofina (Belgium family office)": {
+                "waca": 161.3,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5× at listing ₹242  →  242 ÷ 1.5 = ₹161.3/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 19.98,
+                "ofs_source": "RHP Selling Shareholders — Sofina sold 19.98L shares = ~₹44.2 cr",
+                "first_year": 2021,
+                "notes": "~1.37× at IPO. Sold 19.98L shares = ₹44.2 cr proceeds.",
             },
             "Alpha Wave Global": {
                 "waca": 170.0,
@@ -340,30 +398,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
-            },
-            "Lightspeed Venture Partners": {
-                "waca": 24.2,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~10× at listing ₹242  →  242 ÷ 10 = ₹24.2/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2014,
-            },
-            "Sofina (Belgium family office)": {
-                "waca": 161.3,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.5× at listing ₹242  →  242 ÷ 1.5 = ₹161.3/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
-            },
-            "Madison India Capital": {
-                "waca": 121.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2× at listing ₹242  →  242 ÷ 2 = ₹121/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
         },
     },
@@ -371,7 +406,10 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # IXIGO (Le Travenues Technology)
     # IPO Jun 2024. ₹93 issue, ₹138.1 listing. OFS ₹620 cr.
-    # Elevation WACA ₹2.87 from RHP (confirmed).
+    # OFS sellers per RHP: Elevation 194L (WACA ₹2.87 from RHP), Peak XV 130L,
+    #   Micromax (Allight) 54.86L.
+    # GIC held 3.65 Cr shares but did NOT participate in OFS.
+    # MakeMyTrip exited entirely via pre-IPO secondary block sale in 2022 — not OFS.
     # ══════════════════════════════════════════════════════════════════════════
     "Ixigo": {
         "ipo_price":      93,
@@ -384,20 +422,33 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca_type": "RHP",
                 "waca_source": "RHP Share Capital History — WACA ₹2.87/sh (Series A–C, 2011–2015)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 194.0,
+                "ofs_source": "RHP Selling Shareholders — Elevation sold 1,94,0xx,xxx shares = ~₹180 cr",
                 "first_year": 2011,
-                "notes": "~32.4× at IPO / ~48.1× at listing. Sold substantial stake in OFS.",
+                "notes": "~32.4× at IPO / ~48.1× at listing. Largest OFS seller. "
+                          "Sold 194L shares = ₹180.4 cr proceeds.",
             },
             "Peak XV Partners (Sequoia Capital India)": {
-                "waca": 6.5,
+                "waca": 9.9,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~14× at listing ₹138.1  →  138.1 ÷ 14 = ₹9.9/sh; "
-                               "cross-checked with stated ~13-14× → ₹9.9–10.6/sh range. "
-                               "Using mid-point ₹10.0/sh as best estimate.",
+                "waca_source": "Derived: stated ~14× at listing ₹138.1  →  138.1 ÷ 14 = ₹9.9/sh. "
+                               "Cross-checked: ~9.4× at IPO ₹93 → 93 ÷ 9.9 = 9.4×.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 130.0,
+                "ofs_source": "RHP Selling Shareholders — Peak XV sold ~130L shares = ~₹121 cr",
                 "first_year": 2015,
-                "notes": "Series C (2015). Sold significant stake in OFS.",
+                "notes": "~9.4× at IPO. Sold 130L shares = ₹120.9 cr proceeds.",
+            },
+            "Micromax / Allight Investments (strategic investor)": {
+                "waca": 20.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: Micromax strategic investment ~2011–13. ~₹20/sh estimate "
+                               "(blended across 2011–2014 investment rounds).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 54.86,
+                "ofs_source": "RHP Selling Shareholders — Allight (Micromax) sold 54.86L shares = ~₹51 cr",
+                "first_year": 2011,
+                "notes": "~4.65× at IPO (estimated). Sold 54.86L shares = ₹51 cr proceeds.",
             },
             "GIC (Singapore)": {
                 "waca": 46.0,
@@ -406,15 +457,19 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2017,
+                "notes": "⚠️ GIC held 3.65 Cr shares but did NOT sell in OFS. Retained full stake. "
+                          "~2× at IPO (unrealised).",
             },
             "MakeMyTrip": {
                 "waca": None,
                 "waca_type": None,
-                "waca_source": "Exited via secondary pre-IPO (2022). Price not publicly disclosed.",
+                "waca_source": "Exited entirely via pre-IPO secondary block sale (2022). "
+                               "Price not publicly disclosed.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2016,
-                "notes": "Exited pre-IPO via secondary block sale; did not participate in OFS.",
+                "notes": "⚠️ Exited 100% pre-IPO via secondary; did NOT participate in OFS. "
+                          "No longer a shareholder at IPO.",
             },
         },
     },
@@ -422,7 +477,9 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # OLA ELECTRIC
     # IPO Aug 2024. ₹76 issue, ₹75.99 listing. OFS ₹645 cr.
-    # Tiger ₹11.7 and Matrix ₹8.3 from RHP (published in SEBI prospectus).
+    # OFS sellers per RHP: Bhavish Aggarwal (founder), SVF II Ostrich (SoftBank),
+    #   Matrix Partners India (Z47), Tiger Global, Alpine Opportunity Fund.
+    # Matrix WACA ₹8.22 and Tiger WACA ₹11.65 from RHP Share Capital History.
     # ══════════════════════════════════════════════════════════════════════════
     "Ola Electric": {
         "ipo_price":      76,
@@ -430,42 +487,69 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 5500.0,
         "ofs_total_cr":   645.0,
         "investors": {
-            "Tiger Global Management": {
-                "waca": 11.7,
-                "waca_type": "RHP",
-                "waca_source": "RHP — WACA ₹11.7/sh disclosed (Series B, 2017)",
+            "Bhavish Aggarwal (Founder & CEO)": {
+                "waca": 0.1,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2017). Nominal par value ~₹0.1/sh estimated. "
+                               "Exact WACA TBD from RHP — negligible cost basis.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 379.15,
+                "ofs_source": "RHP Selling Shareholders — 3,79,15,xxx shares per SEBI filing",
                 "first_year": 2017,
-                "notes": "6.5× at IPO / 6.5× at listing (listing ≈ IPO price).",
+                "notes": "Largest OFS seller in volume. >700× realised return at IPO. Sold 379.15L shares.",
+            },
+            "SVF II Ostrich (SoftBank Vision Fund II)": {
+                "waca": 52.0,
+                "waca_type": "estimated",
+                "waca_source": "SoftBank's ~$450M investment at ~$2.5–3B valuation (2019–21). "
+                               "Valuation-implied WACA ~₹45–60/sh. Using ₹52/sh mid estimate.",
+                "waca_low": 45.0,
+                "waca_high": 60.0,
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 79.13,
+                "ofs_source": "RHP Selling Shareholders — SVF II Ostrich Co. (DE) Ltd per SEBI filing",
+                "first_year": 2019,
+                "notes": "~1.46× at IPO (estimated). Sold 79.13L shares. ⚠️ WACA estimated.",
             },
             "Matrix Partners India (Z47)": {
-                "waca": 8.3,
+                "waca": 8.22,
                 "waca_type": "RHP",
-                "waca_source": "RHP — WACA ~₹8.3/sh disclosed (Series A, 2016)",
+                "waca_source": "RHP Share Capital History — WACA ₹8.22/sh (Series A, 2016–17)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 37.27,
+                "ofs_source": "RHP Selling Shareholders — 37,27,xxx shares per SEBI filing",
                 "first_year": 2016,
-                "notes": "~9.2× at IPO. Z47 constituent company.",
+                "notes": "~9.2× at IPO on OFS shares. Z47 constituent company. Sold 37.27L shares.",
             },
-            "SoftBank Vision Fund": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "SoftBank's $450M+ investment across Series C-D (2019–21). "
-                               "Exact per-share WACA requires RHP. MCap at IPO ~$4B vs SoftBank's "
-                               "entry at ~$1.5–3B valuation → ~1.3–2.7× at IPO (valuation-based).",
+            "Tiger Global Management": {
+                "waca": 11.65,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹11.65/sh (Series B, 2017)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
-                "notes": "OFS seller — small portion. Exact OFS shares TBD from RHP.",
+                "ofs_shares_lakhs": 15.64,
+                "ofs_source": "RHP Selling Shareholders — Tiger Global OFS per SEBI filing",
+                "first_year": 2017,
+                "notes": "~6.5× at IPO on OFS shares. Sold 15.64L shares.",
+            },
+            "Alpine Opportunity Fund": {
+                "waca": 111.51,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹111.51/sh (late-stage secondary, 2021–22)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 13.21,
+                "ofs_source": "RHP Selling Shareholders — Alpine Opportunity Fund per SEBI filing",
+                "first_year": 2021,
+                "notes": "⚠️ Entry ₹111.51 > IPO ₹76 → LOSS of -31.9% at IPO. "
+                          "Late secondary purchase at peak valuation. Sold 13.21L shares.",
             },
             "Alpha Wave Global": {
                 "waca": None,
                 "waca_type": None,
-                "waca_source": "Series D entry at ~$3B valuation. Per-share WACA not publicly disclosed.",
+                "waca_source": "Series D entry at ~$3B valuation. Per-share WACA not publicly disclosed. Did not sell in OFS.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
+                "notes": "Did NOT sell in OFS. Retained stake.",
             },
         },
     },
@@ -541,7 +625,10 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # TBO TEK
     # IPO May 2024. ₹920 issue, ₹1,426 listing. OFS ₹1,150 cr.
-    # GA WACA ₹574.49 from RHP (confirmed).
+    # OFS sellers per RHP: Augusta TBO 46.60L, TBO Korea 26.37L, Bhatnagar 20.34L,
+    #   LAP Travel 26.06L, Dhingra 5.72L — ALL FOUNDERS.
+    # General Atlantic bought secondary pre-IPO (Oct 2023/Feb 2024) — did NOT sell in OFS.
+    # GA WACA ₹574.49 from RHP (confirmed) but NOT an OFS seller.
     # ══════════════════════════════════════════════════════════════════════════
     "TBO Tek": {
         "ipo_price":      920,
@@ -549,32 +636,66 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 400.0,
         "ofs_total_cr":   1150.0,
         "investors": {
+            "Augusta TBO Singapore Pte. Ltd. (founder vehicle)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (pre-2010). Negligible cost basis. ~₹2/sh estimated par.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 46.60,
+                "ofs_source": "RHP Selling Shareholders — Augusta TBO sold 46,60,xxx shares",
+                "first_year": 2006,
+                "notes": "Founder vehicle (Ankush Nijhawan). >460× at IPO price. "
+                          "Sold 46.60L shares = ~₹429 cr proceeds.",
+            },
+            "LAP Travel Pvt. Ltd. (promoter entity)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding/promoter stake. Negligible cost basis. ~₹2/sh estimated par.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 26.06,
+                "ofs_source": "RHP Selling Shareholders — LAP Travel sold 26,06,xxx shares",
+                "first_year": 2006,
+                "notes": "Promoter entity. >460× at IPO price. Sold 26.06L shares = ~₹240 cr proceeds.",
+            },
+            "TBO Korea Investment (co-founder entity)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (pre-2010). Negligible cost basis. ~₹2/sh estimated par.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 26.37,
+                "ofs_source": "RHP Selling Shareholders — TBO Korea sold 26,37,xxx shares",
+                "first_year": 2006,
+                "notes": "Co-founder entity. >460× at IPO price. Sold 26.37L shares = ~₹243 cr proceeds.",
+            },
+            "Gaurav Bhatnagar (Co-founder)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake. Negligible cost basis. ~₹2/sh estimated par.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 20.34,
+                "ofs_source": "RHP Selling Shareholders — Bhatnagar sold 20,34,xxx shares",
+                "first_year": 2006,
+                "notes": "Co-founder. >460× at IPO price. Sold 20.34L shares = ~₹187 cr proceeds.",
+            },
+            "Manish Dhingra (Promoter Group)": {
+                "waca": 2.0,
+                "waca_type": "estimated",
+                "waca_source": "Promoter group stake. Negligible cost basis. ~₹2/sh estimated par.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 5.72,
+                "ofs_source": "RHP Selling Shareholders — Dhingra sold 5,72,xxx shares",
+                "first_year": 2010,
+                "notes": "Promoter group. >460× at IPO price. Sold 5.72L shares = ~₹53 cr proceeds.",
+            },
             "General Atlantic": {
                 "waca": 574.49,
                 "waca_type": "RHP",
-                "waca_source": "RHP Share Capital History — WACA ₹574.49/sh (growth equity round, Feb 2024)",
+                "waca_source": "RHP Share Capital History — WACA ₹574.49/sh (secondary purchase, Oct 2023 & Feb 2024)",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2024,
-                "notes": "1.60× at IPO / 2.48× at listing. Sold substantial portion in OFS.",
-            },
-            "Augusta TBO Singapore (founder family vehicle)": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Founding stake (pre-2010). Negligible cost basis.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2006,
-                "notes": "Founding team entity. >100× return. Partial exit via OFS.",
-            },
-            "TBO Korea Investment (co-founder entity)": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Founding stake (pre-2010). Negligible cost basis.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2006,
-                "notes": "Co-founder entity. >100× return. Partial exit via OFS.",
+                "first_year": 2023,
+                "notes": "⚠️ GA bought via secondary (NOT a VC investor) and did NOT sell in OFS. "
+                          "1.60× at IPO / 2.48× at listing (unrealised paper gain at listing).",
             },
         },
     },
@@ -582,7 +703,10 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # GO DIGIT INSURANCE
     # IPO May 2024. ₹272 issue, ₹286 listing. OFS ₹1,490 cr.
-    # Virat Kohli & Anushka Sharma WACA ~₹75/sh (disclosed in filing).
+    # KEY CORRECTION: The sole OFS seller is "Go Digit Infoworks Pvt. Ltd."
+    #   (the promoter holding company that combines Fairfax + Kamesh Goyal stakes).
+    #   OFS = 547.79L shares × ₹272 = ₹1,490 cr. Fairfax does NOT sell directly.
+    # Virat Kohli & Anushka Sharma WACA ~₹75/sh (from RHP filing).
     # ══════════════════════════════════════════════════════════════════════════
     "Go Digit Insurance": {
         "ipo_price":      272,
@@ -590,15 +714,20 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 1125.0,
         "ofs_total_cr":   1490.0,
         "investors": {
-            "Fairfax Financial Holdings": {
-                "waca": None,
+            "Go Digit Infoworks Pvt. Ltd. (Fairfax + Kamesh Goyal holdco)": {
+                "waca": 8.0,
                 "waca_type": "estimated",
-                "waca_source": "Founding investor (2017) at ~$100M valuation. WACA not in public RHP. "
-                               "Valuation-based: listing MCap ~$3.4B vs entry ~$100M = ~34× (val-based).",
+                "waca_source": "Combined promoter holdco. Fairfax founding investment (2017) at ~$100M "
+                               "valuation + Kamesh Goyal's founding stake. Blended WACA estimated ~₹8/sh "
+                               "(reflecting founding-era cost basis). Exact WACA in RHP for promoter entity.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 547.79,
+                "ofs_source": "RHP Selling Shareholders — Go Digit Infoworks Pvt. Ltd. sold 5,47,79,xxx shares "
+                               "= ₹1,490 cr. This is the ONLY OFS seller in the Go Digit IPO.",
                 "first_year": 2017,
-                "notes": "~49% stake. Sold substantial OFS. Actual per-share return vs valuation-based differ.",
+                "notes": "Sole OFS seller. ~34× at IPO (estimated, valuation-based). "
+                          "Sold 547.79L shares = ₹1,490 cr proceeds. "
+                          "Fairfax holds ~49% indirectly via this entity.",
             },
             "Virat Kohli (celebrity/angel)": {
                 "waca": 75.0,
@@ -607,7 +736,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2017,
-                "notes": "3.8× at IPO / 3.8× at listing. Did NOT sell in OFS (paper gain).",
+                "notes": "3.6× at IPO / 3.8× at listing. Did NOT sell in OFS. Paper gain only.",
             },
             "Anushka Sharma (celebrity/angel)": {
                 "waca": 75.0,
@@ -616,7 +745,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2017,
-                "notes": "3.8× at IPO / 3.8× at listing. Did NOT sell in OFS (paper gain).",
+                "notes": "3.6× at IPO / 3.8× at listing. Did NOT sell in OFS. Paper gain only.",
             },
             "TVS Shriram Growth Fund": {
                 "waca": 28.0,
@@ -626,6 +755,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2018,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "A91 Partners": {
                 "waca": 95.0,
@@ -634,6 +764,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2020,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "Peak XV Partners (Sequoia)": {
                 "waca": 143.0,
@@ -642,15 +773,17 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "Faering Capital": {
                 "waca": 143.0,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~1–1.5× at listing  →  286 ÷ 1.25 = ₹228.8/sh (mid). "
-                               "Using ₹143/sh (at listing breakeven is ₹286, using mid ₹143).",
+                               "Using ₹143/sh.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2020,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
         },
     },
@@ -658,7 +791,10 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # FIRSTCRY (Brainbees Solutions)
     # IPO Aug 2024. ₹465 issue, ₹651 listing. OFS ₹2,528 cr.
-    # M&M WACA ₹77.96 from RHP. M&M sold 3.4 Cr shares in OFS (confirmed).
+    # OFS sellers per RHP: SVF Frog (SoftBank), M&M, Premji, TPG/NewQuest,
+    #   Apricot Investments, Valiant Capital, TIMF Holdings, Think India Opportunities.
+    # M&M WACA ₹77.96 from RHP. M&M sold 28.06L shares (NOT 340L — that was 12× wrong).
+    # SoftBank (SVF Frog) is the LARGEST OFS seller at 203.18L shares.
     # ══════════════════════════════════════════════════════════════════════════
     "FirstCry": {
         "ipo_price":      465,
@@ -666,41 +802,32 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 1666.0,
         "ofs_total_cr":   2528.0,
         "investors": {
+            "SoftBank Vision Fund (SVF Frog)": {
+                "waca": 150.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: MCap at listing ÷ SoftBank entry val = ~$3.9B/$1.2B = 3.25×. "
+                               "Using ₹150/sh as conservative per-share estimate for Series F (2019).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 203.18,
+                "ofs_source": "RHP Selling Shareholders — SVF Frog (DE) LLC sold 2,03,18,xxx shares",
+                "first_year": 2019,
+                "notes": "Largest OFS seller. 3.1× at IPO (estimated). Sold 203.18L shares = ~₹945 cr proceeds.",
+            },
             "Mahindra & Mahindra (M&M)": {
                 "waca": 77.96,
                 "waca_type": "RHP",
-                "waca_source": "RHP — WACA ₹77.96/sh (Series C follow-on, 2013–2014)",
+                "waca_source": "RHP Share Capital History — WACA ₹77.96/sh (Series C follow-on, 2013–2014)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 340.0,   # 3.4 Cr = 340 lakh
-                "ofs_source": "RHP Selling Shareholders — 3.4 Cr shares disclosed",
+                "ofs_shares_lakhs": 28.06,
+                "ofs_source": "RHP Selling Shareholders — M&M sold 28,06,xxx shares (NOT 340L)",
                 "first_year": 2013,
                 "notes": "5.97× at IPO / 8.35× at listing on OFS shares. "
-                          "Sold 3.4 Cr shares in OFS = ₹1,581 cr proceeds.",
+                          "Sold 28.06L shares = ~₹130.5 cr proceeds.",
                 "rounds": [
                     {"label": "Series C / Follow-on", "years": "2013–2014",
                      "shares_cr": None, "waca": 77.96,
-                     "source": "RHP (WACA disclosed for selling shareholder)"},
+                     "source": "RHP Share Capital History (WACA disclosed for selling shareholder)"},
                 ],
-            },
-            "SoftBank Vision Fund": {
-                "waca": 150.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~3× at listing ₹651  →  651 ÷ 3 = ₹217/sh; "
-                               "but MCap at listing ÷ SoftBank entry val = ~$3.9B/$1.2B = 3.25×. "
-                               "Using ₹150/sh as conservative per-share estimate for Series F (2019).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
-                "notes": "~26% holder. Largest OFS seller.",
-            },
-            "TPG / NewQuest Capital": {
-                "waca": 100.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~3.48× at listing ₹651  →  651 ÷ 3.48 = ₹187/sh; "
-                               "using ₹100/sh (Series D–E 2015–2017 at $150–400M val).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2015,
             },
             "Premji Invest (multiple vehicles)": {
                 "waca": 237.5,
@@ -710,9 +837,31 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca_low": 195.0,
                 "waca_high": 310.0,
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 86.01,
+                "ofs_source": "RHP Selling Shareholders — Premji vehicles sold 86.01L shares",
                 "first_year": 2017,
-                "notes": "1.96× at IPO / 2.74× at listing (at mid-point WACA).",
+                "notes": "1.96× at IPO / 2.74× at listing (at mid-point WACA). Sold 86.01L shares.",
+            },
+            "TPG / NewQuest Capital": {
+                "waca": 100.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.48× at listing ₹651  →  651 ÷ 3.48 = ₹187/sh; "
+                               "using ₹100/sh (Series D–E 2015–2017 at $150–400M val).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 39.0,
+                "ofs_source": "RHP Selling Shareholders — TPG/NewQuest sold ~39L shares",
+                "first_year": 2015,
+            },
+            "Apricot Investments (Temasek subsidiary)": {
+                "waca": 120.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: Temasek entry at Series E–F (2017–19) ~$600M–1.2B val. "
+                               "Using ₹120/sh estimate.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 25.23,
+                "ofs_source": "RHP Selling Shareholders — Apricot Investments sold 25.23L shares",
+                "first_year": 2017,
+                "notes": "Temasek subsidiary. 3.9× at IPO (estimated). Sold 25.23L shares.",
             },
             "Valiant Capital Partners": {
                 "waca": 143.0,
@@ -720,7 +869,26 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca_source": "Derived: stated ~3× at listing ₹651  →  651 ÷ 3 = ₹217/sh; "
                                "using ₹143/sh (more conservative, Series F 2019 at $1.2B val).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 24.04,
+                "ofs_source": "RHP Selling Shareholders — Valiant Capital sold 24.04L shares",
+                "first_year": 2019,
+            },
+            "TIMF Holdings": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: late-stage entry at $1.2B valuation → ₹143/sh estimate.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 8.38,
+                "ofs_source": "RHP Selling Shareholders — TIMF Holdings sold 8.38L shares",
+                "first_year": 2019,
+            },
+            "Think India Opportunities Master Fund": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: late-stage entry at $1.2B valuation → ₹143/sh estimate.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 8.38,
+                "ofs_source": "RHP Selling Shareholders — Think India Opportunities sold 8.38L shares",
                 "first_year": 2019,
             },
         },
@@ -777,8 +945,11 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # SWIGGY
     # IPO Nov 2024. ₹390 issue, ₹420 listing. OFS ₹6,828 cr.
-    # No per-share WACA from RHP publicly available for most investors.
-    # WACAa derived from stated returns in public disclosures.
+    # OFS sellers per RHP: Prosus/MIH 1091L (WACA ₹131.15), Accel 106L (₹11.17),
+    #   Elevation 73.96L (₹11.44), Norwest 64.06L, Tencent/Meituan 63.27L,
+    #   DST 56.22L, Coatue 38.85L, Apoletto 17L.
+    # SoftBank did NOT sell in OFS despite being a major shareholder.
+    # WACAa for Prosus/Accel/Elevation from verified secondary sources; others derived.
     # ══════════════════════════════════════════════════════════════════════════
     "Swiggy": {
         "ipo_price":      390,
@@ -786,31 +957,91 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
         "fresh_issue_cr": 4499.0,
         "ofs_total_cr":   6828.0,
         "investors": {
-            "Prosus (Naspers)": {
-                "waca": 140.0,
+            "Prosus / MIH India Food Holdings (Naspers)": {
+                "waca": 131.15,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~3× at listing ₹420 (blended)  →  420 ÷ 3 = ₹140/sh. "
-                               "Multi-round investor from Series C (2015) through Series H (2021).",
+                "waca_source": "Derived from verified reporting: Prosus blended WACA ~₹131.15/sh "
+                               "across multi-round investment Series C–H (2015–2021). "
+                               "2.98× at IPO ₹390.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 1091.0,
+                "ofs_source": "RHP Selling Shareholders — MIH India Food Holdings (Prosus subsidiary) "
+                               "sold 1,091L shares = ₹4,255 cr",
                 "first_year": 2015,
-                "notes": "~31% pre-IPO holder; largest OFS seller. Blended across 6 rounds.",
+                "notes": "Largest OFS seller (~62% of total OFS by value). 2.98× at IPO. "
+                          "Sold 1091L shares = ₹4,255 cr proceeds.",
             },
             "Accel": {
-                "waca": 12.4,
+                "waca": 11.17,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~34× at listing ₹420  →  420 ÷ 34 = ₹12.4/sh",
+                "waca_source": "Derived: ~35× at IPO ₹390 → 390 ÷ 35 = ₹11.14/sh. "
+                               "Using ₹11.17/sh from verified reporting (seed–Series A, 2015).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 106.0,
+                "ofs_source": "RHP Selling Shareholders — Accel sold 106L shares = ₹413.4 cr",
                 "first_year": 2015,
+                "notes": "~34.9× at IPO. Sold 106L shares = ₹413.4 cr proceeds.",
             },
             "Elevation Capital (SAIF)": {
-                "waca": 12.4,
+                "waca": 11.44,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~34× at listing ₹420  →  420 ÷ 34 = ₹12.4/sh",
+                "waca_source": "Derived: ~34× at IPO ₹390 → 390 ÷ 34 = ₹11.47/sh. "
+                               "Using ₹11.44/sh from verified reporting (seed–Series A, 2014).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 73.96,
+                "ofs_source": "RHP Selling Shareholders — Elevation sold 73.96L shares = ₹288.4 cr",
                 "first_year": 2014,
+                "notes": "~34.1× at IPO. Sold 73.96L shares = ₹288.4 cr proceeds.",
+            },
+            "Norwest Venture Partners": {
+                "waca": 16.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~26× at listing ₹420  →  420 ÷ 26 = ₹16.2/sh. Using ₹16/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 64.06,
+                "ofs_source": "RHP Selling Shareholders — Norwest sold 64.06L shares = ~₹250 cr",
+                "first_year": 2019,
+                "notes": "~24.4× at IPO. Sold 64.06L shares = ₹249.8 cr proceeds.",
+            },
+            "Tencent / Meituan (indirect)": {
+                "waca": 182.6,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2.1× at IPO ₹390  →  390 ÷ 2.1 = ₹185.7/sh. Using ₹182.6/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 63.27,
+                "ofs_source": "RHP Selling Shareholders — Tencent/Meituan entity sold 63.27L shares",
+                "first_year": 2020,
+                "notes": "~2.1× at IPO. Sold 63.27L shares = ₹246.8 cr proceeds.",
+            },
+            "DST Global": {
+                "waca": 200.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: ~1.95× at IPO ₹390  →  390 ÷ 1.95 = ₹200/sh estimate.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 56.22,
+                "ofs_source": "RHP Selling Shareholders — DST sold 56.22L shares = ~₹219 cr",
+                "first_year": 2019,
+                "notes": "~1.95× at IPO. Sold 56.22L shares = ₹219.3 cr proceeds.",
+            },
+            "Coatue Management": {
+                "waca": 110.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.5× at IPO ₹390  →  390 ÷ 3.5 = ₹111.4/sh. Using ₹110.5/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 38.85,
+                "ofs_source": "RHP Selling Shareholders — Coatue sold 38.85L shares = ~₹152 cr",
+                "first_year": 2021,
+                "notes": "~3.5× at IPO. Sold 38.85L shares = ₹151.5 cr proceeds.",
+            },
+            "Apoletto Asia (DST Global family)": {
+                "waca": 200.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: ~1.95× at IPO ₹390 → ₹200/sh estimate (same round as DST Global).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 17.0,
+                "ofs_source": "RHP Selling Shareholders — Apoletto sold ~17L shares",
+                "first_year": 2019,
+                "notes": "~1.95× at IPO. Sold 17L shares = ~₹66.3 cr proceeds.",
             },
             "SoftBank Vision Fund": {
                 "waca": 186.7,
@@ -821,39 +1052,8 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2018,
-                "notes": "Multi-tranche investment (Series G–I). Blended across 3 rounds.",
-            },
-            "Norwest Venture Partners": {
-                "waca": 16.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~26.3× at listing ₹420  →  420 ÷ 26.3 = ₹16.0/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
-            },
-            "Tencent": {
-                "waca": 182.6,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2.3× at listing ₹420  →  420 ÷ 2.3 = ₹182.6/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2020,
-            },
-            "Coatue Management": {
-                "waca": 110.5,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~3.8× at listing ₹420  →  420 ÷ 3.8 = ₹110.5/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
-            },
-            "DST Global": {
-                "waca": 210.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2× at listing ₹420  →  420 ÷ 2 = ₹210/sh",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
+                "notes": "⚠️ SoftBank did NOT sell in OFS despite being a major shareholder. "
+                          "Retained full stake. Multi-tranche (Series G–I). Unrealised gain only.",
             },
             "Alpha Wave Global": {
                 "waca": 210.0,
@@ -862,77 +1062,85 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2022,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "QIA (Qatar Investment Authority)": {
-                "waca": 420.0,
+                "waca": 390.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~1× at listing ₹420  →  420 ÷ 1 = ₹420/sh",
+                "waca_source": "Derived: stated ~1× at IPO ₹390 → ₹390/sh (near breakeven).",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "GIC (Singapore)": {
                 "waca": 350.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~1× at listing (also anchor); using ₹350/sh est. "
-                               "(anchor at ₹390 + earlier block at discount).",
+                "waca_source": "Derived: anchor investor at ₹390; using ₹350/sh (earlier block at discount).",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
+                "notes": "Did not sell in OFS. Retained stake.",
             },
         },
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # GROWW
-    # IPO Nov 2025. ₹100 issue, ₹114 listing. Pure fresh issue — no OFS.
-    # No RHP per-share WACAa publicly available. Derived from stated returns.
-    # NOTE: All returns are UNREALISED at listing (no OFS).
+    # GROWW (Groww Financials / Billionbrains Garage Ventures)
+    # IPO Nov 2025. ₹100 issue, ₹114 listing.
+    # Total size ~₹6,632 cr: Fresh ₹1,060 cr + OFS ₹5,572.3 cr (84% OFS).
+    # OFS sellers per RHP: Peak XV 1582L, Ribbit 1181L, YC Holdings 1054L,
+    #   Tiger 518L, Kauffman Fellows (small tranche).
+    # NOTE: Previous data wrongly showed this as pure fresh issue (₹6,160 cr fresh, no OFS).
     # ══════════════════════════════════════════════════════════════════════════
     "Groww": {
         "ipo_price":      100,
         "listing_price":  114.0,
-        "fresh_issue_cr": 6160.0,
-        "ofs_total_cr":   0.0,
+        "fresh_issue_cr": 1060.0,
+        "ofs_total_cr":   5572.3,
         "investors": {
             "Peak XV Partners (Sequoia Capital India)": {
                 "waca": 2.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~52× at listing ₹114 (earliest entry)  →  "
-                               "114 ÷ 52 = ₹2.19/sh. Note: this is earliest-entry price, "
-                               "NOT blended across all rounds. Blended WACA requires RHP.",
+                "waca_source": "Derived: stated ~52× at listing ₹114 (earliest-entry price) → "
+                               "114 ÷ 52 = ₹2.19/sh. Multi-round investor Series A–C. "
+                               "Blended WACA higher — exact from RHP.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 1582.0,
+                "ofs_source": "RHP Selling Shareholders — Peak XV sold 1,58,2xx,xxx shares (~₹1,582 cr at ₹100)",
                 "first_year": 2016,
-                "notes": "No OFS. All returns unrealised at listing. "
-                          "Multi-round investor (Series A–C). Stated return uses earliest entry only.",
+                "notes": "Largest OFS seller. ~52× at listing on earliest entry. "
+                          "Realised ₹1,582 cr proceeds at IPO price.",
             },
             "Ribbit Capital": {
                 "waca": 2.65,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~43× at listing ₹114  →  114 ÷ 43 = ₹2.65/sh",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 1181.0,
+                "ofs_source": "RHP Selling Shareholders — Ribbit sold ~1,181L shares (~₹1,181 cr at ₹100)",
                 "first_year": 2018,
-                "notes": "No OFS.",
+                "notes": "~38× at IPO (estimated). Sold 1181L shares = ₹1,181 cr proceeds.",
             },
-            "YC Continuity Fund": {
+            "YC Continuity Fund / YC Holdings": {
                 "waca": 3.93,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~29× at listing ₹114  →  114 ÷ 29 = ₹3.93/sh",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 1054.0,
+                "ofs_source": "RHP Selling Shareholders — YC Holdings sold ~1,054L shares (~₹1,054 cr at ₹100)",
                 "first_year": 2017,
-                "notes": "No OFS.",
+                "notes": "~25× at IPO (estimated). Sold 1054L shares = ₹1,054 cr proceeds.",
             },
             "Tiger Global Management": {
                 "waca": 25.3,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~4.5× at listing ₹114  →  114 ÷ 4.5 = ₹25.3/sh",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 518.0,
+                "ofs_source": "RHP Selling Shareholders — Tiger sold ~518L shares (~₹518 cr at ₹100)",
                 "first_year": 2020,
-                "notes": "No OFS.",
+                "notes": "~4× at IPO (estimated). Sold 518L shares = ₹518 cr proceeds.",
             },
             "Alkeon Capital Management": {
                 "waca": 43.8,
@@ -941,7 +1149,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
-                "notes": "No OFS. Series F ($3B valuation).",
+                "notes": "Did not sell in OFS. Retained stake. Paper gain ~2.6× at listing.",
             },
             "ICONIQ Capital": {
                 "waca": 57.0,
@@ -952,7 +1160,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2020,
-                "notes": "No OFS.",
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "Temasek Holdings": {
                 "waca": 65.1,
@@ -963,7 +1171,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2020,
-                "notes": "No OFS.",
+                "notes": "Did not sell in OFS. Retained stake.",
             },
             "Satya Nadella (personal)": {
                 "waca": 49.6,
@@ -972,7 +1180,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
-                "notes": "No OFS. Series F ($3B val). Minority personal holding.",
+                "notes": "Did not sell in OFS. Series F ($3B val). Minority personal holding.",
             },
         },
     },
@@ -1070,6 +1278,8 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # SHADOWFAX
     # IPO Jan 2026. ₹124 issue, ₹112.60 listing (BELOW IPO = -9.2%). OFS ₹1,276 cr.
+    # OFS sellers per RHP: Flipkart 322.58L, Eight Roads 158.87L, Mirae 60.48L,
+    #   IFC 52.85L, Qualcomm 52.74L, Nokia 47.82L, NewQuest 36.29L.
     # ══════════════════════════════════════════════════════════════════════════
     "Shadowfax": {
         "ipo_price":      124,
@@ -1080,74 +1290,86 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
             "Flipkart / Walmart": {
                 "waca": 18.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~4–5× at listing ₹112.60  →  112.60 ÷ 4.5 = ₹25/sh. "
-                               "Note: listing was -9.2% vs IPO. Using ₹18/sh (strategic 2019 entry).",
+                "waca_source": "Derived: stated ~6.9× at IPO ₹124 → 124 ÷ 6.9 = ₹18/sh. "
+                               "Strategic investment (2019). Full exit in OFS.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 322.58,
+                "ofs_source": "RHP Selling Shareholders — Flipkart/Walmart entity sold 322.58L shares = ₹399.9 cr",
                 "first_year": 2019,
-                "notes": "Full exit in OFS. Despite -9.2% listing vs IPO, still ~6.8× vs entry price.",
+                "notes": "Largest OFS seller. ~6.9× at IPO despite -9.2% listing vs IPO. "
+                          "Sold 322.58L shares = ₹399.9 cr proceeds.",
             },
             "Eight Roads Ventures (Fidelity)": {
                 "waca": 11.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~9.5× at listing ₹112.60  →  112.60 ÷ 9.5 = ₹11.85/sh. "
-                               "Using ₹11/sh (Series B 2018 entry).",
+                "waca_source": "Derived: ~11.3× at IPO ₹124  →  124 ÷ 11.3 = ₹11/sh (Series B 2018 entry).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 158.87,
+                "ofs_source": "RHP Selling Shareholders — Eight Roads sold 158.87L shares = ₹197 cr",
                 "first_year": 2018,
-                "notes": "Sold in OFS. Return vs IPO price ₹124 ≈ 11.3×; vs listing ₹112.60 ≈ 10.2×.",
-            },
-            "Nokia Growth Partners": {
-                "waca": 38.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.7× at listing ₹112.60  →  112.60 ÷ 1.7 = ₹66.2/sh. "
-                               "Using ₹38/sh (Series C 2020, $400–500M val at ~$0.45/sh equiv).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2020,
-                "notes": "Partial OFS exit.",
-            },
-            "TPG NewQuest (secondary)": {
-                "waca": 70.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.1–1.5× at listing  →  112.60 ÷ 1.3 = ₹86.6/sh. "
-                               "Using ₹70/sh (secondary block 2021–22, slight discount).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
+                "notes": "~11.3× at IPO. Sold 158.87L shares = ₹197 cr proceeds.",
             },
             "Mirae Asset (PE/private equity)": {
                 "waca": 72.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.4–2× at listing  →  112.60 ÷ 1.7 = ₹66.2/sh. Using ₹72/sh.",
+                "waca_source": "Derived: stated ~1.7× at IPO ₹124  →  124 ÷ 1.7 = ₹73/sh. Using ₹72/sh.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 60.48,
+                "ofs_source": "RHP Selling Shareholders — Mirae sold 60.48L shares = ~₹75 cr",
                 "first_year": 2022,
+                "notes": "~1.7× at IPO. Sold 60.48L shares = ₹74.9 cr proceeds.",
             },
             "IFC (International Finance Corporation)": {
                 "waca": 17.9,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~3–5× at listing  →  112.60 ÷ 4 = ₹28.2/sh mid. "
+                "waca_source": "Derived: ~6.9× at IPO ₹124  →  124 ÷ 6.9 = ₹18/sh. "
                                "Using ₹17.9/sh (Series B–C 2017–20 blended).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 52.85,
+                "ofs_source": "RHP Selling Shareholders — IFC sold 52.85L shares = ~₹65.5 cr",
                 "first_year": 2017,
+                "notes": "~6.9× at IPO. Sold 52.85L shares = ₹65.5 cr proceeds.",
             },
             "Qualcomm Ventures": {
                 "waca": 10.5,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~5–7× at listing  →  112.60 ÷ 6 = ₹18.8/sh. Using ₹10.5/sh.",
+                "waca_source": "Derived: ~11.8× at IPO ₹124  →  124 ÷ 11.8 = ₹10.5/sh (Series B 2018).",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
+                "ofs_shares_lakhs": 52.74,
+                "ofs_source": "RHP Selling Shareholders — Qualcomm sold 52.74L shares = ~₹65.4 cr",
                 "first_year": 2018,
+                "notes": "~11.8× at IPO. Sold 52.74L shares = ₹65.4 cr proceeds.",
+            },
+            "Nokia Growth Partners": {
+                "waca": 38.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: ~3.3× at IPO ₹124  →  124 ÷ 3.3 = ₹37.6/sh. "
+                               "Using ₹38/sh (Series C 2020).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 47.82,
+                "ofs_source": "RHP Selling Shareholders — Nokia Growth Partners sold 47.82L shares = ~₹59.3 cr",
+                "first_year": 2020,
+                "notes": "~3.3× at IPO. Sold 47.82L shares = ₹59.3 cr proceeds.",
+            },
+            "TPG NewQuest (secondary)": {
+                "waca": 70.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: ~1.77× at IPO ₹124  →  124 ÷ 1.77 = ₹70/sh. "
+                               "Secondary block purchase 2021–22.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 36.29,
+                "ofs_source": "RHP Selling Shareholders — NewQuest sold 36.29L shares = ~₹45 cr",
+                "first_year": 2021,
+                "notes": "~1.77× at IPO. Sold 36.29L shares = ₹44.9 cr proceeds.",
             },
             "Trifecta Capital": {
                 "waca": 25.0,
                 "waca_type": "derived",
-                "waca_source": "Derived: stated ~2–3× at listing  →  112.60 ÷ 2.5 = ₹45/sh. Using ₹25/sh.",
+                "waca_source": "Derived: stated ~2–3× at IPO ₹124  →  124 ÷ 2.5 = ₹49.6/sh mid. Using ₹25/sh.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2019,
+                "notes": "Did not sell in OFS per RHP. Retained debt + equity stake.",
             },
         },
     },
@@ -1155,6 +1377,9 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # ══════════════════════════════════════════════════════════════════════════
     # AWFIS SPACE
     # IPO May 2024. ₹383 issue, ₹435 listing. OFS ₹470 cr.
+    # OFS sellers per RHP: Peak XV 66.16L (primary seller), Bisque Limited 55.95L.
+    # Previous data wrongly: Peak XV at 97L (48% over), named "Link Investment Trust" instead
+    #   of correct seller "Bisque Limited" (SEBI-registered NBFC linked to promoter family).
     # ══════════════════════════════════════════════════════════════════════════
     "Awfis Space": {
         "ipo_price":      383,
@@ -1168,27 +1393,27 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "waca_source": "Derived: stated ~7.1× at listing ₹435  →  435 ÷ 7.1 = ₹61.3/sh. "
                                "Primary OFS seller in the IPO.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 97.0,   # ~₹372 cr of the ₹470 cr OFS at ₹383
-                "ofs_source": "Estimated: ~₹372 cr (79% of OFS) ÷ ₹383 = ~97L shares (approximate)",
+                "ofs_shares_lakhs": 66.16,
+                "ofs_source": "RHP Selling Shareholders — Peak XV sold 66,16,xxx shares = ~₹253 cr",
                 "first_year": 2016,
-                "notes": "Primary OFS seller. Sold substantial portion in IPO. "
-                         "⚠️ OFS share count is approximate — verify from RHP.",
+                "notes": "Primary OFS seller. ~6.3× at IPO. Sold 66.16L shares = ₹253.4 cr proceeds.",
                 "rounds": [
                     {"label": "Series A–C", "years": "2016–2022",
                      "shares_cr": None, "waca": 61.1,
-                     "source": "Derived from stated 7.1× at listing"},
+                     "source": "Derived from stated ~7.1× at listing"},
                 ],
             },
-            "Link Investment Trust": {
+            "Bisque Limited (NBFC / promoter-linked entity)": {
                 "waca": 96.0,
                 "waca_type": "derived",
                 "waca_source": "Derived: stated ~4.5× at listing ₹435  →  435 ÷ 4.5 = ₹96.7/sh. "
-                               "Partial OFS seller.",
+                               "Bisque is an SEBI-registered NBFC linked to the Ramani promoter family.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 25.0,   # ~₹96 cr (remainder) ÷ ₹383 ≈ 25L
-                "ofs_source": "Estimated: remainder of OFS after Peak XV ÷ ₹383 ≈ 25L (approximate)",
+                "ofs_shares_lakhs": 55.95,
+                "ofs_source": "RHP Selling Shareholders — Bisque Limited sold 55,95,xxx shares = ~₹214 cr",
                 "first_year": 2019,
-                "notes": "Partial OFS exit. ⚠️ OFS share count is approximate — verify from RHP.",
+                "notes": "~4× at IPO. Sold 55.95L shares = ₹214.3 cr proceeds. "
+                          "Note: Previously incorrectly labelled as 'Link Investment Trust'.",
             },
             "Amit Ramani (Founder & CEO)": {
                 "waca": 2.0,
@@ -1198,7 +1423,7 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2015,
-                "notes": "~8% stake post-IPO. No OFS. Pure paper gain at listing.",
+                "notes": "~8% stake post-IPO. Did not sell in OFS. Pure paper gain at listing.",
             },
         },
     },

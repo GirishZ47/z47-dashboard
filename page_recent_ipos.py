@@ -40,8 +40,8 @@ IPOS = [
     {
         "company": "Groww", "sector": "Fintech / Financial Services", "ticker": "GROWW.NS", "exchange": "NSE",
         "listing_date": "2025-11-12", "price_band": "₹100", "issue_price": 100,
-        "listing_price": 114.0, "issue_size": "₹6,160 cr", "issue_size_cr": 6160,
-        "lot_size": 76, "fresh_issue": "₹6,160 cr", "ofs": "–",
+        "listing_price": 114.0, "issue_size": "₹6,632 cr", "issue_size_cr": 6632,
+        "lot_size": 76, "fresh_issue": "₹1,060 cr", "ofs": "₹5,572.30 cr",
         "use_of_funds": "Technology infrastructure, customer acquisition, and general corporate purposes.",
         "key_investors": "Sequoia Capital, Ribbit Capital, Tiger Global, YC Continuity",
         "qib_sub": "62.3x", "nii_sub": "44.8x", "rii_sub": "15.2x", "overall_sub": "63.2x",
@@ -2276,10 +2276,10 @@ def render():
             for _idx_inv, _inv in enumerate(pripo):
                 _rc = st.columns([3, 1.8, 2.2, 2.2, 1.5])
                 _rc[0].markdown(
-                    f"<div style='font-size:12px;line-height:1.4'>{_inv.get('investor','')}</div>",
+                    f"<div style='font-size:14px;font-weight:600;line-height:1.4'>{_inv.get('investor','')}</div>",
                     unsafe_allow_html=True)
                 _rc[1].markdown(
-                    f"<div style='font-size:11px;color:#6b7a8d'>{_inv.get('round','')}</div>",
+                    f"<div style='font-size:12px;color:#6b7a8d'>{_inv.get('round','')}</div>",
                     unsafe_allow_html=True)
 
                 # ── Compute returns with new API ──────────────────────────────
@@ -2295,7 +2295,7 @@ def render():
                     _pct_s = f"+{_pct:.0f}%" if _pct >= 0 else f"{_pct:.0f}%"
                     _col_r = "#16a34a" if _pct >= 0 else "#dc2626"
                     _rc[2].markdown(
-                        f"<div style='font-size:12px;color:{_col_r};font-weight:600'>"
+                        f"<div style='font-size:14px;color:{_col_r};font-weight:700'>"
                         f"{_realised:.2f}×  ({_pct_s}){_flag}</div>",
                         unsafe_allow_html=True)
                 elif _waca and _ipo_px:
@@ -2303,12 +2303,12 @@ def render():
                     _moic_ipo = _r.get("moic_at_ipo")
                     if _moic_ipo:
                         _rc[2].markdown(
-                            f"<div style='font-size:11px;color:#6b7a8d'>"
+                            f"<div style='font-size:13px;color:#6b7a8d'>"
                             f"No OFS sold</div>",
                             unsafe_allow_html=True)
                     else:
                         _rc[2].markdown(
-                            f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                            f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
                             unsafe_allow_html=True)
                 else:
                     # Fallback to text field
@@ -2316,7 +2316,7 @@ def render():
                     _short   = _ret_txt.split("(")[0].strip()
                     if len(_short) > 22: _short = _short[:20] + "…"
                     _rc[2].markdown(
-                        f"<div style='font-size:11px;color:#6b7a8d'>{_short}</div>",
+                        f"<div style='font-size:13px;color:#6b7a8d'>{_short}</div>",
                         unsafe_allow_html=True)
 
                 # Total MOIC column
@@ -2324,7 +2324,7 @@ def render():
                 if _total is not None:
                     _col_t = "#16a34a" if _total >= 1.0 else "#dc2626"
                     _rc[3].markdown(
-                        f"<div style='font-size:12px;color:{_col_t}'>"
+                        f"<div style='font-size:14px;color:{_col_t};font-weight:600'>"
                         f"{_total:.2f}× total</div>",
                         unsafe_allow_html=True)
                 elif _waca and _list_px:
@@ -2333,16 +2333,16 @@ def render():
                     if _moic_lst:
                         _col_t = "#16a34a" if _moic_lst >= 1.0 else "#dc2626"
                         _rc[3].markdown(
-                            f"<div style='font-size:12px;color:{_col_t}'>"
+                            f"<div style='font-size:14px;color:{_col_t};font-weight:600'>"
                             f"{_moic_lst:.2f}× listing</div>",
                             unsafe_allow_html=True)
                     else:
                         _rc[3].markdown(
-                            f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                            f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
                             unsafe_allow_html=True)
                 else:
                     _rc[3].markdown(
-                        f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                        f"<div style='font-size:13px;color:#6b7a8d'>—</div>",
                         unsafe_allow_html=True)
 
                 # Details popover
