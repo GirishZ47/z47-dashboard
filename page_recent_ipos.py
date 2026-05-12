@@ -11,7 +11,9 @@ from z47_assistant import render_z47_assistant
 import time
 import re
 from ipo_investor_data import (
-    get_investor_blended_data,
+    get_investor_data,
+    compute_returns,
+    get_ipo_comparison_data,
     extract_share_capital_history,
     match_investor_in_rhp,
     RHP_URLS,
@@ -79,7 +81,7 @@ IPOS = [
         "company": "BlackBuck", "sector": "B2B", "ticker": "BLACKBUCK.NS", "exchange": "NSE",
         "listing_date": "2024-11-26", "price_band": "₹259–273", "issue_price": 273,
         "listing_price": 283.0, "issue_size": "₹1,515 cr", "issue_size_cr": 1515,
-        "lot_size": 54, "fresh_issue": "₹1,515 cr", "ofs": "–",
+        "lot_size": 54, "fresh_issue": "₹1,000 cr", "ofs": "₹514.67 cr",
         "use_of_funds": "Sales & marketing, technology development, general corporate purposes.",
         "key_investors": "Goldman Sachs, Accel, Wellington Management",
         "qib_sub": "40.2x", "nii_sub": "24.1x", "rii_sub": "9.8x", "overall_sub": "36.4x",
@@ -1028,178 +1030,171 @@ def _sanity_flag(multiple: float | None) -> str:
 def _return_popup_md(inv: dict, ipo: dict) -> str:
     """
     Generate markdown for Return at IPO calculation popover.
-    Uses structured per-round data from ipo_investor_data when available;
-    falls back to regex extraction from the text fields.
+    Uses compute_returns() from ipo_investor_data for accurate WACA-based calcs.
+    Shows: Investment Snapshot → History → Realised Return → Total Position.
+    Falls back to text-field display if no verified data.
     """
-    ret_text   = inv.get("return_at_ipo", "N/A")
-    entry_val  = inv.get("entry_val", "N/A")
     ipo_price  = ipo.get("issue_price")
     list_price = ipo.get("listing_price")
-    round_str  = inv.get("round", "")
     company    = ipo.get("company", "")
     investor   = inv.get("investor", "")
+    ret_text   = inv.get("return_at_ipo", "N/A")
+    entry_val  = inv.get("entry_val", "N/A")
+    round_str  = inv.get("round", "")
 
-    headline = ret_text.split("(")[0].strip()
-
-    # ── Try structured blended-cost data first ──────────────────────────────
-    bd = get_investor_blended_data(company, investor)
-
-    if bd and bd.get("rounds"):
-        rounds   = bd["rounds"]
-        blended  = bd["blended"]
-        method   = bd["method"]
-        src_lbl  = bd["source"]
-        is_multi = bd["is_multi"]
+    # ── Try verified structured data ─────────────────────────────────────────
+    inv_data = get_investor_data(company, investor)
+    if inv_data:
+        r = compute_returns(inv_data, ipo_price, list_price)
+        waca        = r.get("waca")
+        waca_type   = r.get("waca_type", "")
+        waca_source = r.get("waca_source", "")
+        ofs_lakh    = r.get("ofs_shares_lakhs")
+        total_cr    = r.get("total_shares_cr")
+        first_year  = r.get("first_year")
+        notes       = r.get("notes", "")
+        rounds      = r.get("rounds") or []
+        sanity_ok   = r.get("sanity_ok", True)
+        sanity_notes = r.get("sanity_notes", [])
 
         lines = []
 
-        # Headline return using blended cost
-        if blended and ipo_price:
-            ret_ipo = ipo_price / blended
-            ret_lbl = f"~{ret_ipo:.1f}x at IPO price"
-            if list_price:
-                ret_lst = list_price / blended
-                ret_lbl += f" / ~{ret_lst:.1f}x at listing"
-            if is_multi:
-                ret_lbl += " **(blended)**"
-            flag = _sanity_flag(ret_ipo)
-            lines.append(f"**Return at IPO: {ret_lbl}{flag}**")
+        # ── 1. WACA type badge ────────────────────────────────────────────────
+        type_labels = {
+            "RHP": "✅ Exact (from RHP)",
+            "RHP-blended": "✅ Blended WACA (RHP)",
+            "derived": "🔢 Derived from stated MOIC",
+            "estimated": "~️ Estimated (range)",
+        }
+        type_lbl = type_labels.get(waca_type or "", waca_type or "Unknown")
+
+        # ── 2. Investment Snapshot ────────────────────────────────────────────
+        lines.append("**📊 Investment Snapshot**")
+        lines.append("")
+        if waca:
+            waca_disp = f"₹{waca:.2f}/share"
+            if waca_type == "estimated":
+                lo = inv_data.get("waca_low"); hi = inv_data.get("waca_high")
+                if lo and hi:
+                    waca_disp = f"~₹{lo:.0f}–₹{hi:.0f}/share (est.)"
+            lines.append(f"**Entry Price (WACA):** {waca_disp}  |  *{type_lbl}*")
         else:
-            lines.append(f"**Return at IPO: {headline}**")
+            lines.append(f"**Entry Price:** Not available  |  *Valuation-based estimate only*")
+
+        if total_cr:
+            lines.append(f"**Pre-IPO Shares Held:** {total_cr:.2f} Cr")
+        if first_year:
+            lines.append(f"**First Investment:** {first_year}")
+        if waca and total_cr:
+            lines.append(f"**Total Invested:** ₹{total_cr * waca:.0f} cr")
+        if notes:
+            lines.append(f"*{notes}*")
 
         lines.append("")
 
-        # ── Investment history table ────────────────────────────────────────
-        has_price_data  = any(r.get("price_per_sh") for r in rounds)
-        has_shares_data = any(r.get("shares_lakhs") for r in rounds)
-
-        if has_price_data:
-            lines.append("**Investment History:**")
+        # ── 3. Investment History (if per-round data) ─────────────────────────
+        if rounds:
+            lines.append("**📅 Investment History**")
+            lines.append("")
+            lines.append("| Round | Period | Shares | WACA | Source |")
+            lines.append("|---|---|---|---|---|")
+            for ro in rounds:
+                lbl   = ro.get("label", "—")
+                yrs   = ro.get("years", "—")
+                sh_cr = ro.get("shares_cr")
+                w     = ro.get("waca")
+                src   = ro.get("source", "")
+                sh_s  = f"{sh_cr:.2f} Cr" if sh_cr else "—"
+                w_s   = f"₹{w:.2f}" if w else "—"
+                lines.append(f"| {lbl} | {yrs} | {sh_s} | {w_s} | {src} |")
             lines.append("")
 
-            # Table header
-            if has_shares_data:
-                lines.append("| Round | Year | Price/sh | Shares | Amount |")
-                lines.append("|---|---|---|---|---|")
-            else:
-                lines.append("| Round | Year | Price/sh | Source |")
-                lines.append("|---|---|---|---|")
-
-            total_shares = 0.0
-            total_amt    = 0.0
-
-            for r in rounds:
-                rnd   = r.get("round", "—")
-                yr    = str(r.get("year", "—"))
-                px    = r.get("price_per_sh")
-                sh    = r.get("shares_lakhs")
-                src   = r.get("source", "est.")
-                note  = r.get("valuation_note", "")
-
-                px_s  = f"₹{px:,.2f}" if px is not None else (f"*{note}*" if note else "N/A")
-                sh_s  = _fmt_shares(sh)
-                amt_s = _fmt_amt(px, sh)
-
-                if px is not None and sh is not None:
-                    total_shares += sh
-                    total_amt    += px * sh / 100  # crore
-
-                if has_shares_data:
-                    lines.append(f"| {rnd} | {yr} | {px_s} | {sh_s} | {amt_s} |")
-                else:
-                    lines.append(f"| {rnd} | {yr} | {px_s} | *{src}* |")
-
-            lines.append("")
-
-            # Summary block
-            if has_shares_data and total_shares > 0:
-                lines.append(f"**Total shares:** {_fmt_shares(total_shares)}")
-                lines.append(f"**Total invested:** ₹{total_amt:.1f} cr")
-
-            if blended is not None:
-                lines.append(f"**Blended cost:** ₹{blended:.2f}/share  *(via {method})*")
-        else:
-            # Valuation-only rounds
-            lines.append(f"**Entry Valuation:** {entry_val}")
-            lines.append("*Per-share price not available — valuation-based estimate only.*")
-
+        # ── 4. IPO Exit (OFS) → Realised Return ──────────────────────────────
+        lines.append("**💰 IPO Exit (OFS)**")
         lines.append("")
-
-        # IPO / listing prices + return computation
         if ipo_price:
             lines.append(f"**IPO Price:** ₹{ipo_price}/share")
         if list_price:
             lines.append(f"**Listing Price:** ₹{list_price}/share")
+
+        realised = r.get("realised_moic")
+        if realised is not None and waca:
+            flag = _sanity_flag(realised)
+            pct  = (realised - 1) * 100
+            pct_s = f"+{pct:.1f}%" if pct >= 0 else f"{pct:.1f}%"
+            lines.append(f"**Shares Sold in OFS:** {ofs_lakh:.1f} lakh")
+            lines.append(f"**OFS Proceeds:** ₹{r.get('ofs_proceeds_cr', 0):.1f} cr")
+            lines.append(f"**OFS Cost Basis:** ₹{r.get('ofs_cost_cr', 0):.1f} cr")
+            lines.append("")
+            lines.append(
+                f"**✅ Realised Return = ₹{ipo_price} ÷ ₹{waca:.2f} = "
+                f"{realised:.2f}×  ({pct_s}){flag}**"
+            )
+        elif ofs_lakh and not waca:
+            lines.append(f"**Shares Sold in OFS:** {ofs_lakh:.1f} lakh")
+            lines.append("*WACA not available — realised MOIC cannot be computed*")
+        else:
+            lines.append("*No OFS shares (did not sell at IPO)*")
+            if waca and ipo_price:
+                moic_ipo = r.get("moic_at_ipo")
+                if moic_ipo:
+                    flag = _sanity_flag(moic_ipo)
+                    lines.append(f"**Return at IPO price:** {moic_ipo:.2f}× (unrealised){flag}")
+
         lines.append("")
 
-        if blended and ipo_price:
-            ret_ipo = ipo_price / blended
-            flag    = _sanity_flag(ret_ipo)
-            lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{blended:.2f} = **{ret_ipo:.1f}x**{flag}")
-        if blended and list_price:
-            ret_lst = list_price / blended
-            flag    = _sanity_flag(ret_lst)
-            lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{blended:.2f} = **{ret_lst:.1f}x**{flag}")
+        # ── 5. Total Position at Listing ──────────────────────────────────────
+        total_moic = r.get("total_moic")
+        if total_moic is not None and waca:
+            retained = r.get("retained_shares_cr", 0)
+            unreal   = r.get("unrealised_value_cr", 0)
+            total_v  = r.get("total_value_cr", 0)
+            total_i  = r.get("total_invested_cr", 0)
+            flag     = _sanity_flag(total_moic)
+            lines.append("**📈 Total Position at Listing**")
+            lines.append("")
+            lines.append(f"Retained Shares: {retained:.2f} Cr  ×  ₹{list_price} = ₹{unreal:.0f} cr")
+            lines.append(f"OFS Proceeds:    ₹{r.get('ofs_proceeds_cr',0):.1f} cr")
+            lines.append(f"Total Value:     ₹{total_v:.0f} cr")
+            lines.append(f"Total Invested:  ₹{total_i:.0f} cr")
+            lines.append("")
+            lines.append(f"**📊 Total Return = {total_moic:.2f}× (realised + unrealised){flag}**")
+            lines.append("")
+        elif waca and list_price and not total_cr:
+            moic_lst = r.get("moic_at_listing")
+            if moic_lst:
+                flag = _sanity_flag(moic_lst)
+                lines.append("**📈 Return at Listing**")
+                lines.append(f"₹{list_price} ÷ ₹{waca:.2f} = **{moic_lst:.2f}×**{flag}")
+                lines.append("*(Total shares not available — cannot split realised/unrealised)*")
+                lines.append("")
 
-        if not blended:
-            lines.append(f"*{entry_val}*")
+        # ── 6. Sanity warnings ────────────────────────────────────────────────
+        if not sanity_ok:
+            for sn in sanity_notes:
+                lines.append(f"⚠️ *{sn}*")
+            lines.append("")
 
-        lines.append("")
-        lines.append(f"**Investment Round:** {round_str}")
-        lines.append(f"**Source:** {src_lbl} / NSE-BSE official filings")
-        if has_price_data and "Estimated" in src_lbl:
-            lines.append("*⚠️ Share counts are estimates. Exact data requires RHP parsing.*")
+        # ── 7. Data source ────────────────────────────────────────────────────
+        lines.append(f"**Source:** {waca_source}")
 
         return "\n\n".join(lines)
 
-    # ── Fallback: regex extraction from text fields ──────────────────────────
+    # ── Fallback: text-field display (no verified data) ──────────────────────
+    headline = ret_text.split("(")[0].strip()
     lines    = [f"**Return at IPO: {headline}**", ""]
-    combined = entry_val + " " + ret_text
-    waca_m   = re.search(r'WACA[:\s~]+₹([\d.]+)', combined, re.IGNORECASE)
-    arrow_m  = re.search(r'entry[~\s]+₹([\d.]+)/sh', combined, re.IGNORECASE)
-    inl_m    = re.search(r'~₹([\d.]+)/sh', combined)
-
-    entry_px = None
-    if waca_m:
-        entry_px = float(waca_m.group(1))
-        lines.append(f"**Entry Price (WACA from RHP):** ₹{entry_px}/share")
-    elif arrow_m:
-        entry_px = float(arrow_m.group(1))
-        lines.append(f"**Entry Price (est.):** ₹{entry_px}/share")
-    elif inl_m:
-        entry_px = float(inl_m.group(1))
-        lines.append(f"**Entry Price (est.):** ₹{entry_px}/share")
-    else:
-        lines.append(f"**Entry Valuation:** {entry_val}")
-
+    lines.append(f"**Entry Valuation:** {entry_val}")
     if ipo_price:
         lines.append(f"**IPO Issue Price:** ₹{ipo_price}/share")
     if list_price:
         lines.append(f"**Listing Price:** ₹{list_price}/share")
-    lines.append("")
-
-    if entry_px and ipo_price:
-        ret_x = round(ipo_price / entry_px, 1)
-        flag  = _sanity_flag(ret_x)
-        lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{entry_px} = **{ret_x}x**{flag}")
-    if entry_px and list_price:
-        ret_l = round(list_price / entry_px, 1)
-        flag  = _sanity_flag(ret_l)
-        lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{entry_px} = **{ret_l}x**{flag}")
-
-    if not (entry_px and ipo_price) and not (entry_px and list_price):
-        lines.append("*Valuation-based estimate — exact per-share entry price not publicly disclosed*")
-        lines.append(f"*{entry_val}*")
-
     paren_m = re.search(r'\(([^)]{10,})\)', ret_text)
     if paren_m:
         lines.append(f"*{paren_m.group(1)}*")
-
     lines.append("")
-    lines.append(f"**Investment Round:** {round_str}")
-    lines.append("**Source:** Entry price from RHP Share Capital History / public VC disclosures; "
-                 "IPO & listing prices from NSE/BSE official filings")
-
+    lines.append(f"**Round:** {round_str}")
+    lines.append("**Source:** Public VC disclosures / NSE-BSE filings")
+    lines.append("*Exact per-share entry price not yet in verified database.*")
     return "\n\n".join(lines)
 
 
@@ -2078,64 +2073,153 @@ def render():
         # ── Section 3: Pre-IPO Investors & Returns ────────────────────────────
         st.markdown("#### 💰 Pre-IPO Investors & Returns")
         pripo = ipo.get("pripo_investors", [])
-        if pripo and ipo.get("issue_price"):
-            # Header row
-            _hcols = st.columns([3, 2, 2, 1.3, 2])
+        _ipo_px  = ipo.get("issue_price")
+        _list_px = ipo.get("listing_price")
+        _company = ipo.get("company", "")
+
+        if pripo and _ipo_px:
+            # ── Comparison chart (OFS sellers only) ──────────────────────────
+            _cmp_data = get_ipo_comparison_data(_company, _ipo_px)
+            if _cmp_data:
+                st.markdown("**📊 OFS Seller Comparison — Realised MOIC**")
+                _names  = [d["investor"][:28] for d in _cmp_data]
+                _moics  = [d["realised_moic"] for d in _cmp_data]
+                _srcs   = [d.get("waca_type", "") for d in _cmp_data]
+                _colors = [
+                    "#16a34a" if m >= 1.0 else "#dc2626"
+                    for m in _moics
+                ]
+                _src_sym = {
+                    "RHP": "✅", "RHP-blended": "✅",
+                    "derived": "🔢", "estimated": "~",
+                }
+                _text_vals = [
+                    f"{m:.2f}× {_src_sym.get(s,'')}"
+                    for m, s in zip(_moics, _srcs)
+                ]
+                _fig_cmp = go.Figure(go.Bar(
+                    x=_moics,
+                    y=_names,
+                    orientation="h",
+                    marker_color=_colors,
+                    text=_text_vals,
+                    textposition="outside",
+                    customdata=[d.get("ofs_shares_lakhs", 0) for d in _cmp_data],
+                    hovertemplate="%{y}<br>Realised MOIC: %{x:.2f}×<br>OFS: %{customdata:.1f}L shares<extra></extra>",
+                ))
+                _fig_cmp.update_layout(
+                    height=max(180, 44 * len(_cmp_data)),
+                    margin=dict(l=10, r=80, t=10, b=10),
+                    xaxis=dict(title="Realised MOIC (×)", zeroline=True,
+                               zerolinecolor="#888", tickformat=".1f"),
+                    yaxis=dict(autorange="reversed"),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(size=11),
+                    showlegend=False,
+                )
+                _fig_cmp.add_vline(x=1.0, line_dash="dash",
+                                   line_color="#888", annotation_text="1× breakeven")
+                st.plotly_chart(_fig_cmp, use_container_width=True, config={"displayModeBar": False})
+                st.caption(
+                    "✅ = exact WACA from RHP  |  🔢 = derived from stated MOIC  |  "
+                    "~ = estimated  |  Green = profit, Red = loss at IPO"
+                )
+                st.markdown("---")
+
+            # ── Per-investor rows ─────────────────────────────────────────────
+            _hcols = st.columns([3, 1.8, 2.2, 2.2, 1.5])
             for _hc, _hl in zip(_hcols, ["**Investor**", "**Round**",
-                                          "**Entry Valuation**", "**% Held**",
-                                          "**Return at IPO**"]):
+                                          "**Realised Return**",
+                                          "**Total Return**",
+                                          "**Details**"]):
                 _hc.markdown(_hl)
             st.markdown(
                 "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
                 unsafe_allow_html=True)
 
-            _ipo_px  = ipo.get("issue_price")
-            _list_px = ipo.get("listing_price")
-
             for _idx_inv, _inv in enumerate(pripo):
-                _rc = st.columns([3, 2, 2, 1.3, 2])
+                _rc = st.columns([3, 1.8, 2.2, 2.2, 1.5])
                 _rc[0].markdown(
                     f"<div style='font-size:12px;line-height:1.4'>{_inv.get('investor','')}</div>",
                     unsafe_allow_html=True)
                 _rc[1].markdown(
                     f"<div style='font-size:11px;color:#6b7a8d'>{_inv.get('round','')}</div>",
                     unsafe_allow_html=True)
-                _rc[2].markdown(
-                    f"<div style='font-size:11px;color:#6b7a8d'>{_inv.get('entry_val','N/A')}</div>",
-                    unsafe_allow_html=True)
-                _rc[3].markdown(
-                    f"<div style='font-size:12px'>{_inv.get('pct_held','N/A')}</div>",
-                    unsafe_allow_html=True)
 
-                # ── Build main-column return label (blended if multi-round) ──
-                _bd = get_investor_blended_data(ipo.get("company", ""), _inv.get("investor", ""))
-                if _bd and _bd.get("blended") and _ipo_px:
-                    _blnd    = _bd["blended"]
-                    _ret_ipo = _ipo_px / _blnd
-                    _flag    = " ⚠️" if (_ret_ipo < 0 or _ret_ipo > 500) else ""
-                    if _list_px:
-                        _ret_lst = _list_px / _blnd
-                        if _bd["is_multi"]:
-                            _btn_label = f"~{_ret_lst:.1f}x listing (blended){_flag}"
-                        else:
-                            _btn_label = f"~{_ret_lst:.1f}x at listing{_flag}"
+                # ── Compute returns with new API ──────────────────────────────
+                _inv_data = get_investor_data(_company, _inv.get("investor", ""))
+                _r = compute_returns(_inv_data, _ipo_px, _list_px) if _inv_data else {}
+                _waca = _r.get("waca")
+                _flag = " ⚠️" if (_r.get("sanity_notes")) else ""
+
+                # Realised MOIC column
+                _realised = _r.get("realised_moic")
+                if _realised is not None:
+                    _pct = (_realised - 1) * 100
+                    _pct_s = f"+{_pct:.0f}%" if _pct >= 0 else f"{_pct:.0f}%"
+                    _col_r = "#16a34a" if _pct >= 0 else "#dc2626"
+                    _rc[2].markdown(
+                        f"<div style='font-size:12px;color:{_col_r};font-weight:600'>"
+                        f"{_realised:.2f}×  ({_pct_s}){_flag}</div>",
+                        unsafe_allow_html=True)
+                elif _waca and _ipo_px:
+                    # No OFS but WACA known — show IPO return as unrealised
+                    _moic_ipo = _r.get("moic_at_ipo")
+                    if _moic_ipo:
+                        _rc[2].markdown(
+                            f"<div style='font-size:11px;color:#6b7a8d'>"
+                            f"No OFS sold</div>",
+                            unsafe_allow_html=True)
                     else:
-                        _sfx = " (blended)" if _bd["is_multi"] else ""
-                        _btn_label = f"~{_ret_ipo:.1f}x at IPO{_sfx}{_flag}"
+                        _rc[2].markdown(
+                            f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                            unsafe_allow_html=True)
                 else:
-                    _ret_txt   = _inv.get("return_at_ipo", "N/A")
-                    _btn_label = _ret_txt.split("(")[0].strip()
+                    # Fallback to text field
+                    _ret_txt = _inv.get("return_at_ipo", "N/A")
+                    _short   = _ret_txt.split("(")[0].strip()
+                    if len(_short) > 22: _short = _short[:20] + "…"
+                    _rc[2].markdown(
+                        f"<div style='font-size:11px;color:#6b7a8d'>{_short}</div>",
+                        unsafe_allow_html=True)
 
-                if len(_btn_label) > 26:
-                    _btn_label = _btn_label[:24] + "…"
+                # Total MOIC column
+                _total = _r.get("total_moic")
+                if _total is not None:
+                    _col_t = "#16a34a" if _total >= 1.0 else "#dc2626"
+                    _rc[3].markdown(
+                        f"<div style='font-size:12px;color:{_col_t}'>"
+                        f"{_total:.2f}× total</div>",
+                        unsafe_allow_html=True)
+                elif _waca and _list_px:
+                    # Show per-share return at listing
+                    _moic_lst = _r.get("moic_at_listing")
+                    if _moic_lst:
+                        _col_t = "#16a34a" if _moic_lst >= 1.0 else "#dc2626"
+                        _rc[3].markdown(
+                            f"<div style='font-size:12px;color:{_col_t}'>"
+                            f"{_moic_lst:.2f}× listing</div>",
+                            unsafe_allow_html=True)
+                    else:
+                        _rc[3].markdown(
+                            f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                            unsafe_allow_html=True)
+                else:
+                    _rc[3].markdown(
+                        f"<div style='font-size:11px;color:#6b7a8d'>—</div>",
+                        unsafe_allow_html=True)
+
+                # Details popover
                 with _rc[4]:
-                    with st.popover(f"{_btn_label} ↗", use_container_width=True):
+                    with st.popover("Details ↗", use_container_width=True):
                         st.markdown(_return_popup_md(_inv, ipo))
 
             st.caption(
-                "Entry prices from RHP Share Capital History (where available) or public VC disclosures. "
-                "Multi-round returns show blended (weighted avg) cost. Click ↗ for full calculation. "
-                "⚠️ = sanity-check flag (>500x or negative — verify manually)."
+                "**Realised Return** = OFS shares sold × IPO price ÷ cost basis.  "
+                "**Total Return** = (OFS proceeds + retained shares × listing price) ÷ total invested.  "
+                "WACA sourced from RHP (✅) or derived from stated MOIC (🔢).  "
+                "⚠️ = flagged by sanity check — verify manually."
             )
         else:
             st.markdown(

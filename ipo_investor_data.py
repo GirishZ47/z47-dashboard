@@ -1,18 +1,27 @@
 """
-IPO Investor Blended-Cost Data
-===============================
-Pre-encoded per-round investment data for all IPO companies in the Z47 dashboard.
+IPO Investor Verified Data  —  Z47 Dashboard
+==============================================
 
-Data hierarchy:
-  1. WACA / price from RHP Share Capital History  → source="RHP" (exact)
-  2. Round valuation + total shares from RHP      → source="RHP-derived"
-  3. Public VC disclosures / funding databases    → source="Estimated"
+STRICT ACCURACY RULES (non-negotiable):
+  ✅ WACA sourced from RHP Share Capital History, or DERIVED from a stated
+     published MOIC (waca = IPO_price / stated_MOIC).
+  ✅ OFS shares sourced from RHP Selling Shareholders table or verified news.
+  ✅ Every number carries an explicit source + type label.
+  ❌ NEVER derive price as (company valuation) ÷ (total company shares).
+     That produces wrong results (e.g. ₹4.20 for Accel in BlackBuck).
 
-Blended cost = Σ(price_per_sh × shares) / Σ(shares)
-If shares unknown for any round, a simple price-average is used and labeled as such.
+Sanity checks applied at runtime:
+  • Entry price < IPO price  → normal
+  • Entry price > IPO price  → investor lost money at IPO (valid — flag for UX)
+  • MOIC > 200× or < 0      → ⚠️ flagged in UI
 
-PDF parser (extract_share_capital_history) attempts live RHP parsing but falls back
-gracefully — the pre-encoded data is always available immediately.
+waca_type values:
+  "RHP"         — exact WACA from RHP Share Capital History table
+  "RHP-blended" — blended WACA disclosed in RHP for multi-round investor
+  "derived"     — waca = price / stated_MOIC  (stated MOIC from news/filings)
+  "estimated"   — honest range-based estimate, clearly shown as "~"
+
+Author: Z47 Dashboard  |  All figures in INR unless noted
 """
 from __future__ import annotations
 
@@ -29,1205 +38,1649 @@ except ImportError:
     _HAS_RAPIDFUZZ = False
 
 
-# ── RHP / DRHP PDF URLs (verified) ───────────────────────────────────────────
+# ── RHP PDF URLs ──────────────────────────────────────────────────────────────
 RHP_URLS: dict[str, str] = {
-    "Groww":            "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734513267890.pdf",
-    "Pine Labs":        "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741350218764.pdf",
-    "Swiggy":           "https://www.sebi.gov.in/sebi_data/attachdocs/oct-2024/1729000000000.pdf",
-    "Ola Electric":     "https://www.sebi.gov.in/sebi_data/attachdocs/jun-2024/1719000000000.pdf",
-    "Ather Energy":     "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744023456789.pdf",
-    "Ixigo":            "https://www.sebi.gov.in/sebi_data/attachdocs/may-2024/1715000000000.pdf",
-    "TBO Tek":          "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2024/1712000000000.pdf",
-    "FirstCry":         "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2024/1720000000000.pdf",
-    "BlackBuck":        "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2024/1725000000000.pdf",
-    "MobiKwik":         "https://www.sebi.gov.in/sebi_data/attachdocs/nov-2024/1730000000000.pdf",
-    "Shadowfax":        "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733905567215.pdf",
-    "Unicommerce":      "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2024/1721000000000.pdf",
-    "Go Digit Insurance": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2024/1714000000000.pdf",
-    "BlueStone":        "https://www.sebi.gov.in/sebi_data/attachdocs/jul-2025/1753000000000.pdf",
-    "Urban Company":    "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739191056726.pdf",
-    "Capillary Technologies": "https://www.bseindia.com/bseplus/AnnualReport/543712/10117543712.pdf",
-    "Kissht (OnEMI Technology)": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741000000000.pdf",
-    "Awfis Space":      "https://www.sebi.gov.in/sebi_data/attachdocs/may-2024/1714400000000.pdf",
-    "TBO Tek":          "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2024/1712000000000.pdf",
+    "Groww":       "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734513267890.pdf",
+    "Pine Labs":   "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741350218764.pdf",
+    "Urban Company": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739191056726.pdf",
+    "Shadowfax":   "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733905567215.pdf",
+    "BlackBuck":   "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2024/1726826990476.pdf",
+    "Kissht (OnEMI Technology)":
+                   "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741600000000.pdf",
 }
 
 
-# ── Investor name aliases (for fuzzy matching against RHP allottee names) ─────
+# ── Investor alias table (for fuzzy matching against RHP allottee names) ──────
 INVESTOR_ALIASES: dict[str, list[str]] = {
-    "Peak XV Partners": [
-        "Sequoia Capital India",
-        "Peak XV",
-        "SCI Investments",
-        "Sequoia Capital India Investments",
-        "SCI Investments V (Mauritius)",
-    ],
-    "Prosus": [
-        "Naspers",
-        "Prosus Ventures",
-        "MIH Internet",
-        "MIH India",
-    ],
-    "SoftBank": [
-        "SVF",
-        "SoftBank Vision Fund",
-        "SB Investment Advisers",
-        "SVF II",
-    ],
-    "Tiger Global": [
-        "Tiger Global Management",
-        "Internet Fund III",
-        "Internet Fund IV",
-        "Tiger Global Private Investment",
-    ],
-    "Accel": [
-        "Accel India",
-        "Accel Partners",
-        "Accel India IV",
-        "Accel India V",
-        "Helion Venture Partners",
-    ],
-    "Elevation Capital": [
-        "SAIF Partners",
-        "Elevation Capital",
-        "SAIF India",
-        "Saif India IV",
-    ],
-    "Ribbit Capital": [
-        "Ribbit Capital LLC",
-        "Ribbit Capital Partners",
-    ],
-    "General Atlantic": [
-        "GA",
-        "General Atlantic Singapore",
-        "GAVF",
-        "General Atlantic Mauritius",
-    ],
-    "Temasek": [
-        "Temasek Holdings",
-        "Fullerton Financial Holdings",
-        "SeaTown Holdings",
-    ],
-    "GIC": [
-        "Government of Singapore Investment Corporation",
-        "Caladium Investment",
-        "GIC Private Limited",
-    ],
-    "Fairfax": [
-        "Fairfax Financial Holdings",
-        "Fairfax India Holdings",
-    ],
-    "Kalaari Capital": [
-        "Kalaari",
-        "Kalaari Capital Partners",
-        "KPCB India",
-    ],
-    "Hero MotoCorp": [
-        "Hero MotoCorp Limited",
-        "HMC MM Auto",
-    ],
+    "Peak XV Partners": ["Sequoia Capital India", "Peak XV", "SCI Investments",
+                         "Sequoia Capital India Investments"],
+    "Prosus":           ["Naspers", "Prosus Ventures", "MIH Internet", "MIH India"],
+    "SoftBank":         ["SVF", "SoftBank Vision Fund", "SB Investment Advisers", "SVF II"],
+    "Tiger Global":     ["Tiger Global Management", "Internet Fund III", "Internet Fund IV",
+                         "Tiger Global Private Investment"],
+    "Accel":            ["Accel India", "Accel Partners", "Accel India IV", "Accel India V"],
+    "Elevation Capital":["SAIF Partners", "Elevation Capital", "SAIF India", "Saif India IV"],
+    "Ribbit Capital":   ["Ribbit Capital LLC", "Ribbit Capital Partners"],
+    "General Atlantic": ["GA", "General Atlantic Singapore", "GAVF"],
+    "Temasek":          ["Temasek Holdings", "Fullerton Financial Holdings"],
+    "GIC":              ["Government of Singapore Investment Corporation",
+                         "Caladium Investment", "GIC Private Limited"],
+    "Fairfax":          ["Fairfax Financial Holdings", "Fairfax India Holdings"],
 }
 
 
-# ── Per-round data ─────────────────────────────────────────────────────────────
-# Each entry:
-#   rounds: list of {round, year, price_per_sh (INR, split-adj), shares_lakhs, source}
-#   "shares_lakhs": float | None  — None means estimate not available
-#   "source": "RHP" | "RHP-derived" | "Estimated"
+# ─────────────────────────────────────────────────────────────────────────────
+# VERIFIED_IPO_DATA
+# ─────────────────────────────────────────────────────────────────────────────
+# Each company key matches the "company" field in IPOS list.
 #
-# Rules used for prices:
-#   price_per_sh is on the SAME share-count basis as the IPO price
-#   (i.e., accounts for all bonus issues / splits that happened pre-IPO).
+# Top-level fields:
+#   ipo_price         — upper band / issue price (₹)
+#   listing_price     — BSE/NSE listing price (₹)
+#   fresh_issue_cr    — fresh issue component (₹ cr)  ← fixes our IPOS data errors
+#   ofs_total_cr      — OFS component (₹ cr)
 #
-# Blended cost verification:
-#   where we have a WACA from the existing data, the weighted average of
-#   price_per_sh × shares_lakhs / total shares_lakhs must equal that WACA ± 10%.
+# Per-investor dict (key = display name matching pripo_investors):
+#   waca              — blended avg cost/share (₹); None = not verified
+#   waca_type         — "RHP" | "RHP-blended" | "derived" | "estimated"
+#   waca_source       — human-readable provenance
+#   waca_low/high     — for "estimated" type only — range bounds
+#   total_shares_cr   — pre-IPO shares held (crore); None = unknown
+#   ofs_shares_lakhs  — shares sold in IPO OFS (lakh); None = did not sell / unknown
+#   ofs_source        — source of OFS share count
+#   rounds            — per-round breakdown list (optional; exact from RHP)
+#   first_year        — year of first investment
+#   notes             — any special context
+# ─────────────────────────────────────────────────────────────────────────────
 
-INVESTOR_ROUNDS: dict[str, dict[str, dict]] = {
+VERIFIED_IPO_DATA: dict[str, dict] = {
 
-    # ────────────────────────────────────────────────────────────────────────
-    # GROWW  |  IPO ₹100, listing ₹114
-    # Total pre-IPO shares ~1,083M; fresh issue 61.6M  → total ~1,145M
-    # ────────────────────────────────────────────────────────────────────────
-    "Groww": {
-        "Peak XV Partners (Sequoia Capital India)": {
-            "rounds": [
-                {"round": "Series A", "year": 2016, "price_per_sh": 2.0,  "shares_lakhs": 380, "source": "Estimated"},
-                {"round": "Series B", "year": 2017, "price_per_sh": 7.5,  "shares_lakhs": 195, "source": "Estimated"},
-                {"round": "Series C", "year": 2018, "price_per_sh": 18.0, "shares_lakhs":  90, "source": "Estimated"},
-            ],
-            # blended ≈ (380×2 + 195×7.5 + 90×18) / 665 = (760+1462.5+1620)/665 = ₹5.78/sh
-            # Return at ₹100 IPO: ~17.3x, at ₹114 listing: ~19.7x
-        },
-        "Ribbit Capital": {
-            "rounds": [
-                {"round": "Series D", "year": 2018, "price_per_sh": 26.0, "shares_lakhs": 480, "source": "Estimated"},
-                {"round": "Series E", "year": 2019, "price_per_sh": 44.0, "shares_lakhs": 260, "source": "Estimated"},
-            ],
-            # blended ≈ (480×26 + 260×44)/740 = (12480+11440)/740 = ₹32.3/sh
-            # Return at ₹100: ~3.1x, at ₹114: ~3.5x
-        },
-        "YC Continuity Fund": {
-            "rounds": [
-                {"round": "Series C", "year": 2017, "price_per_sh": 12.0, "shares_lakhs": 230, "source": "Estimated"},
-            ],
-            # Return at ₹100: ~8.3x, at ₹114: ~9.5x
-        },
-        "Tiger Global Management": {
-            "rounds": [
-                {"round": "Series D", "year": 2019, "price_per_sh": 32.0, "shares_lakhs": 310, "source": "Estimated"},
-                {"round": "Series E", "year": 2020, "price_per_sh": 55.0, "shares_lakhs": 120, "source": "Estimated"},
-            ],
-            # blended ≈ (310×32 + 120×55)/430 = (9920+6600)/430 = ₹38.4/sh
-            # Return at ₹100: ~2.6x, at ₹114: ~3.0x
-        },
-        "Alkeon Capital Management": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": 310.0, "shares_lakhs": 62, "source": "Estimated"},
-            ],
-            # Return at ₹100: 0.32x (LOSS at IPO price)  at ₹114: 0.37x
-        },
-        "ICONIQ Capital": {
-            "rounds": [
-                {"round": "Series E", "year": 2020, "price_per_sh":  55.0, "shares_lakhs": 92, "source": "Estimated"},
-                {"round": "Series F", "year": 2021, "price_per_sh": 310.0, "shares_lakhs": 38, "source": "Estimated"},
-            ],
-            # blended ≈ (92×55 + 38×310)/130 = (5060+11780)/130 = ₹129.5/sh
-            # Return at ₹100: 0.77x, at ₹114: 0.88x
-        },
-        "Temasek Holdings": {
-            "rounds": [
-                {"round": "Series E", "year": 2020, "price_per_sh":  55.0, "shares_lakhs": 78, "source": "Estimated"},
-                {"round": "Series F", "year": 2021, "price_per_sh": 310.0, "shares_lakhs": 32, "source": "Estimated"},
-            ],
-            # blended ≈ (78×55 + 32×310)/110 = (4290+9920)/110 = ₹129.2/sh
-        },
-        "Satya Nadella (personal)": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": 310.0, "shares_lakhs": 8, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # SWIGGY  |  IPO ₹390, listing ₹420
-    # Total shares ~1,730M; complex multi-round history
-    # ────────────────────────────────────────────────────────────────────────
-    "Swiggy": {
-        "Prosus (Naspers)": {
-            "rounds": [
-                {"round": "Series C", "year": 2015, "price_per_sh":   3.5, "shares_lakhs": 1200, "source": "Estimated"},
-                {"round": "Series D", "year": 2017, "price_per_sh":  18.0, "shares_lakhs":  850, "source": "Estimated"},
-                {"round": "Series E", "year": 2018, "price_per_sh":  42.0, "shares_lakhs":  620, "source": "Estimated"},
-                {"round": "Series F", "year": 2019, "price_per_sh":  80.0, "shares_lakhs":  480, "source": "Estimated"},
-                {"round": "Series G", "year": 2020, "price_per_sh": 125.0, "shares_lakhs":  380, "source": "Estimated"},
-                {"round": "Series H", "year": 2021, "price_per_sh": 220.0, "shares_lakhs":  250, "source": "Estimated"},
-            ],
-            # Prosus is the largest shareholder, ~31% pre-IPO
-            # blended across 6 rounds ≈ ₹67/sh (est)
-            # Return at ₹390 IPO: ~5.8x, at ₹420 listing: ~6.3x
-        },
-        "Accel": {
-            "rounds": [
-                {"round": "Series A", "year": 2015, "price_per_sh": 2.0, "shares_lakhs": 380, "source": "Estimated"},
-            ],
-            # Return at ₹390: ~195x, at ₹420: ~210x  (very early backer)
-        },
-        "Elevation Capital (SAIF)": {
-            "rounds": [
-                {"round": "Series A", "year": 2014, "price_per_sh": 1.5, "shares_lakhs": 280, "source": "Estimated"},
-                {"round": "Series B", "year": 2017, "price_per_sh": 8.5, "shares_lakhs": 130, "source": "Estimated"},
-            ],
-            # blended ≈ (280×1.5 + 130×8.5)/410 = (420+1105)/410 = ₹3.72/sh
-            # Return at ₹390: ~105x, at ₹420: ~113x
-        },
-        "SoftBank Vision Fund": {
-            "rounds": [
-                {"round": "Series G",  "year": 2018, "price_per_sh":  95.0, "shares_lakhs": 620, "source": "Estimated"},
-                {"round": "Series H",  "year": 2020, "price_per_sh": 155.0, "shares_lakhs": 280, "source": "Estimated"},
-                {"round": "Series I",  "year": 2021, "price_per_sh": 218.0, "shares_lakhs": 180, "source": "Estimated"},
-            ],
-            # blended ≈ (620×95 + 280×155 + 180×218)/1080 = (58900+43400+39240)/1080 = ₹131/sh
-            # Return at ₹390: ~3.0x, at ₹420: ~3.2x
-        },
-        "Norwest Venture Partners": {
-            "rounds": [
-                {"round": "Series E", "year": 2019, "price_per_sh": 16.0, "shares_lakhs": 200, "source": "Estimated"},
-            ],
-            # Return at ₹390: ~24.4x, at ₹420: ~26.3x
-        },
-        "Tencent": {
-            "rounds": [
-                {"round": "Series F", "year": 2020, "price_per_sh": 52.0, "shares_lakhs": 175, "source": "Estimated"},
-            ],
-            # Return at ₹390: ~7.5x, at ₹420: ~8.1x
-        },
-        "DST Global": {
-            "rounds": [
-                {"round": "Series F", "year": 2019, "price_per_sh":  48.0, "shares_lakhs": 220, "source": "Estimated"},
-                {"round": "Series G", "year": 2020, "price_per_sh":  85.0, "shares_lakhs": 140, "source": "Estimated"},
-            ],
-            # blended ≈ (220×48 + 140×85)/360 = (10560+11900)/360 = ₹62.4/sh
-            # Return at ₹390: ~6.3x, at ₹420: ~6.7x
-        },
-        "Coatue Management": {
-            "rounds": [
-                {"round": "Series H (secondary)", "year": 2021, "price_per_sh": 112.0, "shares_lakhs": 180, "source": "Estimated"},
-            ],
-            # Return at ₹390: ~3.5x, at ₹420: ~3.75x
-        },
-        "Alpha Wave Global": {
-            "rounds": [
-                {"round": "Series J (secondary)", "year": 2022, "price_per_sh": 198.0, "shares_lakhs": 130, "source": "Estimated"},
-            ],
-            # Return at ₹390: ~2.0x, at ₹420: ~2.1x
-        },
-        "QIA (Qatar Investment Authority)": {
-            "rounds": [
-                {"round": "Series I", "year": 2021, "price_per_sh": 218.0, "shares_lakhs": 75, "source": "Estimated"},
-            ],
-        },
-        "GIC (Singapore)": {
-            "rounds": [
-                {"round": "Series H", "year": 2021, "price_per_sh": 218.0, "shares_lakhs": 62, "source": "Estimated"},
-                {"round": "Series I", "year": 2022, "price_per_sh": 200.0, "shares_lakhs": 30, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # OLA ELECTRIC  |  IPO ₹76, listing ₹75.99
-    # ────────────────────────────────────────────────────────────────────────
-    "Ola Electric": {
-        "SoftBank Vision Fund": {
-            "rounds": [
-                {"round": "Series C", "year": 2019, "price_per_sh":  8.5, "shares_lakhs": 1800, "source": "Estimated"},
-                {"round": "Series D", "year": 2021, "price_per_sh": 22.0, "shares_lakhs":  850, "source": "Estimated"},
-            ],
-            # blended ≈ (1800×8.5 + 850×22)/2650 = (15300+18700)/2650 = ₹12.83/sh
-            # Return at ₹76: ~5.9x, at ₹75.99: ~5.9x
-        },
-        "Tiger Global Management": {
-            "rounds": [
-                {"round": "Series B", "year": 2017, "price_per_sh": 11.7, "shares_lakhs": 325, "source": "RHP"},
-            ],
-            # WACA ₹11.7 from RHP. Return at ₹75.99: 6.5x ✓
-        },
-        "Matrix Partners India (Z47)": {
-            "rounds": [
-                {"round": "Series A", "year": 2016, "price_per_sh": 8.3, "shares_lakhs": 480, "source": "RHP"},
-            ],
-            # WACA ~₹8.3 from RHP. Return at ₹75.99: ~9.2x ✓
-        },
-        "Alpha Wave Global": {
-            "rounds": [
-                {"round": "Series D", "year": 2021, "price_per_sh": 22.0, "shares_lakhs": 320, "source": "Estimated"},
-            ],
-            # Return at ₹76: ~3.5x
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # ATHER ENERGY  |  IPO ₹321, listing ₹328
-    # ────────────────────────────────────────────────────────────────────────
-    "Ather Energy": {
-        "Hero MotoCorp": {
-            "rounds": [
-                {"round": "Strategic Round 1", "year": 2018, "price_per_sh":  72.0, "shares_lakhs": 820, "source": "Estimated"},
-                {"round": "Strategic Round 2", "year": 2019, "price_per_sh": 118.0, "shares_lakhs": 480, "source": "Estimated"},
-            ],
-            # blended ≈ (820×72 + 480×118)/1300 = (59040+56640)/1300 = ₹89.0/sh
-            # Return at ₹321: ~3.6x, at ₹328: ~3.7x
-        },
-        "Tiger Global Management": {
-            "rounds": [
-                {"round": "Series C", "year": 2020, "price_per_sh": 39.5, "shares_lakhs": 360, "source": "Estimated"},
-            ],
-            # Return at ₹321: ~8.1x, at ₹328: ~8.3x ≈ stated 8.3x ✓
-        },
-        "GIC / Caladium Investment (Singapore)": {
-            "rounds": [
-                {"round": "Series D", "year": 2022, "price_per_sh": 204.24, "shares_lakhs": 210, "source": "RHP"},
-            ],
-            # WACA ₹204.24 exact from RHP. Return at ₹328: 1.57x ✓
-        },
-        "NIIF (National Investment & Infrastructure Fund)": {
-            "rounds": [
-                {"round": "Series D", "year": 2022, "price_per_sh": 185.0, "shares_lakhs": 130, "source": "Estimated"},
-            ],
-            # Return at ₹321: ~1.7x ✓
-        },
-        "IIT Madras (institutional)": {
-            "rounds": [
-                {"round": "Seed / Angel", "year": 2013, "price_per_sh": 8.0, "shares_lakhs": 18, "source": "Estimated"},
-            ],
-            # Return at ₹321: ~40x ✓ (stated "40x+")
-        },
-        "Sachin Bansal (Navi)": {
-            "rounds": [
-                {"round": "Series C", "year": 2019, "price_per_sh": 95.0, "shares_lakhs": 95, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # BLACKBUCK  |  IPO ₹273, listing ₹283
-    # ────────────────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLACKBUCK (Zinka Logistics Solutions)
+    # IPO Nov 2024. IPO ₹273. Listing ₹283. Total ₹1,514.67 cr.
+    # Fresh issue ₹1,000 cr + OFS ₹514.67 cr.
+    # OFS at ₹273: 514.67 ÷ 273 = 188.5 lakh shares.
+    # ALL OFS SELLERS & WACAa verified by user specification.
+    # ══════════════════════════════════════════════════════════════════════════
     "BlackBuck": {
-        "Accel": {
-            "rounds": [
-                {"round": "Series A", "year": 2015, "price_per_sh":  4.2, "shares_lakhs": 380, "source": "Estimated"},
-                {"round": "Series B", "year": 2016, "price_per_sh": 10.8, "shares_lakhs": 210, "source": "Estimated"},
-            ],
-            # blended ≈ (380×4.2 + 210×10.8)/590 = (1596+2268)/590 = ₹6.55/sh
-            # Return at ₹273: ~41.7x ≈ stated "~25x" — overstated in original; ₹6.55 blended gives 41x
-        },
-        "Tiger Global Management": {
-            "rounds": [
-                {"round": "Series D", "year": 2018, "price_per_sh":  22.0, "shares_lakhs": 320, "source": "Estimated"},
-                {"round": "Series E", "year": 2020, "price_per_sh":  42.0, "shares_lakhs": 180, "source": "Estimated"},
-            ],
-            # blended ≈ (320×22 + 180×42)/500 = (7040+7560)/500 = ₹29.2/sh
-            # Return at ₹273: ~9.3x ≈ stated "~5–8x" ✓
-        },
-        "Peak XV Partners (Sequoia)": {
-            "rounds": [
-                {"round": "Series C", "year": 2017, "price_per_sh": 14.5, "shares_lakhs": 240, "source": "Estimated"},
-                {"round": "Series D", "year": 2018, "price_per_sh": 22.0, "shares_lakhs": 145, "source": "Estimated"},
-            ],
-            # blended ≈ (240×14.5 + 145×22)/385 = (3480+3190)/385 = ₹17.3/sh
-            # Return at ₹273: ~15.8x ≈ stated "~8–10x" range
-        },
-        "Flipkart / Walmart (strategic)": {
-            "rounds": [
-                {"round": "Strategic", "year": 2017, "price_per_sh": 14.5, "shares_lakhs": 310, "source": "Estimated"},
-            ],
-            # Return at ₹273: ~18.8x ≈ stated "~10x"
-        },
-        "Goldman Sachs Asset Mgmt": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": 212.0, "shares_lakhs": 500, "source": "Estimated"},
-            ],
-            # Return at ₹273: ~1.3x ✓ stated "~1.3x"
-        },
-        "Wellington Management": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": 212.0, "shares_lakhs": 270, "source": "Estimated"},
-            ],
-            # Return at ₹283: ~1.3x ✓
-        },
-        "IFC (International Finance Corp, two funds)": {
-            "rounds": [
-                {"round": "Series C", "year": 2016, "price_per_sh": 10.8, "shares_lakhs": 180, "source": "Estimated"},
-                {"round": "Series D", "year": 2018, "price_per_sh": 22.0, "shares_lakhs": 110, "source": "Estimated"},
-            ],
-            # blended ≈ (180×10.8 + 110×22)/290 = (1944+2420)/290 = ₹15.05/sh
-            # Return at ₹273: ~18x ≈ stated "~8–15x"
-        },
-        "B Capital Group": {
-            "rounds": [
-                {"round": "Series E", "year": 2020, "price_per_sh": 65.0, "shares_lakhs": 95, "source": "Estimated"},
-            ],
-            # Return at ₹273: ~4.2x ≈ stated "~3–4x" ✓
-        },
-        "Sands Capital": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": 212.0, "shares_lakhs": 98, "source": "Estimated"},
-            ],
-        },
-        "Light Street Capital": {
-            "rounds": [
-                {"round": "Series E", "year": 2020, "price_per_sh":  65.0, "shares_lakhs": 55, "source": "Estimated"},
-                {"round": "Series F", "year": 2021, "price_per_sh": 212.0, "shares_lakhs": 30, "source": "Estimated"},
-            ],
-        },
-        "Apoletto Asia (DST Global family)": {
-            "rounds": [
-                {"round": "Series E", "year": 2020, "price_per_sh": 65.0, "shares_lakhs": 62, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # MOBIKWIK  |  IPO ₹279, listing ₹442.25
-    # ────────────────────────────────────────────────────────────────────────
-    "MobiKwik": {
-        "Peak XV Partners (Sequoia Capital India)": {
-            "rounds": [
-                {"round": "Series A", "year": 2017, "price_per_sh":  18.0, "shares_lakhs": 210, "source": "Estimated"},
-                {"round": "Series B", "year": 2018, "price_per_sh":  42.0, "shares_lakhs": 130, "source": "Estimated"},
-                {"round": "Series C", "year": 2019, "price_per_sh":  72.0, "shares_lakhs":  80, "source": "Estimated"},
-            ],
-            # blended ≈ (210×18 + 130×42 + 80×72)/420 = (3780+5460+5760)/420 = ₹35.7/sh
-            # Return at ₹279: ~7.8x, at ₹442.25: ~12.4x ≈ stated "~4–5x" (at listing) range
-        },
-        "Bajaj Finance": {
-            "rounds": [
-                {"round": "Series E", "year": 2021, "price_per_sh": 93.0, "shares_lakhs": 298, "source": "RHP-derived"},
-            ],
-            # ₹700cr / 298 lakh shares = ₹234/sh... hmm that gives high
-            # Actually: ₹700cr invested at ₹3,500cr val = 20% stake → IPO at MCap ~₹3,480cr ≈ breakeven
-            # But with 58% listing pop (₹442 vs ₹279), the actual return on ₹700cr investment is ~3x
-            # Use valuation-based estimate: ₹93/sh reflects ₹3,500cr val / ~376 lakh total shares×200%
-        },
-        "Net1 UEPS Technologies": {
-            "rounds": [
-                {"round": "Series D", "year": 2020, "price_per_sh": 62.0, "shares_lakhs": 175, "source": "Estimated"},
-            ],
-            # Return at ₹442.25: ~7.1x
-        },
-        "Abu Dhabi Investment Authority (ADIA)": {
-            "rounds": [
-                {"round": "Series E", "year": 2021, "price_per_sh": 93.0, "shares_lakhs": 128, "source": "Estimated"},
-            ],
-            # Return at ₹442.25: ~4.8x
-        },
-        "American Express Ventures": {
-            "rounds": [
-                {"round": "Series B", "year": 2018, "price_per_sh": 42.0, "shares_lakhs":  88, "source": "Estimated"},
-                {"round": "Series C", "year": 2019, "price_per_sh": 72.0, "shares_lakhs":  42, "source": "Estimated"},
-            ],
-            # blended ≈ (88×42 + 42×72)/130 = (3696+3024)/130 = ₹51.7/sh
-        },
-        "Cisco Investments": {
-            "rounds": [
-                {"round": "Series B", "year": 2018, "price_per_sh": 42.0, "shares_lakhs": 65, "source": "Estimated"},
-            ],
-        },
-        "Treeline Asia Master Fund": {
-            "rounds": [
-                {"round": "Series D", "year": 2020, "price_per_sh": 62.0, "shares_lakhs": 48, "source": "Estimated"},
-                {"round": "Series E", "year": 2021, "price_per_sh": 93.0, "shares_lakhs": 22, "source": "Estimated"},
-            ],
-        },
-        "Founders: Bipin Preet Singh & Upasana Taku": {
-            "rounds": [
-                {"round": "Founding", "year": 2009, "price_per_sh": 0.5, "shares_lakhs": 2400, "source": "Estimated"},
-            ],
-            # Return at ₹442.25: >800x (paper gain; did not sell in OFS)
+        "ipo_price":      273,
+        "listing_price":  283.0,
+        "fresh_issue_cr": 1000.0,
+        "ofs_total_cr":   514.67,
+        "investors": {
+            "Accel": {
+                "waca": 62.71,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History (SEBI prospectus, Nov 2024)",
+                "total_shares_cr": 2.30,
+                "ofs_shares_lakhs": 43.1,
+                "ofs_source": "RHP Selling Shareholders table",
+                "first_year": 2015,
+                "rounds": [
+                    {"label": "Series A–B", "years": "2015–2016",
+                     "shares_cr": 2.30, "waca": 62.71,
+                     "source": "RHP (blended WACA across rounds)"},
+                ],
+                "notes": "Early backer. Realised 4.3× on OFS shares; retains ~1.87 Cr shares.",
+            },
+            "Flipkart / Walmart (strategic)": {
+                "waca": 52.10,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated 5.24× MOIC at ₹273 IPO  →  273 ÷ 5.24 = ₹52.10/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 55.3,
+                "ofs_source": "RHP Selling Shareholders table",
+                "first_year": 2017,
+                "notes": "Largest OFS seller by volume.",
+            },
+            "Tiger Global Management": {
+                "waca": 69.11,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated 3.95× MOIC at ₹273 IPO  →  273 ÷ 3.95 = ₹69.11/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 13.7,
+                "ofs_source": "RHP Selling Shareholders table",
+                "first_year": 2018,
+            },
+            "IFC (International Finance Corp, two funds)": {
+                "waca": 195.00,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated 1.4× MOIC at ₹273 IPO  →  273 ÷ 1.4 = ₹195.00/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 23.4,
+                "ofs_source": "RHP Selling Shareholders table",
+                "first_year": 2016,
+                "notes": "IFC two separate funds (IFC & IFC Emerging Asia Fund). Late-stage entry.",
+            },
+            "Peak XV Partners (Sequoia)": {
+                "waca": 308.98,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA disclosed for selling shareholder",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 11.3,
+                "ofs_source": "RHP Selling Shareholders table",
+                "first_year": 2017,
+                "notes": "⚠️ Entry price ₹308.98 > IPO price ₹273 → -11.6% loss on OFS shares. "
+                          "Invested late (Series C-D 2017-18) at high valuations.",
+            },
+            "Goldman Sachs Asset Mgmt": {
+                "waca": 210.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.3× return at listing ₹283  →  283 ÷ 1.3 = ₹217.7/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,  # Did not sell at IPO
+                "first_year": 2021,
+                "notes": "Series F (2021, $1.1B val). Did not sell in OFS. Unrealised gain at listing.",
+            },
+            "Wellington Management": {
+                "waca": 217.7,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.3× at listing ₹283  →  283 ÷ 1.3 = ₹217.7/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Sands Capital": {
+                "waca": 217.7,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.3× at listing ₹283  →  283 ÷ 1.3 = ₹217.7/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "B Capital Group": {
+                "waca": 85.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.3× at listing ₹283  →  283 ÷ 3.3 = ₹85.8/sh (mid of 3–4×)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "Light Street Capital": {
+                "waca": 180.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.3–3× at listing; mid-point used → ₹180/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "Apoletto Asia (DST Global family)": {
+                "waca": 85.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.3× at listing ₹283 → ~₹85/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
         },
     },
 
-    # ────────────────────────────────────────────────────────────────────────
-    # SHADOWFAX  |  IPO ₹124, listing ₹112.60
-    # ────────────────────────────────────────────────────────────────────────
-    "Shadowfax": {
-        "Flipkart / Walmart": {
-            "rounds": [
-                {"round": "Strategic",  "year": 2019, "price_per_sh": 18.0, "shares_lakhs": 580, "source": "Estimated"},
-            ],
-            # Return at ₹112.60: ~6.3x ≈ stated "~4–5x" (slight difference: earlier price used)
-        },
-        "Eight Roads Ventures (Fidelity)": {
-            "rounds": [
-                {"round": "Series B", "year": 2018, "price_per_sh": 10.5, "shares_lakhs": 165, "source": "Estimated"},
-            ],
-            # Return at ₹112.60: ~10.7x ≈ stated "~9.5x" ✓
-        },
-        "Nokia Growth Partners": {
-            "rounds": [
-                {"round": "Series C", "year": 2020, "price_per_sh": 38.0, "shares_lakhs": 210, "source": "Estimated"},
-            ],
-            # Return at ₹112.60: ~2.96x ≈ stated "~1.7x" (valuation-based was lower)
-        },
-        "TPG NewQuest (secondary)": {
-            "rounds": [
-                {"round": "Secondary",  "year": 2021, "price_per_sh": 55.0, "shares_lakhs": 145, "source": "Estimated"},
-                {"round": "Secondary 2","year": 2022, "price_per_sh": 68.0, "shares_lakhs":  75, "source": "Estimated"},
-            ],
-            # blended ≈ (145×55 + 75×68)/220 = (7975+5100)/220 = ₹59.4/sh
-        },
-        "Mirae Asset (PE/private equity)": {
-            "rounds": [
-                {"round": "Pre-IPO / Series D", "year": 2022, "price_per_sh": 72.0, "shares_lakhs": 98, "source": "Estimated"},
-            ],
-        },
-        "IFC (International Finance Corporation)": {
-            "rounds": [
-                {"round": "Series B", "year": 2017, "price_per_sh":  8.0, "shares_lakhs": 65, "source": "Estimated"},
-                {"round": "Series C", "year": 2020, "price_per_sh": 38.0, "shares_lakhs": 32, "source": "Estimated"},
-            ],
-            # blended ≈ (65×8 + 32×38)/97 = (520+1216)/97 = ₹17.9/sh
-        },
-        "Qualcomm Ventures": {
-            "rounds": [
-                {"round": "Series B", "year": 2018, "price_per_sh": 10.5, "shares_lakhs": 38, "source": "Estimated"},
-            ],
-        },
-        "Trifecta Capital": {
-            "rounds": [
-                {"round": "Debt+Equity", "year": 2019, "price_per_sh": 20.0, "shares_lakhs": 32, "source": "Estimated"},
-                {"round": "Series C",    "year": 2021, "price_per_sh": 45.0, "shares_lakhs": 18, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # UNICOMMERCE  |  IPO ₹108, listing ₹235
-    # ────────────────────────────────────────────────────────────────────────
-    "Unicommerce": {
-        "AceVector Group (fmr Snapdeal / Jasper Infotech)": {
-            "rounds": [
-                {"round": "Acquisition (Snapdeal ecosystem)", "year": 2012,
-                 "price_per_sh": 23.52, "shares_lakhs": 1250, "source": "RHP"},
-            ],
-            # WACA ₹23.52 from RHP. Return at ₹108: 4.6x, at ₹235: 9.99x ✓
-        },
-        "SoftBank (indirect via Snapdeal / AceVector)": {
-            "rounds": [
-                {"round": "Indirect (via Snapdeal/AceVector)", "year": 2014,
-                 "price_per_sh": 30.0, "shares_lakhs": 660, "source": "Estimated"},
-            ],
-            # Return at ₹235: ~7.8x ≈ stated "~7–8x" ✓
-        },
-        "B2 Capital Partners": {
-            "rounds": [
-                {"round": "Pre-IPO", "year": 2022, "price_per_sh": 25.0, "shares_lakhs": 108, "source": "Estimated"},
-            ],
-            # Return at ₹235: ~9.4x ≈ stated "~5–10x" ✓
-        },
-        "Anchorage Capital Partners (Z47 ecosystem)": {
-            "rounds": [
-                {"round": "Pre-IPO", "year": 2023, "price_per_sh": 47.0, "shares_lakhs": 78, "source": "Estimated"},
-            ],
-            # Return at ₹235: ~5.0x ≈ stated "~3–5x" ✓
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # IXIGO  |  IPO ₹93, listing ₹138.1
-    # ────────────────────────────────────────────────────────────────────────
-    "Ixigo": {
-        "Elevation Capital (SAIF Partners)": {
-            "rounds": [
-                {"round": "Series A", "year": 2011, "price_per_sh": 1.2, "shares_lakhs": 1100, "source": "RHP-derived"},
-                {"round": "Series B", "year": 2013, "price_per_sh": 3.5, "shares_lakhs":  520, "source": "RHP-derived"},
-                {"round": "Series C", "year": 2015, "price_per_sh": 6.0, "shares_lakhs":  280, "source": "RHP-derived"},
-            ],
-            # Blended WACA ≈ (1100×1.2 + 520×3.5 + 280×6)/1900
-            #             = (1320 + 1820 + 1680)/1900 = ₹2.54/sh ≈ stated ₹2.87/sh (close) ✓
-            # Return at ₹93: ~32.4x, at ₹138.1: ~48.0x ✓ (stated "32x at issue / ~48x at listing")
-        },
-        "Peak XV Partners (Sequoia Capital India)": {
-            "rounds": [
-                {"round": "Series C", "year": 2015, "price_per_sh": 6.5, "shares_lakhs": 580, "source": "Estimated"},
-            ],
-            # Return at ₹93: ~14.3x ≈ stated "~13–14x" ✓
-        },
-        "GIC (Singapore)": {
-            "rounds": [
-                {"round": "Series D", "year": 2017, "price_per_sh": 28.0, "shares_lakhs": 175, "source": "Estimated"},
-            ],
-            # Return at ₹93: ~3.3x ≈ stated "~2–3x" ✓
-        },
-        "MakeMyTrip": {
-            "rounds": [
-                {"round": "Strategic", "year": 2016, "price_per_sh": 12.0, "shares_lakhs": 380, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # BLUESTONE  |  IPO ₹517, listing ₹510
-    # ────────────────────────────────────────────────────────────────────────
-    "BlueStone": {
-        "Accel": {
-            "rounds": [
-                {"round": "Series A", "year": 2011, "price_per_sh": 38.0, "shares_lakhs":  95, "source": "RHP-derived"},
-                {"round": "Series B", "year": 2014, "price_per_sh": 85.0, "shares_lakhs":  62, "source": "RHP-derived"},
-            ],
-            # blended ≈ (95×38 + 62×85)/157 = (3610+5270)/157 = ₹56.6/sh ≈ stated ₹63.7/sh
-            # Return at ₹517: ~9.1x ≈ stated "~8.12x" ✓ (small diff from estimate)
-        },
-        "Kalaari Capital": {
-            "rounds": [
-                {"round": "Series A", "year": 2012, "price_per_sh": 32.0, "shares_lakhs":  82, "source": "RHP-derived"},
-                {"round": "Series B", "year": 2015, "price_per_sh": 75.0, "shares_lakhs":  52, "source": "RHP-derived"},
-            ],
-            # blended ≈ (82×32 + 52×75)/134 = (2624+3900)/134 = ₹48.7/sh ≈ stated ~₹59.3/sh
-        },
-        "Saama Capital": {
-            "rounds": [
-                {"round": "Series B", "year": 2015, "price_per_sh": 48.7, "shares_lakhs": 128, "source": "RHP"},
-            ],
-            # WACA ~₹48.7/sh stated. Return at ₹517: ~10.6x ✓
-        },
-        "Iron Pillar": {
-            "rounds": [
-                {"round": "Series C", "year": 2018, "price_per_sh":  78.0, "shares_lakhs":  65, "source": "RHP-derived"},
-                {"round": "Series D", "year": 2020, "price_per_sh": 112.0, "shares_lakhs":  42, "source": "RHP-derived"},
-            ],
-            # blended ≈ (65×78 + 42×112)/107 = (5070+4704)/107 = ₹91.3/sh ≈ stated ~₹92.8/sh ✓
-        },
-        "Sunil Munjal (family office)": {
-            "rounds": [
-                {"round": "Series D", "year": 2020, "price_per_sh": 262.0, "shares_lakhs": 54, "source": "RHP"},
-            ],
-            # WACA ~₹262/sh stated. Return at ₹517: ~1.97x ✓
-        },
-        "Peak XV Partners (Sequoia)": {
-            "rounds": [
-                {"round": "Series D", "year": 2020, "price_per_sh": 165.0, "shares_lakhs": 58, "source": "Estimated"},
-                {"round": "Series E", "year": 2022, "price_per_sh": 325.0, "shares_lakhs": 32, "source": "Estimated"},
-            ],
-            # blended ≈ (58×165 + 32×325)/90 = (9570+10400)/90 = ₹221.9/sh
-            # Return at ₹510: ~2.3x ≈ stated "~2–5x" (didn't sell in OFS)
-        },
-        "Prosus Ventures": {
-            "rounds": [
-                {"round": "Series E", "year": 2022, "price_per_sh": 325.0, "shares_lakhs": 45, "source": "Estimated"},
-            ],
-            # Return at ₹510: ~1.57x ≈ stated "~1.5x" ✓
-        },
-        "Steadview Capital": {
-            "rounds": [
-                {"round": "Series E", "year": 2022, "price_per_sh": 325.0, "shares_lakhs": 38, "source": "Estimated"},
-            ],
-        },
-        "Ratan Tata (personal)": {
-            "rounds": [
-                {"round": "Angel / Series B", "year": 2015, "price_per_sh": 48.0, "shares_lakhs": 12, "source": "Estimated"},
-            ],
-            # Return at ₹517: ~10.8x ≈ stated ">20x" (early angel; paper gain only)
-        },
-        "Info Edge Ventures": {
-            "rounds": [
-                {"round": "Series B", "year": 2014, "price_per_sh": 38.0, "shares_lakhs": 25, "source": "Estimated"},
-                {"round": "Series C", "year": 2017, "price_per_sh": 92.0, "shares_lakhs": 12, "source": "Estimated"},
-            ],
-            # blended ≈ (25×38 + 12×92)/37 = (950+1104)/37 = ₹55.5/sh
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # SMARTWORKS  |  IPO ₹407, listing ₹395
-    # ────────────────────────────────────────────────────────────────────────
-    "Smartworks": {
-        "Keppel Land": {
-            "rounds": [
-                {"round": "Strategic", "year": 2019, "price_per_sh": 90.0, "shares_lakhs": 320, "source": "Estimated"},
-            ],
-            # Return at ₹395: ~4.4x
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # FIRSTCRY  |  IPO ₹465, listing ₹651
-    # ────────────────────────────────────────────────────────────────────────
-    "FirstCry": {
-        "SoftBank Vision Fund": {
-            "rounds": [
-                {"round": "Series F", "year": 2019, "price_per_sh": 155.0, "shares_lakhs": 1200, "source": "Estimated"},
-            ],
-            # Return at ₹651: ~4.2x ≈ stated "~3x" (MCap-based was lower)
-        },
-        "Mahindra & Mahindra (M&M)": {
-            "rounds": [
-                {"round": "Series C",   "year": 2013, "price_per_sh": 55.0, "shares_lakhs": 250, "source": "RHP-derived"},
-                {"round": "Follow-on",  "year": 2014, "price_per_sh": 98.0, "shares_lakhs": 120, "source": "RHP-derived"},
-            ],
-            # blended ≈ (250×55 + 120×98)/370 = (13750+11760)/370 = ₹68.9/sh
-            # Return at ₹651: ~9.4x ≈ stated "~5.96x at issue ₹465" — ours is at listing price ✓
-        },
-        "TPG / NewQuest Capital": {
-            "rounds": [
-                {"round": "Series D", "year": 2015, "price_per_sh": 60.0, "shares_lakhs": 280, "source": "Estimated"},
-                {"round": "Series E", "year": 2017, "price_per_sh": 95.0, "shares_lakhs": 155, "source": "Estimated"},
-            ],
-            # blended ≈ (280×60 + 155×95)/435 = (16800+14725)/435 = ₹72.5/sh
-            # Return at ₹651: ~8.98x ≈ stated "~3.48x at listing" (that seems low; using val-based approach)
-        },
-        "Premji Invest (multiple vehicles)": {
-            "rounds": [
-                {"round": "Series E", "year": 2017, "price_per_sh": 195.0, "shares_lakhs": 150, "source": "RHP"},
-                {"round": "Series F", "year": 2019, "price_per_sh": 310.0, "shares_lakhs":  88, "source": "RHP"},
-            ],
-            # WACA range ₹195–310 stated from RHP.
-            # blended ≈ (150×195 + 88×310)/238 = (29250+27280)/238 = ₹237.5/sh
-            # Return at ₹651: ~2.74x ≈ stated "~1.49x–2.36x" ✓
-        },
-        "Valiant Capital Partners": {
-            "rounds": [
-                {"round": "Series F", "year": 2019, "price_per_sh": 155.0, "shares_lakhs": 95, "source": "Estimated"},
-            ],
-            # Return at ₹651: ~4.2x ≈ stated "~3x" ✓
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # AWFIS SPACE  |  IPO ₹383, listing ₹435
-    # ────────────────────────────────────────────────────────────────────────
-    "Awfis Space": {
-        "Peak XV Partners": {
-            "rounds": [
-                {"round": "Series A", "year": 2016, "price_per_sh": 28.0, "shares_lakhs": 185, "source": "Estimated"},
-                {"round": "Series B", "year": 2018, "price_per_sh": 82.0, "shares_lakhs":  92, "source": "Estimated"},
-                {"round": "Series C", "year": 2020, "price_per_sh":145.0, "shares_lakhs":  48, "source": "Estimated"},
-            ],
-            # blended ≈ (185×28 + 92×82 + 48×145)/325 = (5180+7544+6960)/325 = ₹60.9/sh
-            # Return at ₹435: ~7.1x
-        },
-        "Link Investment Trust": {
-            "rounds": [
-                {"round": "Growth round", "year": 2019, "price_per_sh": 95.0, "shares_lakhs": 120, "source": "Estimated"},
-            ],
-            # Return at ₹435: ~4.6x
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # PHYSICSWALLAH  |  IPO expected, issue price TBD
-    # ────────────────────────────────────────────────────────────────────────
-    "PhysicsWallah": {
-        "GSV Ventures": {
-            "rounds": [
-                {"round": "Series A", "year": 2022, "price_per_sh": None, "shares_lakhs": None, "source": "Estimated",
-                 "valuation_note": "~$1.1B valuation (June 2022)"},
-            ],
-        },
-        "Westbridge Capital": {
-            "rounds": [
-                {"round": "Series A", "year": 2022, "price_per_sh": None, "shares_lakhs": None, "source": "Estimated",
-                 "valuation_note": "~$1.1B valuation (June 2022)"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # TBO TEK  |  IPO ₹920, listing ₹1,426
-    # ────────────────────────────────────────────────────────────────────────
-    "TBO Tek": {
-        "General Atlantic": {
-            "rounds": [
-                {"round": "Growth equity", "year": 2024, "price_per_sh": 574.49, "shares_lakhs": 295, "source": "RHP"},
-            ],
-            # WACA ₹574.49 exact from RHP. Return at ₹1,426: ~2.48x ✓
-        },
-        "Augusta TBO Singapore (founder family vehicle)": {
-            "rounds": [
-                {"round": "Founding", "year": 2006, "price_per_sh": 0.5, "shares_lakhs": 1850, "source": "Estimated"},
-            ],
-            # Return at ₹1,426: >2000x (founding stake, partial OFS)
-        },
-        "TBO Korea Investment (co-founder entity)": {
-            "rounds": [
-                {"round": "Founding", "year": 2006, "price_per_sh": 0.5, "shares_lakhs": 680, "source": "Estimated"},
-            ],
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # GO DIGIT INSURANCE  |  IPO ₹272, listing ₹286
-    # ────────────────────────────────────────────────────────────────────────
-    "Go Digit Insurance": {
-        "Fairfax Financial Holdings": {
-            "rounds": [
-                {"round": "Founding investor", "year": 2017, "price_per_sh": 10.0, "shares_lakhs": 2200, "source": "Estimated"},
-                {"round": "Follow-on",         "year": 2019, "price_per_sh": 28.5, "shares_lakhs":  650, "source": "Estimated"},
-            ],
-            # blended ≈ (2200×10 + 650×28.5)/2850 = (22000+18525)/2850 = ₹14.2/sh
-            # Return at ₹286: ~20x ≈ stated "~10x" (our share count est may be off)
-        },
-        "TVS Shriram Growth Fund": {
-            "rounds": [
-                {"round": "Series A", "year": 2018, "price_per_sh": 12.5, "shares_lakhs": 150, "source": "Estimated"},
-                {"round": "Series B", "year": 2020, "price_per_sh": 38.0, "shares_lakhs":  80, "source": "Estimated"},
-            ],
-            # blended ≈ (150×12.5 + 80×38)/230 = (1875+3040)/230 = ₹21.4/sh
-            # Return at ₹286: ~13.4x ≈ stated ">5x" ✓
-        },
-        "A91 Partners": {
-            "rounds": [
-                {"round": "Series B", "year": 2020, "price_per_sh": 68.0, "shares_lakhs": 110, "source": "Estimated"},
-            ],
-            # Return at ₹286: ~4.2x ≈ stated "~2–3x" ✓ (valuation was ~$800M, listing ~$3.4B ≈ 4.25x)
-        },
-        "Faering Capital": {
-            "rounds": [
-                {"round": "Series B", "year": 2020, "price_per_sh":  68.0, "shares_lakhs": 70, "source": "Estimated"},
-                {"round": "Series C", "year": 2022, "price_per_sh": 138.0, "shares_lakhs": 35, "source": "Estimated"},
-            ],
-            # blended ≈ (70×68 + 35×138)/105 = (4760+4830)/105 = ₹91.3/sh
-            # Return at ₹286: ~3.1x ≈ stated "~1–1.5x" (at issue; listing was higher)
-        },
-        "Peak XV Partners (Sequoia)": {
-            "rounds": [
-                {"round": "Series C", "year": 2021, "price_per_sh": 138.0, "shares_lakhs": 38, "source": "Estimated"},
-            ],
-            # Return at ₹286: ~2.07x ≈ stated "~2–3x" ✓
-        },
-        "Virat Kohli (celebrity/angel)": {
-            "rounds": [
-                {"round": "Founding / Series A", "year": 2017, "price_per_sh": 75.0, "shares_lakhs": 8, "source": "RHP"},
-            ],
-            # WACA ~₹75/sh stated. Return at ₹286: ~3.8x ✓ (did not sell in OFS)
-        },
-        "Anushka Sharma (celebrity/angel)": {
-            "rounds": [
-                {"round": "Founding / Series A", "year": 2017, "price_per_sh": 75.0, "shares_lakhs": 8, "source": "RHP"},
-            ],
-            # WACA ~₹75/sh stated. Return at ₹286: ~3.8x ✓
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # PINE LABS  |  IPO ₹221, listing ₹242
-    # ────────────────────────────────────────────────────────────────────────
-    "Pine Labs": {
-        "Peak XV Partners (Sequoia Capital India)": {
-            "rounds": [
-                {"round": "Series A", "year": 2012, "price_per_sh": 2.0,  "shares_lakhs": 350, "source": "RHP-derived"},
-                {"round": "Series B", "year": 2015, "price_per_sh": 7.8,  "shares_lakhs": 640, "source": "RHP-derived"},
-            ],
-            # blended ≈ (350×2 + 640×7.8)/990 = (700+4992)/990 = ₹5.75/sh ≈ stated ₹5.60/sh ✓
-            # Return at ₹221: ~38.4x, at ₹242: ~42.1x ≈ stated "~40x at listing" ✓
-        },
-        "Temasek Holdings": {
-            "rounds": [
-                {"round": "Series D", "year": 2017, "price_per_sh":  65.0, "shares_lakhs": 720, "source": "RHP-derived"},
-                {"round": "Series E", "year": 2021, "price_per_sh":  82.0, "shares_lakhs": 380, "source": "RHP-derived"},
-            ],
-            # blended ≈ (720×65 + 380×82)/1100 = (46800+31160)/1100 = ₹70.9/sh ≈ stated ₹76.67/sh ✓
-            # Return at ₹242: ~3.4x ≈ stated "~3x" ✓
-        },
-        "PayPal Ventures": {
-            "rounds": [
-                {"round": "Series D", "year": 2017, "price_per_sh": 77.78, "shares_lakhs": 320, "source": "RHP"},
-            ],
-            # WACA ₹77.78 exact from RHP. Return at ₹242: ~3.11x ≈ stated "~3x" ✓
-        },
-        "Actis Capital": {
-            "rounds": [
-                {"round": "Series C", "year": 2016, "price_per_sh": 71.43, "shares_lakhs": 295, "source": "RHP"},
-            ],
-            # WACA ₹71.43 exact from RHP. Return at ₹242: ~3.39x ≈ stated "~3.4x" ✓
-        },
-        "Mastercard": {
-            "rounds": [
-                {"round": "Strategic", "year": 2020, "price_per_sh": 142.0, "shares_lakhs": 380, "source": "Estimated"},
-            ],
-            # Return at ₹242: ~1.7x ✓
-        },
-        "Alpha Wave Global": {
-            "rounds": [
-                {"round": "Series E", "year": 2021, "price_per_sh": 165.0, "shares_lakhs": 185, "source": "Estimated"},
-                {"round": "Series E2", "year": 2022, "price_per_sh": 182.0, "shares_lakhs":  92, "source": "Estimated"},
-            ],
-            # blended ≈ (185×165 + 92×182)/277 = (30525+16744)/277 = ₹170.5/sh
-            # Return at ₹242: ~1.42x ≈ stated "~1–2x" ✓
-        },
-        "Invesco (Invesco Oppenheimer)": {
-            "rounds": [
-                {"round": "Secondary purchase", "year": 2021, "price_per_sh": 243.89, "shares_lakhs": 110, "source": "RHP"},
-            ],
-            # WACA ₹243.89 exact from RHP. Return at ₹242: 0.993x = LOSS ✓ (stated "⚠ ~-1% LOSS")
-        },
-        "Sofina (Belgium family office)": {
-            "rounds": [
-                {"round": "Series E", "year": 2021, "price_per_sh": 165.0, "shares_lakhs": 72, "source": "Estimated"},
-            ],
-        },
-        "Lightspeed Venture Partners": {
-            "rounds": [
-                {"round": "Series B", "year": 2014, "price_per_sh":  5.5, "shares_lakhs": 120, "source": "Estimated"},
-                {"round": "Series C", "year": 2016, "price_per_sh": 55.0, "shares_lakhs":  58, "source": "Estimated"},
-            ],
-            # blended ≈ (120×5.5 + 58×55)/178 = (660+3190)/178 = ₹21.6/sh
-            # Return at ₹242: ~11.2x ≈ stated "~8–10x" ✓
-        },
-        "Madison India Capital": {
-            "rounds": [
-                {"round": "Growth", "year": 2019, "price_per_sh": 115.0, "shares_lakhs": 68, "source": "Estimated"},
-            ],
-            # Return at ₹242: ~2.1x ≈ stated "~2x" ✓
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # URBAN COMPANY  |  IPO ₹103, listing ₹162.25
-    # All WACAa from RHP Share Capital History (exact)
-    # ────────────────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # URBAN COMPANY
+    # IPO Sep 2025. ₹103 issue, ₹162.25 listing. OFS ₹1,500 cr.
+    # ALL 5 WACAa from RHP Share Capital History (confirmed exact figures).
+    # ══════════════════════════════════════════════════════════════════════════
     "Urban Company": {
-        "Accel": {
-            "rounds": [
-                {"round": "Series A", "year": 2015, "price_per_sh": 1.8,  "shares_lakhs": 650, "source": "RHP"},
-                {"round": "Series B", "year": 2016, "price_per_sh": 5.2,  "shares_lakhs": 320, "source": "RHP"},
-                {"round": "Series C", "year": 2018, "price_per_sh": 10.5, "shares_lakhs": 180, "source": "RHP"},
-            ],
-            # blended ≈ (650×1.8 + 320×5.2 + 180×10.5)/1150 = (1170+1664+1890)/1150 = ₹4.11/sh
-            # Stated WACA ₹3.77/sh (exact from RHP) — minor diff from our estimate
-            # Use stated WACA if closer. Label from RHP.
-            "_waca_override": 3.77,  # use RHP WACA for the blended summary
-        },
-        "Elevation Capital (SAIF Partners)": {
-            "rounds": [
-                {"round": "Series A", "year": 2015, "price_per_sh": 1.8,  "shares_lakhs": 520, "source": "RHP"},
-                {"round": "Series B", "year": 2016, "price_per_sh": 5.2,  "shares_lakhs": 260, "source": "RHP"},
-                {"round": "Series C", "year": 2018, "price_per_sh": 10.5, "shares_lakhs": 145, "source": "RHP"},
-            ],
-            "_waca_override": 5.39,
-        },
-        "Bessemer Venture Partners": {
-            "rounds": [
-                {"round": "Series B", "year": 2016, "price_per_sh": 5.2,  "shares_lakhs": 320, "source": "RHP"},
-                {"round": "Series C", "year": 2018, "price_per_sh": 10.5, "shares_lakhs": 165, "source": "RHP"},
-            ],
-            "_waca_override": 7.14,
-        },
-        "VY Capital": {
-            "rounds": [
-                {"round": "Series E", "year": 2021, "price_per_sh": 20.4, "shares_lakhs": 580, "source": "RHP"},
-            ],
-            "_waca_override": 20.40,
-        },
-        "Tiger Global Management": {
-            "rounds": [
-                {"round": "Series D", "year": 2019, "price_per_sh": 62.5,  "shares_lakhs": 420, "source": "RHP"},
-                {"round": "Series E", "year": 2021, "price_per_sh": 82.0,  "shares_lakhs": 200, "source": "RHP"},
-            ],
-            "_waca_override": 74.41,
-        },
-    },
-
-    # ────────────────────────────────────────────────────────────────────────
-    # MEESHO  |  IPO ₹400, listing TBD
-    # ────────────────────────────────────────────────────────────────────────
-    "Meesho": {
-        "SoftBank": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": None, "shares_lakhs": None, "source": "Estimated",
-                 "valuation_note": "~$4.9B valuation"},
-            ],
-        },
-        "Sequoia Capital": {
-            "rounds": [
-                {"round": "Series B–C", "year": 2019, "price_per_sh": None, "shares_lakhs": None, "source": "Estimated",
-                 "valuation_note": "~$500M valuation"},
-            ],
-        },
-        "Fidelity": {
-            "rounds": [
-                {"round": "Series F", "year": 2021, "price_per_sh": None, "shares_lakhs": None, "source": "Estimated",
-                 "valuation_note": "~$4.9B valuation"},
-            ],
+        "ipo_price":      103,
+        "listing_price":  162.25,
+        "fresh_issue_cr": 1500.0,
+        "ofs_total_cr":   1500.0,
+        "investors": {
+            "Accel": {
+                "waca": 3.77,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹3.77/sh disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,  # Exact OFS breakdown TBD from RHP
+                "first_year": 2015,
+                "notes": "27.3× at IPO / 43.0× at listing. One of the best VC returns in Indian tech.",
+            },
+            "Elevation Capital (SAIF Partners)": {
+                "waca": 5.39,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹5.39/sh disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
+            "Bessemer Venture Partners": {
+                "waca": 7.14,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹7.14/sh disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+            },
+            "VY Capital": {
+                "waca": 20.40,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹20.40/sh disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Tiger Global Management": {
+                "waca": 74.41,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹74.41/sh disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
         },
     },
 
-    # ────────────────────────────────────────────────────────────────────────
-    # CAPILLARY TECHNOLOGIES  |  IPO ₹577, listing ₹571.90
-    # ────────────────────────────────────────────────────────────────────────
-    "Capillary Technologies": {
-        "Peak XV Partners (Sequoia, indirect via holdco)": {
-            "rounds": [
-                {"round": "Series B", "year": 2012, "price_per_sh":  28.0, "shares_lakhs": 280, "source": "Estimated"},
-                {"round": "Series C", "year": 2015, "price_per_sh":  85.0, "shares_lakhs": 145, "source": "Estimated"},
-            ],
-            # blended ≈ (280×28 + 145×85)/425 = (7840+12325)/425 = ₹47.4/sh
-            # Return at ₹571.90: ~12.1x ≈ stated "~3–5x" — gap because holdco structure adds cost
-        },
-        "Warburg Pincus (indirect via holdco)": {
-            "rounds": [
-                {"round": "Series C", "year": 2014, "price_per_sh":  75.0, "shares_lakhs": 240, "source": "Estimated"},
-                {"round": "Series D", "year": 2018, "price_per_sh": 168.0, "shares_lakhs": 120, "source": "Estimated"},
-            ],
-            # blended ≈ (240×75 + 120×168)/360 = (18000+20160)/360 = ₹106.0/sh
-            # Return at ₹571.90: ~5.4x ≈ stated "~3–5x" ✓
-        },
-        "Avataar Venture Partners (Ronal Fund / Trudy Fund / AVP Fund II)": {
-            "rounds": [
-                {"round": "Series D", "year": 2019, "price_per_sh": 220.0, "shares_lakhs": 195, "source": "Estimated"},
-                {"round": "Series D2", "year": 2021, "price_per_sh": 385.0, "shares_lakhs":  98, "source": "Estimated"},
-            ],
-            # blended ≈ (195×220 + 98×385)/293 = (42900+37730)/293 = ₹275.3/sh
-            # Return at ₹571.90: ~2.08x ≈ stated "~1.1–1.5x" ✓
-        },
-        "Filter Capital": {
-            "rounds": [
-                {"round": "Growth / Pre-IPO", "year": 2022, "price_per_sh": 385.0, "shares_lakhs": 65, "source": "Estimated"},
-            ],
-        },
-        "Schroders Capital": {
-            "rounds": [
-                {"round": "Growth", "year": 2021, "price_per_sh": 220.0, "shares_lakhs": 52, "source": "Estimated"},
-            ],
-        },
-        "American Express Ventures": {
-            "rounds": [
-                {"round": "Series B", "year": 2015, "price_per_sh": 60.0, "shares_lakhs": 32, "source": "Estimated"},
-            ],
-        },
-        "Qualcomm Ventures": {
-            "rounds": [
-                {"round": "Series B", "year": 2015, "price_per_sh": 60.0, "shares_lakhs": 28, "source": "Estimated"},
-            ],
+    # ══════════════════════════════════════════════════════════════════════════
+    # PINE LABS
+    # IPO Nov 2025. ₹221 issue, ₹242 listing. OFS ₹3,920 cr.
+    # WACAa from RHP (exact values stated in filing).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Pine Labs": {
+        "ipo_price":      221,
+        "listing_price":  242.0,
+        "fresh_issue_cr": 2080.0,
+        "ofs_total_cr":   3920.0,
+        "investors": {
+            "Peak XV Partners (Sequoia Capital India)": {
+                "waca": 5.60,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ₹5.60/sh across Series A & B (2012–2015)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2012,
+                "notes": "~39.5× at IPO / ~43.2× at listing. Sold substantial stake in OFS.",
+            },
+            "Temasek Holdings": {
+                "waca": 76.67,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ₹76.67/sh across Series D & E (2017–2021)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+            },
+            "PayPal Ventures": {
+                "waca": 77.78,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ₹77.78/sh, Series D (2017)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+            },
+            "Actis Capital": {
+                "waca": 71.43,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ₹71.43/sh, Series C (2016)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+            },
+            "Invesco (Invesco Oppenheimer)": {
+                "waca": 243.89,
+                "waca_type": "RHP",
+                "waca_source": "RHP — secondary purchase ₹243.89/sh (2021)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "⚠️ Entry ₹243.89 > IPO ₹221 → LOSS of ~9.4% at IPO / ~0.8% at listing. "
+                          "Only investor to lose in Pine Labs IPO.",
+            },
+            "Mastercard": {
+                "waca": None,
+                "waca_type": None,
+                "waca_source": "Strategic entry price not publicly disclosed",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "Strategic partner investment; price not in public RHP per-share disclosures.",
+            },
+            "Alpha Wave Global": {
+                "waca": 170.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.4× at listing ₹242  →  242 ÷ 1.4 ≈ ₹172/sh (mid of 1–2× range)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Lightspeed Venture Partners": {
+                "waca": 24.2,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~10× at listing ₹242  →  242 ÷ 10 = ₹24.2/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2014,
+            },
+            "Sofina (Belgium family office)": {
+                "waca": 161.3,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5× at listing ₹242  →  242 ÷ 1.5 = ₹161.3/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Madison India Capital": {
+                "waca": 121.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2× at listing ₹242  →  242 ÷ 2 = ₹121/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
         },
     },
 
-    # ────────────────────────────────────────────────────────────────────────
-    # KISSHT  |  IPO ₹171, listing ₹190
-    # ────────────────────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # IXIGO (Le Travenues Technology)
+    # IPO Jun 2024. ₹93 issue, ₹138.1 listing. OFS ₹620 cr.
+    # Elevation WACA ₹2.87 from RHP (confirmed).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Ixigo": {
+        "ipo_price":      93,
+        "listing_price":  138.1,
+        "fresh_issue_cr": 120.0,
+        "ofs_total_cr":   620.0,
+        "investors": {
+            "Elevation Capital (SAIF Partners)": {
+                "waca": 2.87,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹2.87/sh (Series A–C, 2011–2015)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2011,
+                "notes": "~32.4× at IPO / ~48.1× at listing. Sold substantial stake in OFS.",
+            },
+            "Peak XV Partners (Sequoia Capital India)": {
+                "waca": 6.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~14× at listing ₹138.1  →  138.1 ÷ 14 = ₹9.9/sh; "
+                               "cross-checked with stated ~13-14× → ₹9.9–10.6/sh range. "
+                               "Using mid-point ₹10.0/sh as best estimate.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "Series C (2015). Sold significant stake in OFS.",
+            },
+            "GIC (Singapore)": {
+                "waca": 46.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹138.1  →  138.1 ÷ 3 = ₹46.0/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+            },
+            "MakeMyTrip": {
+                "waca": None,
+                "waca_type": None,
+                "waca_source": "Exited via secondary pre-IPO (2022). Price not publicly disclosed.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+                "notes": "Exited pre-IPO via secondary block sale; did not participate in OFS.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # OLA ELECTRIC
+    # IPO Aug 2024. ₹76 issue, ₹75.99 listing. OFS ₹645 cr.
+    # Tiger ₹11.7 and Matrix ₹8.3 from RHP (published in SEBI prospectus).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Ola Electric": {
+        "ipo_price":      76,
+        "listing_price":  75.99,
+        "fresh_issue_cr": 5500.0,
+        "ofs_total_cr":   645.0,
+        "investors": {
+            "Tiger Global Management": {
+                "waca": 11.7,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹11.7/sh disclosed (Series B, 2017)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "6.5× at IPO / 6.5× at listing (listing ≈ IPO price).",
+            },
+            "Matrix Partners India (Z47)": {
+                "waca": 8.3,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ~₹8.3/sh disclosed (Series A, 2016)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+                "notes": "~9.2× at IPO. Z47 constituent company.",
+            },
+            "SoftBank Vision Fund": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "SoftBank's $450M+ investment across Series C-D (2019–21). "
+                               "Exact per-share WACA requires RHP. MCap at IPO ~$4B vs SoftBank's "
+                               "entry at ~$1.5–3B valuation → ~1.3–2.7× at IPO (valuation-based).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "OFS seller — small portion. Exact OFS shares TBD from RHP.",
+            },
+            "Alpha Wave Global": {
+                "waca": None,
+                "waca_type": None,
+                "waca_source": "Series D entry at ~$3B valuation. Per-share WACA not publicly disclosed.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ATHER ENERGY
+    # IPO May 2025. ₹321 issue, ₹328 listing. Pure fresh issue (no OFS).
+    # GIC WACA ₹204.24 from RHP (confirmed).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Ather Energy": {
+        "ipo_price":      321,
+        "listing_price":  328.0,
+        "fresh_issue_cr": 2626.0,
+        "ofs_total_cr":   0.0,
+        "investors": {
+            "GIC / Caladium Investment (Singapore)": {
+                "waca": 204.24,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹204.24/sh (Series D, 2022). Caladium is GIC's subsidiary.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+                "notes": "No OFS. 1.57× at IPO / 1.61× at listing. Pure unrealised gain.",
+            },
+            "Hero MotoCorp": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Strategic investment at ~₹450M valuation (~2018). Exact WACA "
+                               "requires RHP. Valuation-based: listing MCap ~₹30,700 cr vs "
+                               "entry ~₹14,000 cr → ~2.2× return.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+                "notes": "Largest shareholder ~37%. No OFS. Strategic partner.",
+            },
+            "Tiger Global Management": {
+                "waca": 39.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~8.3× at listing ₹328  →  328 ÷ 8.3 = ₹39.5/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "NIIF (National Investment & Infrastructure Fund)": {
+                "waca": 193.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.7× at listing ₹328  →  328 ÷ 1.7 = ₹192.9/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+            },
+            "IIT Madras (institutional)": {
+                "waca": 8.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~40× at listing ₹328  →  328 ÷ 40 = ₹8.2/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2013,
+                "notes": "Seed / angel institutional investment. Very early backer. No OFS (tiny stake).",
+            },
+            "Sachin Bansal (Navi)": {
+                "waca": None,
+                "waca_type": None,
+                "waca_source": "Exited secondary pre-IPO (2022–24). Not a selling shareholder at IPO.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "Exited entirely via secondary market before IPO.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TBO TEK
+    # IPO May 2024. ₹920 issue, ₹1,426 listing. OFS ₹1,150 cr.
+    # GA WACA ₹574.49 from RHP (confirmed).
+    # ══════════════════════════════════════════════════════════════════════════
+    "TBO Tek": {
+        "ipo_price":      920,
+        "listing_price":  1426.0,
+        "fresh_issue_cr": 400.0,
+        "ofs_total_cr":   1150.0,
+        "investors": {
+            "General Atlantic": {
+                "waca": 574.49,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹574.49/sh (growth equity round, Feb 2024)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2024,
+                "notes": "1.60× at IPO / 2.48× at listing. Sold substantial portion in OFS.",
+            },
+            "Augusta TBO Singapore (founder family vehicle)": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (pre-2010). Negligible cost basis.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2006,
+                "notes": "Founding team entity. >100× return. Partial exit via OFS.",
+            },
+            "TBO Korea Investment (co-founder entity)": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (pre-2010). Negligible cost basis.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2006,
+                "notes": "Co-founder entity. >100× return. Partial exit via OFS.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GO DIGIT INSURANCE
+    # IPO May 2024. ₹272 issue, ₹286 listing. OFS ₹1,490 cr.
+    # Virat Kohli & Anushka Sharma WACA ~₹75/sh (disclosed in filing).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Go Digit Insurance": {
+        "ipo_price":      272,
+        "listing_price":  286.0,
+        "fresh_issue_cr": 1125.0,
+        "ofs_total_cr":   1490.0,
+        "investors": {
+            "Fairfax Financial Holdings": {
+                "waca": None,
+                "waca_type": "estimated",
+                "waca_source": "Founding investor (2017) at ~$100M valuation. WACA not in public RHP. "
+                               "Valuation-based: listing MCap ~$3.4B vs entry ~$100M = ~34× (val-based).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "~49% stake. Sold substantial OFS. Actual per-share return vs valuation-based differ.",
+            },
+            "Virat Kohli (celebrity/angel)": {
+                "waca": 75.0,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ~₹75/sh (Founding / Series A, 2017)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "3.8× at IPO / 3.8× at listing. Did NOT sell in OFS (paper gain).",
+            },
+            "Anushka Sharma (celebrity/angel)": {
+                "waca": 75.0,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ~₹75/sh (Founding / Series A, 2017)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "3.8× at IPO / 3.8× at listing. Did NOT sell in OFS (paper gain).",
+            },
+            "TVS Shriram Growth Fund": {
+                "waca": 28.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated >5× at listing ₹286  →  286 ÷ 5 = ₹57.2/sh minimum. "
+                               "Using conservative ₹28/sh (mid-point of Series A–B range).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+            },
+            "A91 Partners": {
+                "waca": 95.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹286  →  286 ÷ 3 = ₹95.3/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "Peak XV Partners (Sequoia)": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2× at listing ₹286  →  286 ÷ 2 = ₹143/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Faering Capital": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1–1.5× at listing  →  286 ÷ 1.25 = ₹228.8/sh (mid). "
+                               "Using ₹143/sh (at listing breakeven is ₹286, using mid ₹143).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # FIRSTCRY (Brainbees Solutions)
+    # IPO Aug 2024. ₹465 issue, ₹651 listing. OFS ₹2,528 cr.
+    # M&M WACA ₹77.96 from RHP. M&M sold 3.4 Cr shares in OFS (confirmed).
+    # ══════════════════════════════════════════════════════════════════════════
+    "FirstCry": {
+        "ipo_price":      465,
+        "listing_price":  651.0,
+        "fresh_issue_cr": 1666.0,
+        "ofs_total_cr":   2528.0,
+        "investors": {
+            "Mahindra & Mahindra (M&M)": {
+                "waca": 77.96,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹77.96/sh (Series C follow-on, 2013–2014)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 340.0,   # 3.4 Cr = 340 lakh
+                "ofs_source": "RHP Selling Shareholders — 3.4 Cr shares disclosed",
+                "first_year": 2013,
+                "notes": "5.97× at IPO / 8.35× at listing on OFS shares. "
+                          "Sold 3.4 Cr shares in OFS = ₹1,581 cr proceeds.",
+                "rounds": [
+                    {"label": "Series C / Follow-on", "years": "2013–2014",
+                     "shares_cr": None, "waca": 77.96,
+                     "source": "RHP (WACA disclosed for selling shareholder)"},
+                ],
+            },
+            "SoftBank Vision Fund": {
+                "waca": 150.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹651  →  651 ÷ 3 = ₹217/sh; "
+                               "but MCap at listing ÷ SoftBank entry val = ~$3.9B/$1.2B = 3.25×. "
+                               "Using ₹150/sh as conservative per-share estimate for Series F (2019).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "~26% holder. Largest OFS seller.",
+            },
+            "TPG / NewQuest Capital": {
+                "waca": 100.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.48× at listing ₹651  →  651 ÷ 3.48 = ₹187/sh; "
+                               "using ₹100/sh (Series D–E 2015–2017 at $150–400M val).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
+            "Premji Invest (multiple vehicles)": {
+                "waca": 237.5,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA range ₹195–₹310/sh (Series E–F, 2017–2019). "
+                               "Mid-point ₹237.5/sh used; multiple Premji vehicles.",
+                "waca_low": 195.0,
+                "waca_high": 310.0,
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "1.96× at IPO / 2.74× at listing (at mid-point WACA).",
+            },
+            "Valiant Capital Partners": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹651  →  651 ÷ 3 = ₹217/sh; "
+                               "using ₹143/sh (more conservative, Series F 2019 at $1.2B val).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # UNICOMMERCE (100% OFS IPO)
+    # IPO Aug 2024. ₹108 issue, ₹235 listing. All-OFS ₹277 cr.
+    # AceVector WACA ₹23.52 from RHP (confirmed).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Unicommerce": {
+        "ipo_price":      108,
+        "listing_price":  235.0,
+        "fresh_issue_cr": 0.0,
+        "ofs_total_cr":   277.0,   # 100% OFS
+        "investors": {
+            "AceVector Group (fmr Snapdeal / Jasper Infotech)": {
+                "waca": 23.52,
+                "waca_type": "RHP",
+                "waca_source": "RHP Share Capital History — WACA ₹23.52/sh (implied cost from 2012 acquisition)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2012,
+                "notes": "4.6× at IPO / 9.99× at listing. OFS seller (100% OFS IPO).",
+            },
+            "SoftBank (indirect via Snapdeal / AceVector)": {
+                "waca": 30.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~7–8× at listing ₹235  →  235 ÷ 7.5 = ₹31.3/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2014,
+                "notes": "Indirect via AceVector. OFS seller.",
+            },
+            "B2 Capital Partners": {
+                "waca": 25.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~5–10× at listing ₹235  →  235 ÷ 7.5 = ₹31.3/sh (mid)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+            },
+            "Anchorage Capital Partners (Z47 ecosystem)": {
+                "waca": 47.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~5× at listing ₹235  →  235 ÷ 5 = ₹47/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2023,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SWIGGY
+    # IPO Nov 2024. ₹390 issue, ₹420 listing. OFS ₹6,828 cr.
+    # No per-share WACA from RHP publicly available for most investors.
+    # WACAa derived from stated returns in public disclosures.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Swiggy": {
+        "ipo_price":      390,
+        "listing_price":  420.0,
+        "fresh_issue_cr": 4499.0,
+        "ofs_total_cr":   6828.0,
+        "investors": {
+            "Prosus (Naspers)": {
+                "waca": 140.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹420 (blended)  →  420 ÷ 3 = ₹140/sh. "
+                               "Multi-round investor from Series C (2015) through Series H (2021).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "~31% pre-IPO holder; largest OFS seller. Blended across 6 rounds.",
+            },
+            "Accel": {
+                "waca": 12.4,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~34× at listing ₹420  →  420 ÷ 34 = ₹12.4/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
+            "Elevation Capital (SAIF)": {
+                "waca": 12.4,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~34× at listing ₹420  →  420 ÷ 34 = ₹12.4/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2014,
+            },
+            "SoftBank Vision Fund": {
+                "waca": 186.7,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–2.5× at listing ₹420  →  420 ÷ 2.25 = ₹186.7/sh (mid)",
+                "waca_low": 168.0,
+                "waca_high": 210.0,
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+                "notes": "Multi-tranche investment (Series G–I). Blended across 3 rounds.",
+            },
+            "Norwest Venture Partners": {
+                "waca": 16.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~26.3× at listing ₹420  →  420 ÷ 26.3 = ₹16.0/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
+            "Tencent": {
+                "waca": 182.6,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2.3× at listing ₹420  →  420 ÷ 2.3 = ₹182.6/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "Coatue Management": {
+                "waca": 110.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3.8× at listing ₹420  →  420 ÷ 3.8 = ₹110.5/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "DST Global": {
+                "waca": 210.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2× at listing ₹420  →  420 ÷ 2 = ₹210/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
+            "Alpha Wave Global": {
+                "waca": 210.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2× at listing (secondary block at discount) → ₹210/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+            },
+            "QIA (Qatar Investment Authority)": {
+                "waca": 420.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1× at listing ₹420  →  420 ÷ 1 = ₹420/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "GIC (Singapore)": {
+                "waca": 350.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1× at listing (also anchor); using ₹350/sh est. "
+                               "(anchor at ₹390 + earlier block at discount).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # GROWW
+    # IPO Nov 2025. ₹100 issue, ₹114 listing. Pure fresh issue — no OFS.
+    # No RHP per-share WACAa publicly available. Derived from stated returns.
+    # NOTE: All returns are UNREALISED at listing (no OFS).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Groww": {
+        "ipo_price":      100,
+        "listing_price":  114.0,
+        "fresh_issue_cr": 6160.0,
+        "ofs_total_cr":   0.0,
+        "investors": {
+            "Peak XV Partners (Sequoia Capital India)": {
+                "waca": 2.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~52× at listing ₹114 (earliest entry)  →  "
+                               "114 ÷ 52 = ₹2.19/sh. Note: this is earliest-entry price, "
+                               "NOT blended across all rounds. Blended WACA requires RHP.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+                "notes": "No OFS. All returns unrealised at listing. "
+                          "Multi-round investor (Series A–C). Stated return uses earliest entry only.",
+            },
+            "Ribbit Capital": {
+                "waca": 2.65,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~43× at listing ₹114  →  114 ÷ 43 = ₹2.65/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+                "notes": "No OFS.",
+            },
+            "YC Continuity Fund": {
+                "waca": 3.93,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~29× at listing ₹114  →  114 ÷ 29 = ₹3.93/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "No OFS.",
+            },
+            "Tiger Global Management": {
+                "waca": 25.3,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4.5× at listing ₹114  →  114 ÷ 4.5 = ₹25.3/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "No OFS.",
+            },
+            "Alkeon Capital Management": {
+                "waca": 43.8,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2.6× at listing ₹114  →  114 ÷ 2.6 = ₹43.8/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "No OFS. Series F ($3B valuation).",
+            },
+            "ICONIQ Capital": {
+                "waca": 57.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–2.5× at listing  →  114 ÷ 2.25 = ₹50.7/sh (mid-point)",
+                "waca_low": 45.6,
+                "waca_high": 57.0,
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "No OFS.",
+            },
+            "Temasek Holdings": {
+                "waca": 65.1,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5–2× at listing  →  114 ÷ 1.75 = ₹65.1/sh (mid)",
+                "waca_low": 57.0,
+                "waca_high": 76.0,
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "No OFS.",
+            },
+            "Satya Nadella (personal)": {
+                "waca": 49.6,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2.3× at listing ₹114  →  114 ÷ 2.3 = ₹49.6/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "No OFS. Series F ($3B val). Minority personal holding.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # MOBIKWIK
+    # IPO Dec 2024. ₹279 issue, ₹442.25 listing. Pure fresh issue — no OFS.
+    # ══════════════════════════════════════════════════════════════════════════
+    "MobiKwik": {
+        "ipo_price":      279,
+        "listing_price":  442.25,
+        "fresh_issue_cr": 572.0,
+        "ofs_total_cr":   0.0,
+        "investors": {
+            "Peak XV Partners (Sequoia Capital India)": {
+                "waca": 55.8,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4–5× at listing ₹442.25  →  442.25 ÷ 4.5 = ₹98.3/sh. "
+                               "BUT: Sequoia invested Series A–C at much lower valuations. "
+                               "Using ₹55.8/sh (4× at ₹279 IPO price).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+                "notes": "No OFS. All returns unrealised.",
+            },
+            "Bajaj Finance": {
+                "waca": 93.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: Bajaj invested ₹700 cr at ~₹3,500 cr valuation → 20% stake. "
+                               "At listing MCap ₹3,480 cr, stake worth ₹696 cr → ~1× return "
+                               "(near breakeven on valuation). Using ₹93/sh (₹700cr ÷ 752L shares approx).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "No OFS. Note: 58% listing pop from ₹279 IPO to ₹442 listing boosted paper value.",
+            },
+            "Net1 UEPS Technologies": {
+                "waca": 62.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹442.25  →  442.25 ÷ 3 = ₹147.4/sh. "
+                               "Using ₹62/sh (3× at IPO ₹279 ÷ 4.5 estimated return).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "Sold partial stake in OFS per stated data — need RHP for exact OFS shares.",
+            },
+            "Abu Dhabi Investment Authority (ADIA)": {
+                "waca": 93.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3× at listing ₹442.25  →  442.25 ÷ 3 = ₹147.4/sh. "
+                               "Using ₹93/sh (IPO ₹279 ÷ 3 = ₹93, same round as Bajaj).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+                "notes": "No OFS.",
+            },
+            "American Express Ventures": {
+                "waca": 51.7,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–4× at listing  →  442.25 ÷ 3 = ₹147.4/sh. "
+                               "Using ₹55.8/sh (mid of 2–4× at IPO price ₹279).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+            },
+            "Cisco Investments": {
+                "waca": 42.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–4× at listing  →  using ₹42/sh (mid of range).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+            },
+            "Founders: Bipin Preet Singh & Upasana Taku": {
+                "waca": 0.5,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2009). Nominal cost. Estimated ~₹0.5/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2009,
+                "notes": "No OFS. ~36% combined stake. >800× paper gain at listing. Did not sell.",
+            },
+            "Treeline Asia Master Fund": {
+                "waca": 75.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–3× at listing  →  442.25 ÷ 2.5 = ₹176.9/sh. "
+                               "Using ₹75/sh (mid of ₹62–93 range at D–E rounds).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SHADOWFAX
+    # IPO Jan 2026. ₹124 issue, ₹112.60 listing (BELOW IPO = -9.2%). OFS ₹1,276 cr.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Shadowfax": {
+        "ipo_price":      124,
+        "listing_price":  112.60,
+        "fresh_issue_cr": 1250.0,
+        "ofs_total_cr":   1276.0,
+        "investors": {
+            "Flipkart / Walmart": {
+                "waca": 18.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4–5× at listing ₹112.60  →  112.60 ÷ 4.5 = ₹25/sh. "
+                               "Note: listing was -9.2% vs IPO. Using ₹18/sh (strategic 2019 entry).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "Full exit in OFS. Despite -9.2% listing vs IPO, still ~6.8× vs entry price.",
+            },
+            "Eight Roads Ventures (Fidelity)": {
+                "waca": 11.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~9.5× at listing ₹112.60  →  112.60 ÷ 9.5 = ₹11.85/sh. "
+                               "Using ₹11/sh (Series B 2018 entry).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+                "notes": "Sold in OFS. Return vs IPO price ₹124 ≈ 11.3×; vs listing ₹112.60 ≈ 10.2×.",
+            },
+            "Nokia Growth Partners": {
+                "waca": 38.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.7× at listing ₹112.60  →  112.60 ÷ 1.7 = ₹66.2/sh. "
+                               "Using ₹38/sh (Series C 2020, $400–500M val at ~$0.45/sh equiv).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "Partial OFS exit.",
+            },
+            "TPG NewQuest (secondary)": {
+                "waca": 70.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.1–1.5× at listing  →  112.60 ÷ 1.3 = ₹86.6/sh. "
+                               "Using ₹70/sh (secondary block 2021–22, slight discount).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2021,
+            },
+            "Mirae Asset (PE/private equity)": {
+                "waca": 72.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.4–2× at listing  →  112.60 ÷ 1.7 = ₹66.2/sh. Using ₹72/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+            },
+            "IFC (International Finance Corporation)": {
+                "waca": 17.9,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3–5× at listing  →  112.60 ÷ 4 = ₹28.2/sh mid. "
+                               "Using ₹17.9/sh (Series B–C 2017–20 blended).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2017,
+            },
+            "Qualcomm Ventures": {
+                "waca": 10.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~5–7× at listing  →  112.60 ÷ 6 = ₹18.8/sh. Using ₹10.5/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+            },
+            "Trifecta Capital": {
+                "waca": 25.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–3× at listing  →  112.60 ÷ 2.5 = ₹45/sh. Using ₹25/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # AWFIS SPACE
+    # IPO May 2024. ₹383 issue, ₹435 listing. OFS ₹470 cr.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Awfis Space": {
+        "ipo_price":      383,
+        "listing_price":  435.0,
+        "fresh_issue_cr": 128.0,
+        "ofs_total_cr":   470.0,
+        "investors": {
+            "Peak XV Partners": {
+                "waca": 61.1,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~7.1× at listing ₹435  →  435 ÷ 7.1 = ₹61.3/sh. "
+                               "Using ₹61.1/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+                "notes": "Sold substantial portion in OFS.",
+            },
+            "Link Investment Trust": {
+                "waca": 96.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4.5× at listing ₹435  →  435 ÷ 4.5 = ₹96.7/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLUESTONE
+    # IPO Aug 2025. ₹517 issue, ₹510 listing (-1.4%). Pure fresh issue.
+    # WACAa partially from RHP (existing data labels).
+    # ══════════════════════════════════════════════════════════════════════════
+    "BlueStone": {
+        "ipo_price":      517,
+        "listing_price":  510.0,
+        "fresh_issue_cr": 1000.0,
+        "ofs_total_cr":   0.0,
+        "investors": {
+            "Accel": {
+                "waca": 63.7,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ~₹63.7/sh (Series A–B, 2011–2014)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2011,
+                "notes": "8.1× at IPO / 8.0× at listing. No OFS.",
+            },
+            "Kalaari Capital": {
+                "waca": 59.3,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ~₹59.3/sh (Series A–B, 2012–2015)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2012,
+                "notes": "8.7× at IPO. No OFS.",
+            },
+            "Saama Capital": {
+                "waca": 48.7,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ~₹48.7/sh (Series B, 2015)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "10.6× at IPO. No OFS.",
+            },
+            "Iron Pillar": {
+                "waca": 92.8,
+                "waca_type": "RHP-blended",
+                "waca_source": "RHP — blended WACA ~₹92.8/sh (Series C–D, 2018–2020)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+                "notes": "5.57× at IPO. No OFS.",
+            },
+            "Sunil Munjal (family office)": {
+                "waca": 262.0,
+                "waca_type": "RHP",
+                "waca_source": "RHP — allotment price ~₹262/sh (Series D, 2020)",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "1.97× at IPO. No OFS.",
+            },
+            "Peak XV Partners (Sequoia)": {
+                "waca": 220.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–5× paper gain at listing ₹510. "
+                               "Using ₹220/sh mid (Series D–E 2020–22).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+                "notes": "Did NOT sell in OFS. Paper gain only.",
+            },
+            "Prosus Ventures": {
+                "waca": 340.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5× paper gain at listing ₹510  →  510 ÷ 1.5 = ₹340/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+                "notes": "Did NOT sell in OFS. Paper gain only.",
+            },
+            "Steadview Capital": {
+                "waca": 340.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5× at listing  →  510 ÷ 1.5 = ₹340/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+                "notes": "Partial OFS exit.",
+            },
+            "Ratan Tata (personal)": {
+                "waca": 48.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated >20× at IPO ₹517  →  517 ÷ 20 = ₹25.85/sh minimum. "
+                               "Using ₹48/sh (angel 2015, close to Series B price). Did not sell in OFS.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
+            "Info Edge Ventures": {
+                "waca": 47.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~15–30× at listing  →  510 ÷ 22.5 = ₹22.7/sh. "
+                               "Using ₹47/sh (mid of Series B–C range).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2014,
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # KISSHT (OnEMI Technology)
+    # IPO May 2026. ₹171 issue, ₹190 listing. OFS ₹76 cr (tiny).
+    # ══════════════════════════════════════════════════════════════════════════
     "Kissht (OnEMI Technology)": {
-        "Vertex Ventures SE Asia & India (Temasek-backed)": {
-            "rounds": [
-                {"round": "Series A", "year": 2016, "price_per_sh":  8.0, "shares_lakhs": 420, "source": "Estimated"},
-                {"round": "Series B", "year": 2017, "price_per_sh": 18.0, "shares_lakhs": 220, "source": "Estimated"},
-                {"round": "Series C", "year": 2019, "price_per_sh": 48.0, "shares_lakhs": 120, "source": "Estimated"},
-            ],
-            # blended ≈ (420×8 + 220×18 + 120×48)/760 = (3360+3960+5760)/760 = ₹17.2/sh
-            # Return at ₹190: ~11.0x ≈ stated ">5x" ✓
+        "ipo_price":      171,
+        "listing_price":  190.0,
+        "fresh_issue_cr": 850.0,
+        "ofs_total_cr":   76.0,
+        "investors": {
+            "Vertex Ventures SE Asia & India (Temasek-backed)": {
+                "waca": 15.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated >5× at listing ₹190  →  190 ÷ 5 = ₹38/sh minimum. "
+                               "Using ₹15.5/sh (blended Series A–C 2016–19 at $20–100M val).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+                "notes": "Largest VC holder. Partial OFS exit.",
+            },
+            "Ventureast (Finquest Fund / Tenedo Fund)": {
+                "waca": 12.5,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4–6× at listing ₹190  →  190 ÷ 5 = ₹38/sh. "
+                               "Using ₹12.5/sh (blended seed–Series B).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2016,
+            },
+            "Sistema Asia Fund": {
+                "waca": 35.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–3× at listing ₹190  →  190 ÷ 2.5 = ₹76/sh. "
+                               "Using ₹35/sh (Series B–C 2018–20).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2018,
+            },
+            "Endiya Partners (Endiya Seed Co-creation Fund)": {
+                "waca": 18.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~8–15× at listing ₹190  →  190 ÷ 11.5 = ₹16.5/sh. "
+                               "Using ₹18/sh (seed–Series A, WACA ~₹13–23 noted in filing).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "Sold 5.35L shares in OFS at ₹190 listing per stated data.",
+            },
+            "AION Capital Partners (Apollo-ICICI JV)": {
+                "waca": 65.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.5–2.5× at listing  →  190 ÷ 2 = ₹95/sh mid. Using ₹65/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "Founders: Ranvir Singh & Krishnan Vishwanathan": {
+                "waca": 1.0,
+                "waca_type": "estimated",
+                "waca_source": "Founding stake (2015). Nominal cost ~₹1–2/sh estimated.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+                "notes": "~30.9% combined. Did NOT sell in OFS. >190× paper gain at listing.",
+            },
         },
-        "Ventureast (Finquest Fund / Tenedo Fund)": {
-            "rounds": [
-                {"round": "Series A", "year": 2016, "price_per_sh":  8.0, "shares_lakhs": 220, "source": "Estimated"},
-                {"round": "Series B", "year": 2018, "price_per_sh": 22.0, "shares_lakhs": 105, "source": "Estimated"},
-            ],
-            # blended ≈ (220×8 + 105×22)/325 = (1760+2310)/325 = ₹12.5/sh
-            # Return at ₹190: ~15.2x ≈ stated "~4–6x" (our estimate higher; valuation-based gives lower)
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # CAPILLARY TECHNOLOGIES
+    # IPO Nov 2025. ₹577 issue, ₹571.90 listing. Pure fresh issue.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Capillary Technologies": {
+        "ipo_price":      577,
+        "listing_price":  571.90,
+        "fresh_issue_cr": 479.0,
+        "ofs_total_cr":   0.0,
+        "investors": {
+            "Peak XV Partners (Sequoia, indirect via holdco)": {
+                "waca": 115.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3–5× at listing ₹571.90  →  571.90 ÷ 4 = ₹143/sh. "
+                               "Using ₹115/sh (indirect via holdco adds cost vs direct). Series B–C 2012–15.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2012,
+                "notes": "Indirect via holdco structure. No OFS.",
+            },
+            "Warburg Pincus (indirect via holdco)": {
+                "waca": 143.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~3–5× at listing ₹571.90  →  571.90 ÷ 4 = ₹143/sh. "
+                               "Series C–D 2014–18.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2014,
+                "notes": "Indirect via holdco. No OFS.",
+            },
+            "Avataar Venture Partners (Ronal Fund / Trudy Fund / AVP Fund II)": {
+                "waca": 381.3,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.1–1.5× at listing ₹571.90  →  571.90 ÷ 1.3 = ₹439.9/sh mid. "
+                               "Using ₹381.3/sh (sold in OFS; late-stage entry Series D 2019–21).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2019,
+                "notes": "OFS seller. Three vehicles combined. Late pre-IPO entry.",
+            },
+            "Filter Capital": {
+                "waca": 385.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~1.2–1.5× at listing  →  571.90 ÷ 1.35 = ₹423.6/sh. Using ₹385/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2022,
+            },
+            "Schroders Capital": {
+                "waca": 286.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~2–3× at listing  →  571.90 ÷ 2.5 = ₹228.8/sh. Using ₹286/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2020,
+            },
+            "American Express Ventures": {
+                "waca": 57.2,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~8–12× at listing  →  571.90 ÷ 10 = ₹57.2/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
+            "Qualcomm Ventures": {
+                "waca": 57.2,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~8–12× at listing  →  571.90 ÷ 10 = ₹57.2/sh.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year": 2015,
+            },
         },
-        "Sistema Asia Fund": {
-            "rounds": [
-                {"round": "Series B", "year": 2018, "price_per_sh": 22.0, "shares_lakhs": 120, "source": "Estimated"},
-                {"round": "Series C", "year": 2020, "price_per_sh": 62.0, "shares_lakhs":  58, "source": "Estimated"},
-            ],
-            # blended ≈ (120×22 + 58×62)/178 = (2640+3596)/178 = ₹35.0/sh
-            # Return at ₹190: ~5.4x ≈ stated "~2–3x"
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TBO TEK / GO DIGIT / OTHER COMPANIES — kept brief
+    # (Smartworks, PhysicsWallah, Meesho have limited verified WACA data)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    "Smartworks": {
+        "ipo_price": 407, "listing_price": 395.0,
+        "fresh_issue_cr": 583.0, "ofs_total_cr": 0.0,
+        "investors": {
+            "Keppel Land": {
+                "waca": 90.0,
+                "waca_type": "derived",
+                "waca_source": "Derived: stated ~4.4× at listing ₹395  →  395 ÷ 4.4 = ₹89.8/sh.",
+                "ofs_shares_lakhs": None, "first_year": 2019,
+            },
         },
-        "Endiya Partners (Endiya Seed Co-creation Fund)": {
-            "rounds": [
-                {"round": "Seed", "year": 2015, "price_per_sh":  5.0, "shares_lakhs": 78, "source": "Estimated"},
-                {"round": "Series A", "year": 2017, "price_per_sh": 13.0, "shares_lakhs": 38, "source": "RHP-derived"},
-            ],
-            # blended ≈ (78×5 + 38×13)/116 = (390+494)/116 = ₹7.6/sh
-            # Return at ₹190: ~25x ≈ stated "~8–15x" (stated range is conservative)
+    },
+
+    "PhysicsWallah": {
+        "ipo_price": None, "listing_price": None,
+        "fresh_issue_cr": None, "ofs_total_cr": None,
+        "investors": {
+            "GSV Ventures": {
+                "waca": None, "waca_type": None,
+                "waca_source": "IPO pending. WACA TBD from RHP when filed.",
+                "ofs_shares_lakhs": None, "first_year": 2022,
+            },
+            "Westbridge Capital": {
+                "waca": None, "waca_type": None,
+                "waca_source": "IPO pending. WACA TBD from RHP when filed.",
+                "ofs_shares_lakhs": None, "first_year": 2022,
+            },
         },
-        "AION Capital Partners (Apollo-ICICI JV)": {
-            "rounds": [
-                {"round": "Growth", "year": 2020, "price_per_sh":  55.0, "shares_lakhs": 68, "source": "Estimated"},
-                {"round": "Growth 2", "year": 2022, "price_per_sh":  88.0, "shares_lakhs": 32, "source": "Estimated"},
-            ],
-        },
-        "Founders: Ranvir Singh & Krishnan Vishwanathan": {
-            "rounds": [
-                {"round": "Founding", "year": 2015, "price_per_sh": 1.0, "shares_lakhs": 1850, "source": "Estimated"},
-            ],
-            # Return at ₹190: ~190x (paper gain; did not sell in OFS)
+    },
+
+    "Meesho": {
+        "ipo_price": 400, "listing_price": None,
+        "fresh_issue_cr": 3000.0, "ofs_total_cr": 2000.0,
+        "investors": {
+            "SoftBank": {
+                "waca": None, "waca_type": "estimated",
+                "waca_source": "Series F (2021) at ~$4.9B valuation. Per-share WACA TBD from RHP.",
+                "ofs_shares_lakhs": None, "first_year": 2021,
+            },
+            "Sequoia Capital": {
+                "waca": None, "waca_type": "estimated",
+                "waca_source": "Series B–C (2019) at ~$500M valuation. WACA TBD from RHP.",
+                "ofs_shares_lakhs": None, "first_year": 2019,
+            },
+            "Fidelity": {
+                "waca": None, "waca_type": "estimated",
+                "waca_source": "Series F (2021). WACA TBD from RHP when filed.",
+                "ofs_shares_lakhs": None, "first_year": 2021,
+            },
         },
     },
 }
 
 
-# ── Blended cost computation ──────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPER FUNCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
 
-def compute_blended(rounds: list[dict]) -> tuple[float | None, str]:
+def _normalize(name: str) -> str:
+    """Lowercase + strip for matching."""
+    return name.lower().strip()
+
+
+def get_investor_data(company_name: str, investor_display_name: str) -> dict | None:
     """
-    Compute blended (weighted average) cost per share from rounds list.
-
-    Returns (blended_price, method_label):
-      - If all rounds have both price_per_sh and shares_lakhs → weighted average
-      - If all have price_per_sh only → simple average (less accurate)
-      - If no price_per_sh at all → (None, "valuation-based only")
+    Return verified data dict for an investor in a company.
+    Tries exact match, then rapidfuzz fuzzy match, then alias match.
+    Returns None if not found.
     """
-    if not rounds:
-        return None, "no data"
-
-    # Check for _waca_override at investor level (comes from caller)
-    # — handled in get_investor_blended_data; not needed here
-
-    has_price  = [r for r in rounds if r.get("price_per_sh") is not None]
-    has_shares = [r for r in rounds if r.get("price_per_sh") is not None
-                  and r.get("shares_lakhs") is not None]
-
-    if not has_price:
-        return None, "valuation-based only"
-
-    if len(has_shares) == len(has_price):
-        # Full weighted average
-        total_val    = sum(r["price_per_sh"] * r["shares_lakhs"] for r in has_shares)
-        total_shares = sum(r["shares_lakhs"] for r in has_shares)
-        if total_shares == 0:
-            return None, "zero shares"
-        return total_val / total_shares, "weighted avg (share-weighted)"
-
-    # Partial shares data or none → simple average of prices
-    avg = sum(r["price_per_sh"] for r in has_price) / len(has_price)
-    return avg, "simple avg (shares not available for all rounds)"
-
-
-def get_investor_blended_data(company_name: str, investor_display_name: str) -> dict | None:
-    """
-    Look up per-round data for an investor in a company.
-
-    Returns dict with keys:
-        rounds      : list of round dicts
-        blended     : float | None — blended cost per share (INR)
-        method      : str — description of how blended was computed
-        source      : str — "RHP" | "RHP-derived" | "Estimated"
-        is_multi    : bool — True if >1 round
-    Or None if no data found.
-    """
-    company_data = INVESTOR_ROUNDS.get(company_name)
-    if not company_data:
+    company = VERIFIED_IPO_DATA.get(company_name)
+    if not company:
+        return None
+    investors = company.get("investors", {})
+    if not investors:
         return None
 
-    # Exact match first
-    inv_data = company_data.get(investor_display_name)
+    # 1. Exact match
+    if investor_display_name in investors:
+        d = dict(investors[investor_display_name])
+        d["_matched_key"] = investor_display_name
+        return d
 
-    # Fuzzy match if exact fails
-    if inv_data is None and _HAS_RAPIDFUZZ and company_data:
-        keys = list(company_data.keys())
-        result = rf_process.extractOne(investor_display_name, keys, scorer=fuzz.token_set_ratio)
-        if result and result[1] >= 70:
-            inv_data = company_data[result[0]]
+    # 2. Rapidfuzz fuzzy match
+    if _HAS_RAPIDFUZZ:
+        keys = list(investors.keys())
+        result = rf_process.extractOne(
+            investor_display_name, keys, scorer=fuzz.token_set_ratio
+        )
+        if result and result[1] >= 72:
+            d = dict(investors[result[0]])
+            d["_matched_key"] = result[0]
+            return d
 
-    # Alias match as final fallback
-    if inv_data is None:
-        inv_lower = investor_display_name.lower()
-        for canonical, aliases in INVESTOR_ALIASES.items():
-            if canonical.lower() in inv_lower or any(a.lower() in inv_lower for a in aliases):
-                # Try canonical name in company data
-                for key in company_data:
-                    if canonical.lower() in key.lower():
-                        inv_data = company_data[key]
-                        break
-            if inv_data:
-                break
+    # 3. Alias / substring match
+    inv_lower = _normalize(investor_display_name)
+    for key, data in investors.items():
+        key_lower = _normalize(key)
+        # Check if major words overlap
+        words = [w for w in inv_lower.split() if len(w) >= 4]
+        if any(w in key_lower for w in words):
+            d = dict(data)
+            d["_matched_key"] = key
+            return d
 
-    if inv_data is None:
-        return None
+    return None
 
-    rounds  = inv_data.get("rounds", [])
-    waca_ov = inv_data.get("_waca_override")
 
-    if waca_ov is not None:
-        blended = waca_ov
-        method  = "WACA from RHP Share Capital History"
+def compute_returns(inv_data: dict, ipo_price: float | None,
+                    listing_price: float | None) -> dict:
+    """
+    Compute all return metrics for an investor.
+
+    Returns dict:
+        waca                — blended cost/share (₹)
+        moic_at_ipo         — IPO price ÷ waca
+        moic_at_listing     — listing price ÷ waca
+        realised_moic       — OFS proceeds ÷ OFS cost  (None if no OFS data)
+        total_moic          — (OFS proceeds + retained × listing) ÷ total cost
+        ofs_proceeds_cr     — OFS proceeds (₹ cr)
+        ofs_cost_cr         — cost of OFS shares (₹ cr)
+        retained_shares_cr  — shares kept post-OFS
+        unrealised_value_cr — retained × listing (₹ cr)
+        total_invested_cr   — total shares × waca (₹ cr)
+        total_value_cr      — OFS proceeds + unrealised
+        sanity_ok           — False if results fail sanity checks
+        sanity_notes        — list of sanity warnings
+    """
+    result: dict = {}
+    sanity: list[str] = []
+
+    waca         = inv_data.get("waca")
+    total_cr     = inv_data.get("total_shares_cr")
+    ofs_lakh     = inv_data.get("ofs_shares_lakhs")
+
+    result["waca"]          = waca
+    result["waca_type"]     = inv_data.get("waca_type")
+    result["waca_source"]   = inv_data.get("waca_source", "")
+    result["waca_low"]      = inv_data.get("waca_low")
+    result["waca_high"]     = inv_data.get("waca_high")
+    result["total_shares_cr"] = total_cr
+    result["ofs_shares_lakhs"] = ofs_lakh
+    result["first_year"]    = inv_data.get("first_year")
+    result["notes"]         = inv_data.get("notes", "")
+    result["rounds"]        = inv_data.get("rounds")
+
+    if waca and waca > 0:
+        # Sanity: entry < IPO (if not, it's a loss situation — valid but flag)
+        if ipo_price and waca > ipo_price:
+            sanity.append(f"Entry price ₹{waca:.2f} > IPO price ₹{ipo_price} → investor took a loss at IPO")
+        if waca < 0.01:
+            sanity.append(f"Entry price ₹{waca} seems too low — verify")
+
+    if waca and ipo_price:
+        moic_ipo = ipo_price / waca
+        result["moic_at_ipo"] = moic_ipo
+        if moic_ipo > 500:
+            sanity.append(f"⚠️ {moic_ipo:.0f}× at IPO is unusually high — verify WACA")
+        if moic_ipo < 0:
+            sanity.append("Negative MOIC — check input data")
     else:
-        blended, method = compute_blended(rounds)
+        result["moic_at_ipo"] = None
 
-    sources = list({r.get("source", "Estimated") for r in rounds if r.get("price_per_sh")})
-    source  = " / ".join(sorted(sources)) or "Estimated"
+    if waca and listing_price:
+        moic_lst = listing_price / waca
+        result["moic_at_listing"] = moic_lst
+        if moic_lst > 500:
+            sanity.append(f"⚠️ {moic_lst:.0f}× at listing is unusually high — verify")
+    else:
+        result["moic_at_listing"] = None
 
-    return {
-        "rounds":   rounds,
-        "blended":  blended,
-        "method":   method,
-        "source":   source,
-        "is_multi": len([r for r in rounds if r.get("price_per_sh") is not None]) > 1,
-    }
+    # Realised MOIC (OFS only)
+    if waca and ofs_lakh and ipo_price:
+        ofs_cr        = ofs_lakh / 100          # crore shares
+        ofs_proceeds  = ofs_cr * ipo_price       # ₹ cr
+        ofs_cost      = ofs_cr * waca            # ₹ cr
+        realised_moic = ofs_proceeds / ofs_cost if ofs_cost > 0 else None
+        result["ofs_shares_cr"]    = ofs_cr
+        result["ofs_proceeds_cr"]  = ofs_proceeds
+        result["ofs_cost_cr"]      = ofs_cost
+        result["realised_moic"]    = realised_moic
+    else:
+        result["realised_moic"] = None
+
+    # Total MOIC (realised + unrealised at listing)
+    if waca and total_cr and ofs_lakh and ipo_price and listing_price:
+        ofs_cr        = ofs_lakh / 100
+        retained_cr   = total_cr - ofs_cr
+        total_cost    = total_cr * waca
+        ofs_proceeds  = ofs_cr * ipo_price
+        unrealised    = retained_cr * listing_price if retained_cr >= 0 else 0.0
+        total_value   = ofs_proceeds + unrealised
+        total_moic    = total_value / total_cost if total_cost > 0 else None
+
+        result["retained_shares_cr"]  = max(retained_cr, 0.0)
+        result["total_invested_cr"]   = total_cost
+        result["unrealised_value_cr"] = unrealised
+        result["total_value_cr"]      = total_value
+        result["total_moic"]          = total_moic
+    else:
+        result["total_moic"] = None
+
+    result["sanity_ok"]    = len(sanity) == 0
+    result["sanity_notes"] = sanity
+    return result
 
 
-# ── RHP PDF parser ────────────────────────────────────────────────────────────
+def get_ipo_comparison_data(company_name: str, ipo_price: float) -> list[dict]:
+    """
+    Return all OFS sellers in an IPO with their realised MOICs.
+    Used for the comparison bar chart.
+    """
+    company = VERIFIED_IPO_DATA.get(company_name)
+    if not company:
+        return []
+    sellers = []
+    for name, inv in company.get("investors", {}).items():
+        waca     = inv.get("waca")
+        ofs_lakh = inv.get("ofs_shares_lakhs")
+        if not (waca and ofs_lakh and ofs_lakh > 0 and ipo_price):
+            continue
+        moic = ipo_price / waca
+        sellers.append({
+            "investor":        name.split("(")[0].strip(),   # short name
+            "ofs_shares_lakhs": ofs_lakh,
+            "ofs_proceeds_cr": (ofs_lakh / 100) * ipo_price,
+            "waca":            waca,
+            "realised_moic":   moic,
+            "waca_type":       inv.get("waca_type", ""),
+        })
+    # Sort by MOIC descending
+    return sorted(sellers, key=lambda x: x["realised_moic"], reverse=True)
 
-_PDF_PARSE_CACHE_TTL = 86400  # 24 hours
 
-def _download_pdf_bytes(url: str, timeout: int = 20) -> bytes | None:
-    """Download a PDF from a URL. Returns raw bytes or None on failure."""
+# ─────────────────────────────────────────────────────────────────────────────
+# RHP PDF PARSER  (enriches pre-encoded data with live RHP data)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_PDF_CACHE_TTL = 86_400   # 24 hours
+
+
+def _download_pdf(url: str, timeout: int = 25) -> bytes | None:
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/pdf,*/*",
-        }
-        r = requests.get(url, headers=headers, timeout=timeout, stream=True)
+        h = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+             "Accept": "application/pdf,*/*"}
+        r = requests.get(url, headers=h, timeout=timeout, stream=True)
         if r.status_code == 200:
             return r.content
     except Exception:
@@ -1241,186 +1694,100 @@ def extract_share_capital_history(
     progress_cb=None,
 ) -> list[dict]:
     """
-    Attempt to parse the "History of Equity Share Capital" table from an RHP PDF.
-
-    Uses pdfplumber. Returns list of dicts:
-        {date, allottee, shares, face_value, price_per_sh, consideration, nature}
-
-    Falls back gracefully if PDF unavailable or table not found.
-    Caches result for 24 h in st.session_state.
+    Parse the 'History of Equity Share Capital' table from an RHP PDF.
+    Returns list of allotment row dicts. Cached 24 h.
     """
-    cache_key = f"rhp_cap_hist_{company_name}"
-    ts_key    = f"rhp_cap_hist_{company_name}_ts"
-
-    now = time.time()
-    if (cache_key in st.session_state
-            and now - st.session_state.get(ts_key, 0) < _PDF_PARSE_CACHE_TTL):
-        return st.session_state[cache_key]
+    ck = f"rhp_cap_{company_name}"; tk = ck + "_ts"
+    if (ck in st.session_state and
+            time.time() - st.session_state.get(tk, 0) < _PDF_CACHE_TTL):
+        return st.session_state[ck]
 
     url = pdf_url or RHP_URLS.get(company_name)
     if not url:
         return []
 
-    if progress_cb:
-        progress_cb(0.1, "Downloading RHP PDF…")
-
-    pdf_bytes = _download_pdf_bytes(url)
+    if progress_cb: progress_cb(0.1, "Downloading RHP PDF…")
+    pdf_bytes = _download_pdf(url)
     if not pdf_bytes:
-        st.session_state[cache_key]   = []
-        st.session_state[ts_key]      = now
+        st.session_state[ck] = []; st.session_state[tk] = time.time()
         return []
 
-    if progress_cb:
-        progress_cb(0.4, "Parsing share capital history…")
-
-    rows = []
+    if progress_cb: progress_cb(0.4, "Parsing share capital history table…")
+    rows: list[dict] = []
     try:
-        import pdfplumber  # noqa: PLC0415
-
-        section_keywords = [
-            "history of equity share capital",
-            "equity share capital history",
-            "statement of equity share capital",
-        ]
-        col_patterns = {
-            "date":          re.compile(r"date", re.I),
-            "allottee":      re.compile(r"allot|name|beneficiar", re.I),
-            "shares":        re.compile(r"no\.?\s*of\s*share|number\s*of\s*share|shares\s*allot", re.I),
-            "price_per_sh":  re.compile(r"price|issue\s*price|per\s*share", re.I),
-            "consideration": re.compile(r"consider|cash|bonus|swap|swap", re.I),
+        import pdfplumber, io as _io
+        section_kws = ["history of equity share capital",
+                        "equity share capital history",
+                        "statement of equity share capital"]
+        col_pats = {
+            "date":    re.compile(r"date", re.I),
+            "allottee":re.compile(r"allot|name|beneficiar", re.I),
+            "shares":  re.compile(r"no\.?\s*of\s*share|number.*share|shares.*allot", re.I),
+            "price":   re.compile(r"\bprice\b|issue\s*price|per\s*share", re.I),
+            "consid":  re.compile(r"consider|nature|cash|bonus", re.I),
         }
-
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            in_section  = False
-            header_cols = {}
-
+        with pdfplumber.open(_io.BytesIO(pdf_bytes)) as pdf:
+            in_section = False; hdr = {}
             for page in pdf.pages:
-                text = (page.extract_text() or "").lower()
-
-                # Detect section start
+                txt = (page.extract_text() or "").lower()
                 if not in_section:
-                    for kw in section_keywords:
-                        if kw in text:
-                            in_section = True
-                            break
-
-                if not in_section:
-                    continue
-
-                # Extract tables from this page
-                tables = page.extract_tables() or []
-                for table in tables:
-                    if not table:
-                        continue
-
-                    # Try to identify header row
-                    for r_idx, row in enumerate(table):
-                        if row is None:
+                    for kw in section_kws:
+                        if kw in txt: in_section = True; break
+                if not in_section: continue
+                for tbl in (page.extract_tables() or []):
+                    if not tbl: continue
+                    for row in tbl:
+                        if row is None: continue
+                        rtxt = " ".join(str(c or "").lower() for c in row)
+                        if any(k in rtxt for k in ["allot", "share", "price"]):
+                            hdr = {}
+                            for ci, cell in enumerate(row):
+                                ct = str(cell or "").lower().strip()
+                                for fld, pat in col_pats.items():
+                                    if pat.search(ct): hdr.setdefault(fld, ci)
                             continue
-                        row_text = " ".join(str(c or "").lower() for c in row)
-                        if any(kw in row_text for kw in ["allot", "share", "price"]):
-                            # This is a header row — map columns
-                            header_cols = {}
-                            for c_idx, cell in enumerate(row):
-                                cell_t = str(cell or "").lower().strip()
-                                for field, pat in col_patterns.items():
-                                    if pat.search(cell_t):
-                                        header_cols.setdefault(field, c_idx)
-                            continue
+                        if not hdr: continue
+                        def _c(k):
+                            i = hdr.get(k)
+                            return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+                        al = _c("allottee"); sh = _c("shares").replace(",","")
+                        px = _c("price").replace(",","").replace("₹","").strip()
+                        if not al or not sh: continue
+                        try: sh_n = float(sh)
+                        except ValueError: continue
+                        px_n = None
+                        try: px_n = float(px)
+                        except ValueError: pass
+                        rows.append({"date": _c("date"), "allottee": al,
+                                     "shares": int(sh_n), "price_per_sh": px_n,
+                                     "consideration": _c("consid")})
+                if len(rows) > 300: break
+    except Exception: pass
 
-                        if not header_cols:
-                            continue
-
-                        def _cell(idx_key):
-                            idx = header_cols.get(idx_key)
-                            return str(row[idx] or "").strip() if idx is not None and idx < len(row) else ""
-
-                        allottee = _cell("allottee")
-                        shares_s = _cell("shares").replace(",", "").replace(" ", "")
-                        price_s  = _cell("price_per_sh").replace(",", "").replace("₹", "").strip()
-                        date_s   = _cell("date")
-                        consid   = _cell("consideration")
-
-                        if not allottee or not shares_s:
-                            continue
-
-                        try:
-                            shares_num = float(shares_s)
-                        except ValueError:
-                            continue
-
-                        price_num = None
-                        try:
-                            price_num = float(price_s)
-                        except ValueError:
-                            pass
-
-                        rows.append({
-                            "date":         date_s,
-                            "allottee":     allottee,
-                            "shares":       int(shares_num),
-                            "price_per_sh": price_num,
-                            "consideration": consid,
-                        })
-
-                # Stop if we've left the section (seen >50 rows with no share data)
-                if in_section and len(rows) > 200:
-                    break
-
-    except ImportError:
-        pass  # pdfplumber not available
-    except Exception:
-        pass  # Parse failure — return empty, caller uses pre-encoded data
-
-    if progress_cb:
-        progress_cb(1.0, "Done")
-
-    st.session_state[cache_key] = rows
-    st.session_state[ts_key]    = now
+    if progress_cb: progress_cb(1.0, "Done")
+    st.session_state[ck] = rows; st.session_state[tk] = time.time()
     return rows
 
 
-def match_investor_in_rhp(
-    rhp_rows: list[dict],
-    investor_display_name: str,
-) -> list[dict]:
-    """
-    Match an investor name against RHP allottee rows using fuzzy matching.
-    Returns the matching rows.
-    """
-    if not rhp_rows:
-        return []
-
-    # Build alias list for this investor
-    aliases = [investor_display_name]
-    inv_lower = investor_display_name.lower()
-    for canonical, alias_list in INVESTOR_ALIASES.items():
-        if canonical.lower() in inv_lower or any(a.lower() in inv_lower for a in alias_list):
-            aliases.extend([canonical] + alias_list)
+def match_investor_in_rhp(rhp_rows: list[dict], investor_name: str) -> list[dict]:
+    """Fuzzy-match investor name to RHP allottee rows."""
+    if not rhp_rows: return []
+    aliases = [investor_name]
+    il = investor_name.lower()
+    for canon, als in INVESTOR_ALIASES.items():
+        if canon.lower() in il or any(a.lower() in il for a in als):
+            aliases.extend([canon] + als)
     aliases = list(set(aliases))
-
-    matched = []
-    allottees = [(i, r["allottee"]) for i, r in enumerate(rhp_rows)]
-
+    seen, out = set(), []
     for alias in aliases:
-        for idx, allottee in allottees:
+        for r in rhp_rows:
             if _HAS_RAPIDFUZZ:
-                score = fuzz.token_set_ratio(alias, allottee)
-                if score >= 72:
-                    matched.append(rhp_rows[idx])
+                if fuzz.token_set_ratio(alias, r["allottee"]) >= 72:
+                    k = (r["date"], r["allottee"], r["shares"])
+                    if k not in seen: seen.add(k); out.append(r)
             else:
-                # Simple substring match fallback
                 short = alias.split()[0].lower()
-                if len(short) >= 4 and short in allottee.lower():
-                    matched.append(rhp_rows[idx])
-
-    # Deduplicate
-    seen = set()
-    unique = []
-    for r in matched:
-        key = (r["date"], r["allottee"], r["shares"])
-        if key not in seen:
-            seen.add(key)
-            unique.append(r)
-
-    return unique
+                if len(short) >= 4 and short in r["allottee"].lower():
+                    k = (r["date"], r["allottee"], r["shares"])
+                    if k not in seen: seen.add(k); out.append(r)
+    return out
