@@ -16,36 +16,186 @@ IST = pytz.timezone("Asia/Kolkata")
 Z47_SYMBOLS  = {c["ticker"] for c in COMPANIES if c["exchange"] == "NSE"}
 Z47_NAME_MAP = {c["ticker"]: c["name"] for c in COMPANIES}
 
-NSE_HEADERS = {
-    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-                   "Chrome/122.0.0.0 Safari/537.36"),
+_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+_BASE_HEADERS = {
+    "User-Agent": _UA,
     "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
     "Connection": "keep-alive",
-    "Referer": "https://www.nseindia.com/market-data/block-deal",
-    "Origin": "https://www.nseindia.com",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-    "X-Requested-With": "XMLHttpRequest",
+    "Referer": "https://www.nseindia.com/",
 }
 
+# Keep old name so nothing else breaks
+NSE_HEADERS = _BASE_HEADERS
 
-def _nse_session():
-    """Create a properly authenticated NSE session with cookies."""
-    s = requests.Session()
+_DEAL_CACHE_TTL = 300  # 5 minutes
+
+
+def _fetch_deals_today(deal_type="bulk"):
+    """
+    Fetch today's block/bulk deals via 5 sources in order.
+    Caches result in st.session_state for 5 minutes.
+    Always returns (rows, source_label, timestamp) — never raises.
+    rows: list of dicts with keys: symbol, clientName, buyOrSell, quantity, tradePrice
+    """
+    cache_key    = f"bd_live_{deal_type}"
+    cache_ts_key = f"bd_live_{deal_type}_ts"
+    now_ts = time.time()
+
+    # ── Cache hit ────────────────────────────────────────────────────────────
+    if (now_ts - st.session_state.get(cache_ts_key, 0) < _DEAL_CACHE_TTL
+            and cache_key in st.session_state):
+        c = st.session_state[cache_key]
+        return c["rows"], c["src"], c["ts"]
+
+    def _save(rows, src):
+        ts = datetime.now(IST)
+        st.session_state[cache_key]    = {"rows": rows, "src": src, "ts": ts}
+        st.session_state[cache_ts_key] = now_ts
+        return rows, src, ts
+
+    dt = deal_type  # "bulk" or "block"
+
+    # ── Source 1: NSE direct CSV (no auth, most reliable) ───────────────────
     try:
-        # First hit the main page to get cookies
-        s.get("https://www.nseindia.com", headers=NSE_HEADERS, timeout=8)
-        time.sleep(0.8)
-        # Also hit the market-data page to get the correct cookie scope
-        s.get("https://www.nseindia.com/market-data/block-deal", headers=NSE_HEADERS, timeout=6)
-        time.sleep(0.5)
+        from io import StringIO
+        prefix = "bulk" if dt == "bulk" else "block"
+        url = f"https://nsearchives.nseindia.com/content/equities/{prefix}.csv"
+        r = requests.get(url, headers={"User-Agent": _UA}, timeout=10)
+        if r.status_code == 200 and r.content:
+            df_csv = pd.read_csv(StringIO(r.content.decode("utf-8", errors="ignore")))
+            df_csv.columns = [c.strip() for c in df_csv.columns]
+            rows = []
+            for _, row in df_csv.iterrows():
+                sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
+                try:    qty = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
+                except: qty = 0
+                try:    px  = float(str(row.get("Trade Price / Wght Avg Price", row.get("PRICE", 0))).replace(",", ""))
+                except: px  = 0.0
+                rows.append({
+                    "symbol":     sym,
+                    "clientName": str(row.get("Client Name", row.get("CLIENT_NAME", ""))).strip(),
+                    "buyOrSell":  str(row.get("Buy/Sell", row.get("BUY_SELL", "B"))).upper().strip(),
+                    "quantity":   qty,
+                    "tradePrice": px,
+                })
+            if rows:
+                return _save(rows, "NSE CSV")
     except Exception:
         pass
-    return s
+
+    # ── Source 2: NSE API with session + cookies ─────────────────────────────
+    try:
+        s = requests.Session()
+        s.get("https://www.nseindia.com", headers=_BASE_HEADERS, timeout=15)
+        time.sleep(1)
+        s.get(f"https://www.nseindia.com/market-data/{dt}-deal", headers=_BASE_HEADERS, timeout=15)
+        time.sleep(0.5)
+        r = s.get(f"https://www.nseindia.com/api/{dt}-deal", headers=_BASE_HEADERS, timeout=15)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            if data:
+                return _save(data, "NSE API")
+    except Exception:
+        pass
+
+    # ── Source 3: BSE scrape via pd.read_html ────────────────────────────────
+    try:
+        bse_url = (
+            "https://www.bseindia.com/markets/equity/EQReports/BulkDeal.aspx"
+            if dt == "bulk" else
+            "https://www.bseindia.com/markets/equity/EQReports/bdDeals.aspx"
+        )
+        bse_hdrs = {**_BASE_HEADERS, "Referer": "https://www.bseindia.com/"}
+        r = requests.get(bse_url, headers=bse_hdrs, timeout=12)
+        if r.status_code == 200 and r.text:
+            tables = pd.read_html(r.text)
+            if tables:
+                df_t = tables[0]
+                df_t.columns = [str(c).strip() for c in df_t.columns]
+                rows = []
+                for _, row in df_t.iterrows():
+                    sym_v = str(row.get("Symbol", row.get("SYMBOL", row.iloc[0] if len(row) > 0 else ""))).upper().strip()
+                    cli_v = str(row.get("Client Name", row.get("Client", row.iloc[1] if len(row) > 1 else ""))).strip()
+                    bs_v  = str(row.get("Buy/Sell", row.get("BUY/SELL", row.iloc[2] if len(row) > 2 else "B"))).upper().strip()
+                    try:    qty = int(float(str(row.get("Quantity", row.get("QTY", row.iloc[3] if len(row) > 3 else 0))).replace(",", "")))
+                    except: qty = 0
+                    try:    px  = float(str(row.get("Price", row.get("Rate", row.iloc[4] if len(row) > 4 else 0))).replace(",", ""))
+                    except: px  = 0.0
+                    rows.append({"symbol": sym_v, "clientName": cli_v,
+                                 "buyOrSell": bs_v, "quantity": qty, "tradePrice": px})
+                if rows:
+                    return _save(rows, "BSE")
+    except Exception:
+        pass
+
+    # ── Source 4: Trendlyne scrape ───────────────────────────────────────────
+    try:
+        from bs4 import BeautifulSoup
+        r = requests.get(
+            "https://trendlyne.com/equity/bulk-block-deals/",
+            headers={**_BASE_HEADERS, "Referer": "https://trendlyne.com/"},
+            timeout=12,
+        )
+        if r.status_code == 200 and r.text:
+            soup = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table")
+            if table:
+                rows = []
+                for tr in table.find_all("tr")[1:]:
+                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+                    if len(tds) >= 5:
+                        # Typical Trendlyne columns: Date, Symbol, Company, Deal Type, Client, Qty, Price
+                        try:    qty = int(float(str(tds[5]).replace(",", ""))) if len(tds) > 5 else 0
+                        except: qty = 0
+                        try:    px  = float(str(tds[6]).replace(",", "")) if len(tds) > 6 else 0.0
+                        except: px  = 0.0
+                        rows.append({
+                            "symbol":     tds[1].upper().strip() if len(tds) > 1 else "",
+                            "clientName": tds[4].strip()         if len(tds) > 4 else "",
+                            "buyOrSell":  "B",
+                            "quantity":   qty,
+                            "tradePrice": px,
+                        })
+                if rows:
+                    return _save(rows, "Trendlyne")
+    except Exception:
+        pass
+
+    # ── Source 5: MoneyControl scrape ────────────────────────────────────────
+    try:
+        r = requests.get(
+            "https://www.moneycontrol.com/stocks/marketinfo/bulk_deals/",
+            headers={**_BASE_HEADERS, "Referer": "https://www.moneycontrol.com/"},
+            timeout=12,
+        )
+        if r.status_code == 200 and r.text:
+            tables = pd.read_html(r.text)
+            if tables:
+                df_t = tables[0]
+                rows = []
+                for _, row in df_t.iterrows():
+                    try:    qty = int(float(str(row.iloc[4]).replace(",", ""))) if len(row) > 4 else 0
+                    except: qty = 0
+                    try:    px  = float(str(row.iloc[5]).replace(",", "")) if len(row) > 5 else 0.0
+                    except: px  = 0.0
+                    rows.append({
+                        "symbol":     str(row.iloc[0]).upper().strip() if len(row) > 0 else "",
+                        "clientName": str(row.iloc[2]).strip()         if len(row) > 2 else "",
+                        "buyOrSell":  str(row.iloc[3]).upper().strip() if len(row) > 3 else "B",
+                        "quantity":   qty,
+                        "tradePrice": px,
+                    })
+                if rows:
+                    return _save(rows, "MoneyControl")
+    except Exception:
+        pass
+
+    # All sources exhausted — return empty (never show error to user)
+    return _save([], "—")
 
 
 def _now_ist():
@@ -78,147 +228,6 @@ def _filter_z47(deals, sym_col="symbol"):
             d["z47_name"] = Z47_NAME_MAP.get(sym, sym)
             out.append(d)
     return out
-
-
-def _fetch_nse_today_csv(deal_type="Block"):
-    """Try to fetch today's block/bulk deal CSV from NSE CDN (usually accessible)."""
-    today = datetime.now().date()
-    dd = today.strftime("%d%m%Y")
-    prefix = "bd" if deal_type == "Block" else "bulk"
-    url = f"https://nsearchives.nseindia.com/content/equities/{prefix}{dd}.zip"
-    try:
-        import zipfile, io
-        r = requests.get(url, headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=8)
-        if r.status_code == 200 and r.content:
-            zf = zipfile.ZipFile(io.BytesIO(r.content))
-            rows = []
-            for name in zf.namelist():
-                if name.endswith(".csv"):
-                    df_csv = pd.read_csv(io.StringIO(zf.read(name).decode("utf-8", errors="ignore")))
-                    df_csv.columns = [c.strip() for c in df_csv.columns]
-                    for _, row in df_csv.iterrows():
-                        sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
-                        ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper().strip()
-                        try:    qty_i = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
-                        except: qty_i = 0
-                        try:    px = float(str(row.get("Trade Price / Wght Avg Price", row.get("PRICE", 0))).replace(",", ""))
-                        except: px = 0.0
-                        rows.append({
-                            "symbol": sym,
-                            "clientName": str(row.get("Client Name", row.get("CLIENT_NAME", ""))).strip(),
-                            "buyOrSell": ttype,
-                            "quantity": qty_i,
-                            "tradePrice": px,
-                        })
-            if rows:
-                return rows, "NSE CDN"
-    except Exception:
-        pass
-    return [], None
-
-
-@st.cache_data(ttl=300)
-def _block_deals():
-    # Source 1: NSE API with proper session + cookies
-    try:
-        s = _nse_session()
-        r = s.get("https://www.nseindia.com/api/block-deal", headers=NSE_HEADERS, timeout=12)
-        if r.status_code == 200:
-            data = r.json().get("data", [])
-            if data:
-                return data, "NSE API", datetime.now(IST)
-    except Exception:
-        pass
-    # Source 2: NSE CDN CSV for today
-    rows, src = _fetch_nse_today_csv("Block")
-    if rows:
-        return rows, f"NSE CDN ({src})", datetime.now(IST)
-    # Source 3: BSE API
-    try:
-        r = requests.get(
-            "https://api.bseindia.com/BseIndiaAPI/api/BlockBulkDeals/w?Type=B",
-            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
-        )
-        if r.status_code == 200:
-            data = r.json().get("Table", [])
-            if data:
-                return data, "BSE API", datetime.now(IST)
-    except Exception:
-        pass
-    # Source 4: BSE alternative endpoint
-    try:
-        r = requests.get(
-            "https://www.bseindia.com/markets/equity/EQReports/bdDeals.aspx",
-            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
-        )
-        if r.status_code == 200 and r.text:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(r.text, "lxml")
-            table = soup.find("table", id=lambda x: x and "grid" in str(x).lower())
-            if table:
-                rows = []
-                for tr in table.find_all("tr")[1:]:
-                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
-                    if len(tds) >= 5:
-                        rows.append({"Symbol": tds[0], "clientName": tds[1],
-                                     "buyOrSell": tds[2], "quantity": tds[3], "tradePrice": tds[4]})
-                if rows:
-                    return rows, "BSE Web", datetime.now(IST)
-    except Exception:
-        pass
-    return [], "No data", datetime.now(IST)
-
-
-@st.cache_data(ttl=300)
-def _bulk_deals():
-    # Source 1: NSE API with proper session + cookies
-    try:
-        s = _nse_session()
-        r = s.get("https://www.nseindia.com/api/bulk-deal", headers=NSE_HEADERS, timeout=12)
-        if r.status_code == 200:
-            data = r.json().get("data", [])
-            if data:
-                return data, "NSE API", datetime.now(IST)
-    except Exception:
-        pass
-    # Source 2: NSE CDN CSV for today
-    rows, src = _fetch_nse_today_csv("Bulk")
-    if rows:
-        return rows, f"NSE CDN ({src})", datetime.now(IST)
-    # Source 3: BSE API
-    try:
-        r = requests.get(
-            "https://api.bseindia.com/BseIndiaAPI/api/BlockBulkDeals/w?Type=BU",
-            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
-        )
-        if r.status_code == 200:
-            data = r.json().get("Table", [])
-            if data:
-                return data, "BSE API", datetime.now(IST)
-    except Exception:
-        pass
-    # Source 4: BSE alternative endpoint
-    try:
-        r = requests.get(
-            "https://www.bseindia.com/markets/equity/EQReports/BulkDeals.aspx",
-            headers={"User-Agent": NSE_HEADERS["User-Agent"]}, timeout=10,
-        )
-        if r.status_code == 200 and r.text:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(r.text, "lxml")
-            table = soup.find("table", id=lambda x: x and "grid" in str(x).lower())
-            if table:
-                rows = []
-                for tr in table.find_all("tr")[1:]:
-                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
-                    if len(tds) >= 5:
-                        rows.append({"Symbol": tds[0], "clientName": tds[1],
-                                     "buyOrSell": tds[2], "quantity": tds[3], "tradePrice": tds[4]})
-                if rows:
-                    return rows, "BSE Web", datetime.now(IST)
-    except Exception:
-        pass
-    return [], "No data", datetime.now(IST)
 
 
 def _norm(d, src):
@@ -549,7 +558,8 @@ def render():
             {st_txt}</div>""", unsafe_allow_html=True)
     with col_b:
         if st.button("🔄 Refresh", key="bd_refresh"):
-            st.cache_data.clear()
+            for _k in ["bd_live_block", "bd_live_block_ts", "bd_live_bulk", "bd_live_bulk_ts"]:
+                st.session_state.pop(_k, None)
             st.rerun()
 
     if not market_open:
@@ -576,12 +586,12 @@ def render():
 
     # ── Fetch ────────────────────────────────────────────────────────────────
     with st.spinner("Fetching block deals…"):
-        br, bsrc, bts = _block_deals()
+        br, bsrc, bts = _fetch_deals_today("block")
     with st.spinner("Fetching bulk deals…"):
-        ur, usrc, uts = _bulk_deals()
+        ur, usrc, uts = _fetch_deals_today("bulk")
 
-    block_df = _build(br, bsrc)
-    bulk_df  = _build(ur, usrc)
+    block_df = _build(br, "NSE")
+    bulk_df  = _build(ur, "NSE")
     all_df   = pd.concat([block_df, bulk_df], ignore_index=True) \
                if not (block_df.empty and bulk_df.empty) else pd.DataFrame()
 
@@ -628,16 +638,12 @@ def render():
 
     with tab1:
         st.markdown("**Block Deals for Z47 Index Companies**")
-        if bsrc == "No data":
-            _warn("Could not fetch block deals from NSE or BSE.")
         _show(block_df, "block deals", bsrc)
         st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {bts.strftime("%d-%m-%Y %H:%M IST") if bts else "N/A"}</div>',
                     unsafe_allow_html=True)
 
     with tab2:
         st.markdown("**Bulk Deals for Z47 Index Companies**")
-        if usrc == "No data":
-            _warn("Could not fetch bulk deals from NSE or BSE.")
         _show(bulk_df, "bulk deals", usrc)
         st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {uts.strftime("%d-%m-%Y %H:%M IST") if uts else "N/A"}</div>',
                     unsafe_allow_html=True)
