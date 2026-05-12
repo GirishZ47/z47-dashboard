@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from z47_assistant import render_z47_assistant
+import time
+import re
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
@@ -772,6 +774,286 @@ _NSE_HDR = {
 }
 
 
+# ── BSE scrip codes for Z47 IPO companies ──────────────────────────────────────
+# Used as primary source for shareholding pattern data
+_BSE_CODES = {
+    "SWIGGY":    "544741",
+    "OLAELEC":   "544125",
+    "BLACKBUCK": "543997",
+    "MOBIKWIK":  "544273",
+    "UNIECOM":   "543537",
+    "IXIGO":     "544168",
+    "FIRSTCRY":  "544117",
+    "AWFIS":     "544075",
+    "TBOTEK":    "544068",
+    "GODIGIT":   "543957",
+    "SHADOWFAX": "544494",
+    "ATHERENERG":"544346",
+}
+
+_SH_CACHE_TTL = 1800  # 30 minutes
+
+
+def _fetch_shareholding(ticker, company_name=""):
+    """
+    Fetch shareholding pattern via 5-source fallback chain.
+    Returns dict: {rows, quarters, source, ts}. Never raises.
+    rows: list of {Category, Value}
+    quarters: list of {Quarter, Promoter %, FII/FPI %, DII %, Public %} — last 4
+    """
+    cache_key = f"sh_{ticker}"
+    now_ts    = time.time()
+    if (now_ts - st.session_state.get(f"{cache_key}_ts", 0) < _SH_CACHE_TTL
+            and cache_key in st.session_state):
+        return st.session_state[cache_key]
+
+    sym = ticker.replace(".NS", "").replace(".BO", "").upper()
+    bse_code = _BSE_CODES.get(sym, "")
+
+    _ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+           "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    _hdrs = {"User-Agent": _ua, "Accept": "*/*",
+             "Accept-Language": "en-US,en;q=0.9", "Referer": "https://www.nseindia.com/"}
+
+    def _save(rows, quarters, src):
+        result = {"rows": rows, "quarters": quarters, "source": src, "ts": datetime.now(IST)}
+        st.session_state[cache_key]            = result
+        st.session_state[f"{cache_key}_ts"]   = now_ts
+        return result
+
+    def _to_float(v):
+        try:
+            return round(float(str(v).replace(",", "")), 2)
+        except Exception:
+            return 0.0
+
+    # ── Source 1: BSE ShareHolding Pattern API ────────────────────────────────
+    if bse_code:
+        try:
+            r = requests.get(
+                f"https://api.bseindia.com/BseIndiaAPI/api/ShareHoldingPatterns/w"
+                f"?scripcode={bse_code}&type=EQ",
+                headers={"User-Agent": _ua, "Referer": "https://www.bseindia.com/"},
+                timeout=12,
+            )
+            if r.status_code == 200 and r.text:
+                raw = r.json()
+                qtrs = raw if isinstance(raw, list) else (
+                    raw.get("data", raw.get("Table", raw.get("ShareHoldingData", [])))
+                )
+                if qtrs:
+                    quarters = []
+                    for q in qtrs[:4]:
+                        promoter = _to_float(q.get("PROMOTER",
+                                   q.get("PROMOTER_TOTAL", q.get("promoterTotal", 0))))
+                        fii      = _to_float(q.get("FII",
+                                   q.get("FPI", q.get("fiiPercent", 0))))
+                        dii      = _to_float(q.get("DII",
+                                   q.get("diiPercent", q.get("DII_TOTAL", 0))))
+                        public   = _to_float(q.get("PUBLIC",
+                                   q.get("publicPercent", q.get("RETAIL", 0))))
+                        quarter  = str(q.get("QUARTER", q.get("quarter",
+                                   q.get("QuarterYear", ""))))
+                        if promoter + fii + dii + public > 0:
+                            quarters.append({"Quarter": quarter,
+                                             "Promoter %": promoter, "FII/FPI %": fii,
+                                             "DII %": dii,           "Public %":  public})
+                    if quarters:
+                        latest = quarters[0]
+                        rows = [
+                            {"Category": "Promoter / Founding Group",        "Value": f"{latest['Promoter %']:.2f}%"},
+                            {"Category": "FII / FPI (Foreign Institutional)","Value": f"{latest['FII/FPI %']:.2f}%"},
+                            {"Category": "DII (Domestic Institutional)",     "Value": f"{latest['DII %']:.2f}%"},
+                            {"Category": "Public / Retail",                  "Value": f"{latest['Public %']:.2f}%"},
+                        ]
+                        return _save(rows, quarters, "BSE")
+        except Exception:
+            pass
+
+    # ── Source 2: NSE API with session + cookies ──────────────────────────────
+    try:
+        s = requests.Session()
+        s.get("https://www.nseindia.com", headers=_hdrs, timeout=12)
+        time.sleep(0.5)
+        r = s.get(
+            f"https://www.nseindia.com/api/corporate-share-holdings-master?symbol={sym}",
+            headers=_hdrs, timeout=12,
+        )
+        if r.status_code == 200 and r.text:
+            raw = r.json()
+            entries = raw if isinstance(raw, list) else raw.get("data", [])
+            quarters = []
+            for q_data in entries[:4]:
+                quarter   = q_data.get("date", q_data.get("period", ""))
+                breakdown = q_data.get("shareHoldingList", q_data.get("data", []))
+                promoter = fii = dii = public = 0.0
+                for item in breakdown:
+                    cat = str(item.get("category", "")).lower()
+                    pct = _to_float(item.get("percentage", item.get("pct", 0)))
+                    if "promoter" in cat:
+                        promoter += pct
+                    elif "fii" in cat or "fpi" in cat or "foreign" in cat:
+                        fii += pct
+                    elif "dii" in cat or "domestic inst" in cat or "mutual fund" in cat:
+                        dii += pct
+                    elif "public" in cat or "retail" in cat or "individual" in cat:
+                        public += pct
+                if promoter + fii + dii + public > 0:
+                    quarters.append({"Quarter": str(quarter),
+                                     "Promoter %": round(promoter, 2), "FII/FPI %": round(fii, 2),
+                                     "DII %": round(dii, 2),           "Public %":  round(public, 2)})
+            if quarters:
+                latest = quarters[0]
+                rows = [
+                    {"Category": "Promoter / Founding Group",        "Value": f"{latest['Promoter %']:.2f}%"},
+                    {"Category": "FII / FPI (Foreign Institutional)","Value": f"{latest['FII/FPI %']:.2f}%"},
+                    {"Category": "DII (Domestic Institutional)",     "Value": f"{latest['DII %']:.2f}%"},
+                    {"Category": "Public / Retail",                  "Value": f"{latest['Public %']:.2f}%"},
+                ]
+                return _save(rows, quarters, "NSE")
+    except Exception:
+        pass
+
+    # ── Source 3: Trendlyne scrape ────────────────────────────────────────────
+    try:
+        from bs4 import BeautifulSoup
+        r = requests.get(
+            f"https://trendlyne.com/fundamentals/shareholding/{sym}/",
+            headers={"User-Agent": _ua, "Referer": "https://trendlyne.com/"}, timeout=12,
+        )
+        if r.status_code == 200 and r.text:
+            soup = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table")
+            if table:
+                rows_out = []
+                for tr in table.find_all("tr")[1:]:
+                    tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+                    if len(tds) >= 2 and tds[0]:
+                        rows_out.append({"Category": tds[0], "Value": tds[-1]})
+                if rows_out:
+                    return _save(rows_out, [], "Trendlyne")
+    except Exception:
+        pass
+
+    # ── Source 4: Screener.in scrape ──────────────────────────────────────────
+    try:
+        from bs4 import BeautifulSoup
+        r = requests.get(
+            f"https://www.screener.in/company/{sym}/",
+            headers={"User-Agent": _ua, "Referer": "https://www.screener.in/"}, timeout=12,
+        )
+        if r.status_code == 200 and r.text:
+            soup = BeautifulSoup(r.text, "lxml")
+            sh_section = soup.find("section", id="shareholding")
+            if sh_section:
+                table = sh_section.find("table")
+                if table:
+                    rows_out = []
+                    for tr in table.find_all("tr")[1:]:
+                        tds = [td.get_text(strip=True) for td in tr.find_all("td")]
+                        if len(tds) >= 2 and tds[0]:
+                            rows_out.append({"Category": tds[0], "Value": tds[-1]})
+                    if rows_out:
+                        return _save(rows_out, [], "Screener.in")
+    except Exception:
+        pass
+
+    # ── Source 5: yfinance (last resort) ─────────────────────────────────────
+    try:
+        t_yf = yf.Ticker(ticker)
+        h = t_yf.major_holders
+        if h is not None and not h.empty:
+            _LMAP = {
+                "insidersPercentHeld":          "Insider / Promoter Holding",
+                "institutionsPercentHeld":      "Institutional Holding",
+                "institutionsFloatPercentHeld": "Institutional % of Float",
+                "institutionsCount":            "No. of Institutions",
+            }
+            rows_out = []
+            for idx in h.index:
+                key = str(idx)
+                val = h.loc[idx].iloc[-1] if hasattr(h.loc[idx], "iloc") else h.loc[idx]
+                label = _LMAP.get(key, key)
+                try:
+                    fval = float(val)
+                    fmt  = f"{fval * 100:.2f}%" if fval <= 1 else f"{fval:.2f}%"
+                except Exception:
+                    fmt = str(val)
+                rows_out.append({"Category": label, "Value": fmt})
+            if rows_out:
+                return _save(rows_out, [], "yfinance")
+    except Exception:
+        pass
+
+    # All sources exhausted — return any previously cached data or empty
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]
+    return _save([], [], "—")
+
+
+def _return_popup_md(inv, ipo):
+    """Generate markdown for Return at IPO calculation popover."""
+    ret_text   = inv.get("return_at_ipo", "N/A")
+    entry_val  = inv.get("entry_val", "N/A")
+    ipo_price  = ipo.get("issue_price")
+    list_price = ipo.get("listing_price")
+    round_str  = inv.get("round", "")
+
+    headline = ret_text.split("(")[0].strip()
+
+    lines = [f"**Return at IPO: {headline}**", ""]
+
+    # Try to extract per-share entry price from WACA / arrow notation
+    combined = entry_val + " " + ret_text
+    waca_m   = re.search(r'WACA[:\s~]+₹([\d.]+)', combined, re.IGNORECASE)
+    arrow_m  = re.search(r'entry[~\s]+₹([\d.]+)/sh', combined, re.IGNORECASE)
+    inl_m    = re.search(r'~₹([\d.]+)/sh', combined)
+
+    entry_px = None
+    if waca_m:
+        entry_px = float(waca_m.group(1))
+        lines.append(f"**Entry Price (WACA):** ₹{entry_px}/share")
+    elif arrow_m:
+        entry_px = float(arrow_m.group(1))
+        lines.append(f"**Entry Price (est.):** ₹{entry_px}/share")
+    elif inl_m:
+        entry_px = float(inl_m.group(1))
+        lines.append(f"**Entry Price (est.):** ₹{entry_px}/share")
+    else:
+        lines.append(f"**Entry Valuation:** {entry_val}")
+
+    if ipo_price:
+        lines.append(f"**IPO Issue Price:** ₹{ipo_price}/share")
+    if list_price:
+        lines.append(f"**Listing Price:** ₹{list_price}/share")
+
+    lines.append("")
+
+    if entry_px and ipo_price:
+        ret_x = round(ipo_price / entry_px, 1)
+        lines.append(f"Return at IPO price = ₹{ipo_price} ÷ ₹{entry_px} = **{ret_x}x**")
+    if entry_px and list_price:
+        ret_l = round(list_price / entry_px, 1)
+        lines.append(f"Return at listing   = ₹{list_price} ÷ ₹{entry_px} = **{ret_l}x**")
+
+    if not (entry_px and ipo_price) and not (entry_px and list_price):
+        lines.append(f"*Valuation-based estimate — exact per-share entry price not publicly disclosed*")
+        lines.append(f"*{entry_val}*")
+
+    lines.append(f"**Reported as:** {headline}")
+
+    paren_m = re.search(r'\(([^)]{10,})\)', ret_text)
+    if paren_m:
+        lines.append(f"*{paren_m.group(1)}*")
+
+    lines.append("")
+    lines.append(f"**Investment Round:** {round_str}")
+    lines.append("**Source:** Entry price from RHP Share Capital History / public VC disclosures; "
+                 "IPO & listing prices from NSE/BSE official filings")
+
+    return "\n\n".join(lines)
+
+
 def _nse_quote(symbol):
     """Fetch last price + 52w high/low from NSE equity API."""
     try:
@@ -872,17 +1154,6 @@ def _scrape_gmp(company_name):
         pass
     return None
 
-
-@st.cache_data(ttl=600)
-def _shareholding(ticker):
-    try:
-        t = yf.Ticker(ticker)
-        h = t.major_holders
-        if h is not None and not h.empty:
-            return h
-    except Exception:
-        pass
-    return None
 
 
 def _build_df():
@@ -1470,7 +1741,7 @@ def render():
             st.metric(ev_rev_label, f"{ev_rev_listing:.1f}x" if ev_rev_listing else "N/A",
                       help=ev_rev_help)
             if ev_rev_listing and listing_mcap and rev_cr:
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at Listing**")
                     st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
                     st.markdown(f"- Revenue ({rev_yr}): **₹{rev_cr:,} cr**")
@@ -1486,7 +1757,7 @@ def render():
                             "underlying PBT was ~₹29 cr." if pe_warn else
                             "Market Cap ÷ PAT at listing day (only for profitable companies)"))
             if pe_listing and listing_mcap and pat_cr:
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown("**P/E at Listing**")
                     st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
                     st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
@@ -1498,7 +1769,7 @@ def render():
                       f"{pb_listing:.1f}x" if pb_listing else "N/A",
                       help="Market Cap ÷ Book Value at listing day (financial services companies only)")
             if pb_listing and listing_mcap and bv_cr:
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown("**P/B at Listing**")
                     st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
                     st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
@@ -1514,7 +1785,7 @@ def render():
             st.metric(ev_rev_cmp_label, f"{ev_rev_now:.1f}x" if ev_rev_now else "N/A", delta=delta_evr)
             if ev_rev_now and price and lp and rev_cr:
                 cmp_mcap = round(listing_mcap * price / lp, 0) if (listing_mcap and lp and lp > 0) else None
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at CMP**")
                     st.markdown(f"- Current Price: **₹{price:.2f}**")
                     st.markdown(f"- Listing Price: **₹{lp:.2f}**  →  Price ratio: **{price/lp:.3f}x**")
@@ -1528,7 +1799,7 @@ def render():
                       f"{pe_now:.1f}x" if pe_now else ("Loss-making" if profitable is False else "N/A"),
                       delta=delta_pe)
             if pe_now and pat_cr and price and lp:
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown("**P/E at CMP**")
                     st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
                     st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
@@ -1537,7 +1808,7 @@ def render():
             delta_pb = f"{(pb_now - pb_listing):+.1f}x" if (pb_now and pb_listing) else None
             st.metric("P/B at CMP", f"{pb_now:.1f}x" if pb_now else "N/A", delta=delta_pb)
             if pb_now and bv_cr and price and lp:
-                with st.popover("🧮 How calculated?"):
+                with st.popover("See Calculation"):
                     st.markdown("**P/B at CMP**")
                     st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
                     st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
@@ -1567,39 +1838,34 @@ def render():
         # ── Section 1: Shareholding Pattern ──────────────────────────────────
         st.markdown("#### 📊 Shareholding Pattern")
         with st.spinner("Fetching shareholding…"):
-            holders = _shareholding(ipo["ticker"])
-        if holders is not None:
-            _LABEL_MAP = {
-                "insidersPercentHeld":           ("Insider / Promoter Holding",    "pct"),
-                "institutionsPercentHeld":        ("Institutional Holding",         "pct"),
-                "institutionsFloatPercentHeld":   ("Institutional % of Float",      "pct"),
-                "institutionsCount":              ("No. of Institutions",           "int"),
-            }
-            sh_rows = []
-            try:
-                # major_holders is a DataFrame with metric as index, value in last col
-                for idx in holders.index:
-                    key   = str(idx)
-                    val   = holders.loc[idx].iloc[-1] if hasattr(holders.loc[idx], "iloc") else holders.loc[idx]
-                    label, dtype = _LABEL_MAP.get(key, (key, "pct"))
+            sh_data = _fetch_shareholding(ipo["ticker"], ipo["company"])
+
+        sh_rows     = sh_data.get("rows", [])
+        sh_quarters = sh_data.get("quarters", [])
+        sh_source   = sh_data.get("source", "—")
+
+        if sh_rows:
+            st.dataframe(pd.DataFrame(sh_rows), use_container_width=True, hide_index=True)
+            if sh_quarters and len(sh_quarters) > 1:
+                st.markdown(
+                    "<div style='font-size:12px;color:#6b7a8d;margin:8px 0 4px'>"
+                    "Quarter-wise trend (last 4 quarters):</div>",
+                    unsafe_allow_html=True)
+                qt_df = pd.DataFrame(sh_quarters)
+                pct_cols = [c for c in qt_df.columns if c != "Quarter"]
+                def _sh_col(val):
                     try:
-                        fval = float(val)
-                        if dtype == "pct":
-                            # yfinance returns decimals (0.49 = 49%)
-                            fmt = f"{fval * 100:.2f}%" if fval <= 1 else f"{fval:.2f}%"
-                        else:
-                            fmt = str(int(fval))
+                        v = float(str(val).replace("%", ""))
+                        if v >= 50: return "color:#16a34a;font-weight:600"
+                        if v >= 25: return "color:#1e40af;font-weight:600"
                     except Exception:
-                        fmt = str(val)
-                    sh_rows.append({"Category": label, "Value": fmt})
-            except Exception:
-                sh_rows = []
-            if sh_rows:
-                st.dataframe(pd.DataFrame(sh_rows), use_container_width=True, hide_index=True)
-            else:
-                _warn("Could not parse shareholding data.")
+                        pass
+                    return ""
+                styled_qt = qt_df.style.map(_sh_col, subset=pct_cols)
+                st.dataframe(styled_qt, use_container_width=True, hide_index=True)
+            st.caption(f"Source: {sh_source} | Updated: {_now_ist()}")
         else:
-            _warn("Shareholding data not available from yfinance for this ticker.")
+            st.info("Fetching shareholding data… if this persists, data may not be available for this ticker yet.")
 
         st.markdown("---")
 
@@ -1664,37 +1930,40 @@ def render():
         st.markdown("#### 💰 Pre-IPO Investors & Returns")
         pripo = ipo.get("pripo_investors", [])
         if pripo and ipo.get("issue_price"):
-            ip_val = ipo["issue_price"]
-            price_now, _, _ = _live_price(ipo["ticker"])
-            rows_pi = []
-            for inv in pripo:
-                row = {
-                    "Investor":         inv.get("investor", ""),
-                    "Investment Round": inv.get("round", ""),
-                    "Entry Valuation":  inv.get("entry_val", "N/A"),
-                    "% Held (Pre-IPO)": inv.get("pct_held", "N/A"),
-                    "Return at IPO":    inv.get("return_at_ipo", "N/A"),
-                }
-                rows_pi.append(row)
+            # Header row
+            _hcols = st.columns([3, 2, 2, 1.3, 2])
+            for _hc, _hl in zip(_hcols, ["**Investor**", "**Round**",
+                                          "**Entry Valuation**", "**% Held**",
+                                          "**Return at IPO**"]):
+                _hc.markdown(_hl)
+            st.markdown(
+                "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
+                unsafe_allow_html=True)
 
-            pi_df = pd.DataFrame(rows_pi)
+            for _idx_inv, _inv in enumerate(pripo):
+                _rc = st.columns([3, 2, 2, 1.3, 2])
+                _rc[0].markdown(
+                    f"<div style='font-size:12px;line-height:1.4'>{_inv.get('investor','')}</div>",
+                    unsafe_allow_html=True)
+                _rc[1].markdown(
+                    f"<div style='font-size:11px;color:#6b7a8d'>{_inv.get('round','')}</div>",
+                    unsafe_allow_html=True)
+                _rc[2].markdown(
+                    f"<div style='font-size:11px;color:#6b7a8d'>{_inv.get('entry_val','N/A')}</div>",
+                    unsafe_allow_html=True)
+                _rc[3].markdown(
+                    f"<div style='font-size:12px'>{_inv.get('pct_held','N/A')}</div>",
+                    unsafe_allow_html=True)
 
-            def _ret_color(val):
-                v = str(val)
-                if v.startswith("+") or (v.replace(".","").replace("%","").lstrip("-").isdigit() and not v.startswith("-")):
-                    try:
-                        if float(v.replace("%","").replace("+","")) > 0:
-                            return "color:#16a34a;font-weight:600"
-                    except Exception:
-                        pass
-                if v.startswith("-"):
-                    return "color:#dc2626;font-weight:600"
-                return ""
+                _ret_txt   = _inv.get("return_at_ipo", "N/A")
+                _btn_label = _ret_txt.split("(")[0].strip()
+                if len(_btn_label) > 22:
+                    _btn_label = _btn_label[:20] + "…"
+                with _rc[4]:
+                    with st.popover(f"{_btn_label} ↗", use_container_width=True):
+                        st.markdown(_return_popup_md(_inv, ipo))
 
-            ret_cols = [c for c in ["Return at IPO"] if c in pi_df.columns]
-            styled_pi = pi_df.style.map(_ret_color, subset=ret_cols)
-            st.dataframe(styled_pi, use_container_width=True, hide_index=True)
-            st.caption("Entry valuations sourced from public VC funding disclosures & RHP filings. Returns are approximate.")
+            st.caption("Entry valuations from public VC disclosures & RHP filings. Returns are approximate. Click ↗ for calculation.")
         else:
             st.markdown(
                 f"<div style='background:{BG_ALT};border:1px solid {BORDER};border-radius:8px;"
