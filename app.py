@@ -1730,6 +1730,11 @@ def main():
         "1Y": "in 1 year",  "YTD": "year-to-date", "All": "since Jan 2024",
     }[period]
 
+    # Read the actual first data-point date straight from the chart's slice —
+    # same source the chart uses, so non-trading days are handled automatically.
+    _start_date_str = pd.Timestamp(_plot["date"].iloc[0]).strftime("%-d %b %Y") \
+                      if not _plot.empty else "1 Jan 2024"
+
     def _rebase_card(label, col, accent):
         lv  = _rb_level(col)
         ret = _rb_ret(col)
@@ -1743,7 +1748,7 @@ def main():
             f"text-transform:uppercase;margin-bottom:6px'>{label}</div>"
             f"<div style='font-size:28px;font-weight:800;color:#1a0f00;line-height:1'>"
             f"{lv:.1f}</div>"
-            f"<div style='font-size:11px;color:#6b7a8d;margin-top:2px'>Rebased to 100 on 1 Jan 2024</div>"
+            f"<div style='font-size:11px;color:#6b7a8d;margin-top:2px'>Rebased to 100 on {_start_date_str}</div>"
             f"<div style='display:flex;gap:16px;margin-top:8px'>"
             f"<span style='font-size:13px;font-weight:700;color:{ret_color}'>"
             f"{arrow} {ret_str} {_period_label}</span>"
