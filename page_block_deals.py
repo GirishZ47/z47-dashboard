@@ -1,4 +1,6 @@
 """Block & Bulk Deals module — called by app.py routing."""
+import re
+import urllib.parse
 import streamlit as st
 import requests
 import pandas as pd
@@ -34,6 +36,241 @@ NSE_HEADERS = _BASE_HEADERS
 _DEAL_CACHE_TTL = 300  # 5 minutes
 
 
+# ── Price enrichment — multi-source fallback ──────────────────────────────────
+# Resolves price = 0 rows via: news → yfinance historical → yfinance live
+# All results cached in session_state["bd_px_cache"] to avoid repeat calls.
+
+_PX_CACHE_KEY = "bd_px_cache"
+
+def _px_cache_get(symbol, date_str, client, qty):
+    cache = st.session_state.get(_PX_CACHE_KEY, {})
+    k = (symbol.upper()[:10], date_str[:10],
+         str(client)[:20].lower(), max(0, int(qty) // 10_000))
+    return cache.get(k)  # (price, emoji, detail) or None
+
+def _px_cache_set(symbol, date_str, client, qty, price, emoji, detail):
+    if _PX_CACHE_KEY not in st.session_state:
+        st.session_state[_PX_CACHE_KEY] = {}
+    k = (symbol.upper()[:10], date_str[:10],
+         str(client)[:20].lower(), max(0, int(qty) // 10_000))
+    st.session_state[_PX_CACHE_KEY][k] = (float(price), emoji, str(detail))
+
+
+def _extract_price_from_text(text):
+    """Regex-extract a share price from news article text."""
+    _PATS = [
+        r'at\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*per\s+share',
+        r'at\s+a\s+price\s+of\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'average\s+price\s+of\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*per\s+share',
+        r'traded\s+at\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'deal\s+price\s+(?:of\s+)?[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'floor\s+price\s+(?:of\s+)?[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'transaction\s+price\s+(?:of\s+)?[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'price[:\s]+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'transacted\s+at\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'sold\s+at\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+        r'bought\s+at\s+[₹Rs]+\.?\s*(\d+(?:,\d+)*(?:\.\d+)?)',
+    ]
+    for pat in _PATS:
+        for m in re.findall(pat, text, re.IGNORECASE):
+            try:
+                v = float(str(m).replace(',', ''))
+                if 0.5 < v < 500_000:
+                    return v
+            except Exception:
+                continue
+    return None
+
+
+def _search_news_price(company_name, client_name, quantity, date_str, action):
+    """
+    Search Google News RSS for a specific block/bulk deal price.
+    Large deals (>1L shares) are always covered by ET, Mint, MC.
+    Returns (price, detail_str) or (None, None).
+    """
+    try:
+        date_obj = datetime.strptime(date_str[:10], '%Y-%m-%d')
+    except Exception:
+        return None, None
+
+    action_word = "buys" if "B" in str(action).upper() else "sells"
+    date_month  = date_obj.strftime('%B %Y')
+    qty_lakh    = round(quantity / 100_000, 1)
+
+    # Build queries: specific → broad. Groww gets extra targeted queries.
+    queries = [
+        f'"{company_name}" "block deal" "{date_str[:10]}"',
+        f'{client_name} {action_word} {company_name} block deal {date_str[:7]}',
+        f'{company_name} block deal {client_name} price',
+        f'{company_name} bulk deal {date_str[:10]} price share',
+        f'{company_name} {action_word} {qty_lakh} lakh shares {date_month}',
+        f'{company_name} block deal {date_month}',
+    ]
+
+    # Groww-specific queries (lock-in expiry on 2026-05-12 — massive deals)
+    if "groww" in company_name.lower() or "billionbrains" in company_name.lower():
+        queries = [
+            f'Groww block deal May 2026 YC Holdings Peak XV Ribbit',
+            f'Billionbrains Garage block deal 12 May 2026 price',
+            f'GROWW block deal price May 12 2026',
+            f'Peak XV sells Groww shares May 2026 price per share',
+            f'YC Holdings Groww block deal price',
+        ] + queries
+
+    from bs4 import BeautifulSoup
+    for query in queries[:5]:   # cap at 5 queries to stay fast
+        try:
+            encoded = urllib.parse.quote(query)
+            rss_url = (f"https://news.google.com/rss/search"
+                       f"?q={encoded}&hl=en-IN&gl=IN&ceid=IN:en")
+            r = requests.get(rss_url, timeout=6, headers={"User-Agent": _UA})
+            if r.status_code != 200:
+                continue
+            soup  = BeautifulSoup(r.content, "xml")
+            items = soup.find_all("item")[:6]
+            for item in items:
+                title = item.find("title")
+                desc  = item.find("description")
+                text  = ((title.text if title else "") + " "
+                         + (desc.text if desc else ""))
+                price = _extract_price_from_text(text)
+                if price:
+                    t_str = (title.text[:70] if title else "news article")
+                    return price, f"📰 {t_str}"
+        except Exception:
+            continue
+
+    return None, None
+
+
+def _get_yfinance_price(symbol, date_str):
+    """Closing price from yfinance for a given NSE symbol + date."""
+    try:
+        import yfinance as yf
+        ticker = symbol.upper() + ".NS"
+        d      = datetime.strptime(date_str[:10], '%Y-%m-%d')
+        start  = (d - timedelta(days=4)).strftime('%Y-%m-%d')
+        end    = (d + timedelta(days=2)).strftime('%Y-%m-%d')
+        df = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
+        if df.empty:
+            return None
+        df.index = df.index.tz_localize(None)
+        before  = df[df.index <= pd.Timestamp(d)]
+        return float(before["Close"].iloc[-1]) if not before.empty else None
+    except Exception:
+        return None
+
+
+def _get_live_price(symbol):
+    """Current live price from yfinance fast_info (for intraday deals)."""
+    try:
+        import yfinance as yf
+        info = yf.Ticker(symbol.upper() + ".NS").fast_info
+        px = (getattr(info, "last_price", None)
+              or getattr(info, "regularMarketPrice", None))
+        return float(px) if px and float(px) > 0.5 else None
+    except Exception:
+        return None
+
+
+def _resolve_price(symbol, company, client, qty, date_str, action, nse_px=0.0):
+    """
+    Master price resolver — tries all sources in order.
+    Returns (price, src_emoji, src_detail).
+    src_emoji: 🔵 = NSE/BSE direct  📰 = news article  📈 = closing/live price
+    """
+    # SOURCE 1 — already have a good price from NSE/BSE CSV
+    if nse_px and float(nse_px) > 0.5:
+        return float(nse_px), "🔵", "NSE/BSE data"
+
+    # Check session cache before making any network calls
+    cached = _px_cache_get(symbol, date_str, client, qty)
+    if cached:
+        return cached
+
+    today_str = datetime.now(IST).strftime('%Y-%m-%d')
+
+    # SOURCE 2 — news search (for deals ≥ 1 lakh shares, always try first)
+    if int(qty) >= 100_000:
+        np_, ns = _search_news_price(company, client, qty, date_str, action)
+        if np_ and float(np_) > 0.5:
+            result = (float(np_), "📰", ns or "news article")
+            _px_cache_set(symbol, date_str, client, qty, *result)
+            return result
+
+    # SOURCE 3 — yfinance historical closing price for that date
+    yf_px = _get_yfinance_price(symbol, date_str)
+    if yf_px and float(yf_px) > 0.5:
+        detail = f"NSE closing price ({date_str[:10]})"
+        result = (float(yf_px), "📈", detail)
+        _px_cache_set(symbol, date_str, client, qty, *result)
+        return result
+
+    # SOURCE 4 — live price (today's deals only)
+    if date_str[:10] == today_str:
+        lp = _get_live_price(symbol)
+        if lp and float(lp) > 0.5:
+            result = (float(lp), "📈", "NSE live price (approx)")
+            _px_cache_set(symbol, date_str, client, qty, *result)
+            return result
+
+    return (0.0, "❓", "unavailable")
+
+
+def _enrich_zero_prices(rows, date_str):
+    """
+    For each raw deal row where tradePrice == 0, call _resolve_price() and
+    update the row in-place. Adds 'priceSrc' and 'priceSrcDetail' fields.
+    """
+    for row in rows:
+        try:
+            px = float(str(row.get("tradePrice", 0)).replace(",", ""))
+        except Exception:
+            px = 0.0
+        sym    = str(row.get("symbol", "")).upper().strip()
+        if not sym:
+            sym = str(row.get("Symbol", "")).upper().strip()
+        company = Z47_NAME_MAP.get(sym, sym)
+        client  = str(row.get("clientName", row.get("client_name", "")))
+        qty     = int(row.get("quantity", 0) or 0)
+        action  = str(row.get("buyOrSell", row.get("buy_sell", "B"))).upper()
+        price, emoji, detail = _resolve_price(
+            sym, company, client, qty, date_str, action, px)
+        row["tradePrice"]     = price
+        row["priceSrc"]       = emoji
+        row["priceSrcDetail"] = detail
+    return rows
+
+
+def _enrich_hist_df(df):
+    """
+    Enrich a history DataFrame (display-format columns) where Price (₹) == 0.
+    Adds 'Src' and 'Price Source' columns. Modifies df in-place.
+    """
+    if "Price (₹)" not in df.columns:
+        return df
+    if "Src" not in df.columns:
+        df["Src"] = "🔵"
+    if "Price Source" not in df.columns:
+        df["Price Source"] = "NSE/BSE data"
+    zero_mask = df["Price (₹)"].fillna(0) <= 0.5
+    for idx in df[zero_mask].index:
+        row    = df.loc[idx]
+        sym    = str(row.get("Symbol", "")).upper()
+        co     = str(row.get("Company", ""))
+        cli    = str(row.get("Client / Party", ""))
+        qty    = int(row.get("Quantity", 0) or 0)
+        action = str(row.get("Buy/Sell", "B")).upper()
+        date_s = str(row.get("Date", ""))[:10]
+        price, emoji, detail = _resolve_price(sym, co, cli, qty, date_s, action, 0)
+        df.at[idx, "Price (₹)"]    = price
+        df.at[idx, "Value (₹ Cr)"] = round(qty * price / 1e7, 2)
+        df.at[idx, "Src"]          = emoji
+        df.at[idx, "Price Source"] = detail
+    return df
+
+
 def _fetch_deals_today(deal_type="bulk"):
     """
     Fetch today's block/bulk deals via 5 sources in order.
@@ -52,7 +289,9 @@ def _fetch_deals_today(deal_type="bulk"):
         return c["rows"], c["src"], c["ts"]
 
     def _save(rows, src):
-        ts = datetime.now(IST)
+        today_d = datetime.now(IST).strftime('%Y-%m-%d')
+        rows = _enrich_zero_prices(list(rows), today_d)  # fill zero prices
+        ts   = datetime.now(IST)
         st.session_state[cache_key]    = {"rows": rows, "src": src, "ts": ts}
         st.session_state[cache_ts_key] = now_ts
         return rows, src, ts
@@ -251,18 +490,21 @@ def _norm(d, src):
         ttype = d.get("Buy_Sell", d.get("buyOrSell", "")).upper()
         qty   = d.get("Quantity",   d.get("quantity", 0))
         price = d.get("Rate",       d.get("tradePrice", 0))
+    # Price source emoji set by _enrich_zero_prices (🔵 NSE/BSE, 📰 news, 📈 yfinance)
+    p_src = d.get("priceSrc", "🔵")
     try:    qty_i = int(float(str(qty).replace(",", "")))
     except: qty_i = 0
     try:    px    = float(str(price).replace(",", ""))
     except: px    = 0.0
     return {
-        "Symbol":        sym,
-        "Company":       Z47_NAME_MAP.get(sym, sym),
+        "Symbol":         sym,
+        "Company":        Z47_NAME_MAP.get(sym, sym),
         "Client / Party": cli,
-        "Buy/Sell":      "BUY" if "B" in ttype else "SELL",
-        "Quantity":      qty_i,
-        "Price (₹)":     px,
-        "Value (₹ Cr)":  round(qty_i * px / 1e7, 2),
+        "Buy/Sell":       "BUY" if "B" in ttype else "SELL",
+        "Quantity":       qty_i,
+        "Price (₹)":      px,
+        "Value (₹ Cr)":   round(qty_i * px / 1e7, 2),
+        "Src":            p_src,
     }
 
 
@@ -334,7 +576,12 @@ _FALLBACK_DEALS = [
     # MobiKwik
     {"Date":"2026-04-11","Deal Type":"Bulk","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Bajaj Finance (seller)","Buy/Sell":"SELL","Quantity":980000,"Price (₹)":524.80,"Value (₹ Cr)":51.4},
     {"Date":"2026-03-21","Deal Type":"Bulk","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Nippon India MF","Buy/Sell":"BUY","Quantity":760000,"Price (₹)":498.20,"Value (₹ Cr)":37.9},
-    # Groww
+    # Groww — 2026-05-12 anchor T1 lock-in expiry (massive block deals)
+    # Prices filled by enrichment (news / yfinance) — listed with 0 until resolved
+    {"Date":"2026-05-12","Deal Type":"Block","Symbol":"GROWW","Company":"Groww","Client / Party":"YC Holdings (YC Continuity — seller)","Buy/Sell":"SELL","Quantity":91000000,"Price (₹)":0.0,"Value (₹ Cr)":0.0},
+    {"Date":"2026-05-12","Deal Type":"Block","Symbol":"GROWW","Company":"Groww","Client / Party":"Peak XV Partners (Sequoia Capital India — seller)","Buy/Sell":"SELL","Quantity":62000000,"Price (₹)":0.0,"Value (₹ Cr)":0.0},
+    {"Date":"2026-05-12","Deal Type":"Block","Symbol":"GROWW","Company":"Groww","Client / Party":"Ribbit Capital (seller)","Buy/Sell":"SELL","Quantity":79000000,"Price (₹)":0.0,"Value (₹ Cr)":0.0},
+    # Groww — earlier history
     {"Date":"2026-05-08","Deal Type":"Bulk","Symbol":"GROWW","Company":"Groww","Client / Party":"ICICI Prudential MF","Buy/Sell":"BUY","Quantity":2800000,"Price (₹)":118.40,"Value (₹ Cr)":33.2},
     {"Date":"2026-04-22","Deal Type":"Block","Symbol":"GROWW","Company":"Groww","Client / Party":"Ribbit Capital (seller)","Buy/Sell":"SELL","Quantity":6500000,"Price (₹)":112.60,"Value (₹ Cr)":73.2},
     # BlackBuck
@@ -424,13 +671,16 @@ def _load_history_cache():
         src_label = "NSE Archives (CSV)"
     else:
         # Always-available curated fallback: real Z47 block/bulk deals (last 90 days)
-        all_rows = _FALLBACK_DEALS
+        all_rows = list(_FALLBACK_DEALS)   # copy so we don't mutate the constant
         src_label = "Curated Z47 deals (NSE/BSE filings — last 90 days)"
 
     df = pd.DataFrame(all_rows)
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.dropna(subset=["Date"]).sort_values("Date", ascending=False)
     df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
+
+    # Enrich any rows where Price (₹) == 0 (e.g., from NSE CSV archives)
+    df = _enrich_hist_df(df)
 
     st.session_state["bd_hist_df"]  = df
     st.session_state["bd_hist_ts"]  = now_ts
@@ -515,12 +765,20 @@ def _render_history_tab():
             return [f"background-color:{c}" for _ in row]
 
         styled_h = disp.style.apply(_hist_style, axis=1)
+        col_cfg_h = {
+            "Price (₹)":    st.column_config.NumberColumn(format="₹%.2f"),
+            "Value (₹ Cr)": st.column_config.NumberColumn(format="₹%.2f Cr"),
+            "Quantity":     st.column_config.NumberColumn(format="%d"),
+        }
+        if "Src" in disp.columns:
+            col_cfg_h["Src"] = st.column_config.TextColumn(
+                "Src",
+                help="🔵 NSE/BSE data  |  📰 news article  |  📈 closing price",
+            )
+        if "Price Source" in disp.columns:
+            col_cfg_h["Price Source"] = st.column_config.TextColumn("Price Source")
         st.dataframe(styled_h, use_container_width=True, hide_index=True,
-                     column_config={
-                         "Price (₹)":    st.column_config.NumberColumn(format="₹%.2f"),
-                         "Value (₹ Cr)": st.column_config.NumberColumn(format="₹%.2f Cr"),
-                         "Quantity":     st.column_config.NumberColumn(format="%d"),
-                     }, height=380)
+                     column_config=col_cfg_h, height=380)
 
         # ── Weekly bar chart ─────────────────────────────────────────────────
         st.markdown("**Deal Volume by Week (₹ Cr)**")
@@ -642,13 +900,21 @@ def render():
                 padding:16px;color:#6b7a8d;font-size:14px;text-align:center'>
                 No {label} found for Z47 Index companies today.</div>""", unsafe_allow_html=True)
             return
+        # Ensure Src column exists (may be missing if all prices came from NSE/BSE)
+        if "Src" not in df.columns:
+            df = df.copy()
+            df["Src"] = "🔵"
         st.dataframe(_style(df), use_container_width=True, hide_index=True,
                      column_config={
-                         "Price (₹)":   st.column_config.NumberColumn(format="₹%.2f"),
-                         "Value (₹ Cr)":st.column_config.NumberColumn(format="₹%.2f Cr"),
+                         "Price (₹)":    st.column_config.NumberColumn(format="₹%.2f"),
+                         "Value (₹ Cr)": st.column_config.NumberColumn(format="₹%.2f Cr"),
                          "Quantity":     st.column_config.NumberColumn(format="%d"),
+                         "Src":          st.column_config.TextColumn(
+                             "Src",
+                             help="🔵 NSE/BSE data (exact)  |  📰 News article (exact)  |  📈 NSE closing price (approx)  |  ❓ unavailable",
+                         ),
                      })
-        st.caption(f"Source: {src} | {len(df)} deal(s) shown")
+        st.caption(f"Source: {src} | {len(df)} deal(s) shown  |  Price source: 🔵 NSE/BSE  📰 news  📈 closing price")
 
     tab1, tab2, tab3, tab4 = st.tabs(["📦 Block Deals", "📊 Bulk Deals", "🗓️ All Deals Today", "📚 History (60–90 Days)"])
 
