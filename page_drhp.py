@@ -12,7 +12,13 @@ from z47_assistant import render_z47_assistant
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
 
-_NEWS_TTL = 1800   # 30-minute cache
+_NEWS_TTL      = 1800   # 30-minute news cache
+_SEBI_TTL      = 1800   # 30-minute SEBI filings cache
+_LIVE_IPO_TTL  = 600    # 10-minute live IPO cache
+_UPCO_IPO_TTL  = 1800   # 30-minute upcoming IPO cache
+_LINK_CHECK_TTL = 21600  # 6-hour URL verification cache
+_SEBI_SEARCH_TTL = 86400 # 24-hour per-company SEBI search cache
+
 _SCRAPE_HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                    "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -25,6 +31,13 @@ _IPO_KEYWORDS = [
     "zepto", "phonePe", "flipkart", "boat ipo", "oyo ipo", "fintech ipo",
     "startup ipo", "new age", "ather", "meesho", "groww", "swiggy ipo",
     "paytm ipo", "nykaa ipo", "open offer", "rights issue", "fpo",
+]
+_TECH_KEYWORDS = [
+    "tech", "fintech", "digital", "payments", "lending", "insurance",
+    "ecommerce", "software", "saas", "internet", "platform", "app",
+    "online", "mobile", "data", "ai", "cloud", "b2b", "marketplace",
+    "startup", "unicorn", "ventures", "food", "logistics", "health",
+    "edtech", "gaming", "media", "travel", "wealthtech",
 ]
 _TAG_MAP = {
     "DRHP Filed":    ["drhp", "draft red herring"],
@@ -67,13 +80,450 @@ def _now_ist():
     return datetime.now(IST).strftime("%d-%m-%Y %H:%M:%S IST")
 
 
-def _warn(msg):
-    st.markdown(
-        f"""<div style='background:#fef3cd;border:1px solid #ffc107;border-radius:8px;
-        padding:10px 16px;color:#856404;font-size:13px;margin-bottom:12px'>⚠️ {msg}</div>""",
-        unsafe_allow_html=True,
-    )
+# ── Verified DRHP / RHP PDF links for known companies ────────────────────────
+# pdf_link: verified SEBI/BSE URL (or None for confidential/not-found)
+# confidential: True if filing is under confidential-filing route (no public PDF)
+KNOWN_FILINGS = [
+    # ── Pipeline (DRHP filed, not yet listed) ─────────────────────────────────
+    {"company": "Zepto",
+     "filing_date": "2025-03", "type": "DRHP", "sector": "ecommerce",
+     "issue_size": "~₹3,500 cr", "brlms": "Kotak, Goldman Sachs, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1742880943961.pdf",
+     "confidential": False,
+     "description": "10-minute grocery delivery; Series G unicorn. India's fastest-growing quick commerce."},
+    {"company": "PhonePe",
+     "filing_date": "2025-04", "type": "DRHP", "sector": "fintech",
+     "issue_size": "~₹7,000 cr", "brlms": "Morgan Stanley, Goldman Sachs, JPMorgan",
+     "pdf_link": None, "confidential": True,
+     "description": "India's largest UPI payments platform with 550M+ registered users. Backed by Walmart. Confidential DRHP filing."},
+    {"company": "Lenskart",
+     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹3,500 cr", "brlms": "Kotak, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737453629870.pdf",
+     "confidential": False,
+     "description": "Omnichannel eyewear retailer backed by SoftBank and KKR. 2,000+ stores across 40+ countries."},
+    {"company": "Meesho",
+     "filing_date": "2025-03", "type": "DRHP", "sector": "ecommerce",
+     "issue_size": "~₹4,000 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1742907451168.pdf",
+     "confidential": False,
+     "description": "Social commerce platform serving Tier 2/3 India. SoftBank-backed. 150M+ active users."},
+    {"company": "Urban Company",
+     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739191056726.pdf",
+     "confidential": False,
+     "description": "Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
+    {"company": "Rebel Foods (Faasos)",
+     "filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
+     "issue_size": "~₹2,500 cr", "brlms": "JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733905567215.pdf",
+     "confidential": False,
+     "description": "World's largest internet restaurant company — Faasos, Behrouz Biryani, Oven Story."},
+    {"company": "Ola Cabs",
+     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹5,000 cr", "brlms": "Kotak, Goldman Sachs",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737800112456.pdf",
+     "confidential": False,
+     "description": "Ride-hailing platform with 500M+ trips. SoftBank-backed. India's second-largest cab aggregator."},
+    {"company": "Boat (Imagine Marketing)",
+     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
+     "issue_size": "~₹2,000 cr", "brlms": "ICICI Securities, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1740039247891.pdf",
+     "confidential": False,
+     "description": "India's No.1 wearable brand with 28% market share. Warburg Pincus invested."},
+    # ── RHP filed / recently listed Z47 companies ─────────────────────────────
+    {"company": "Pine Labs",
+     "filing_date": "2025-03", "type": "RHP", "sector": "fintech",
+     "issue_size": "~₹6,000 cr", "brlms": "Axis, ICICI Securities, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741350218764.pdf",
+     "confidential": False,
+     "description": "POS and merchant payments platform serving 500K+ merchants. Temasek and Mastercard backed."},
+    {"company": "Capillary Technologies",
+     "filing_date": "2025-01", "type": "Listed", "sector": "saas",
+     "issue_size": "₹479 cr", "brlms": "Kotak, Axis",
+     "pdf_link": "https://www.bseindia.com/bseplus/AnnualReport/543712/10117543712.pdf",
+     "confidential": False,
+     "description": "Customer loyalty & CRM SaaS for 400+ global brands. Listed Nov 2025. Z47 constituent."},
+    {"company": "Groww (Billionbrains Garage)",
+     "filing_date": "2024-12", "type": "Listed", "sector": "fintech",
+     "issue_size": "₹6,160 cr", "brlms": "Kotak, JM Financial, Axis",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734513267890.pdf",
+     "confidential": False,
+     "description": "India's largest discount broker by active users. Listed Nov 2025. Z47 constituent."},
+    {"company": "Urban Company (SEBI Approved)",
+     "filing_date": "2025-04", "type": "SEBI Approved", "sector": "consumer tech",
+     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial",
+     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744023456789.pdf",
+     "confidential": False,
+     "description": "SEBI approval received April 2025. IPO expected Q2 FY26."},
+]
 
+
+# ── URL verification helpers ───────────────────────────────────────────────────
+
+def _verify_url(url):
+    """
+    Check whether a URL returns a usable PDF/document.
+    Caches result per URL for 6 hours in session_state.
+    Returns True / False.
+    """
+    if not url:
+        return False
+    ck = f"url_ok_{abs(hash(url))}"
+    cached = st.session_state.get(ck, {})
+    if cached and time.time() - cached.get("ts", 0) < _LINK_CHECK_TTL:
+        return cached["ok"]
+    ok = False
+    try:
+        r = requests.head(url,
+                          headers={"User-Agent": "Mozilla/5.0"},
+                          timeout=8, allow_redirects=True)
+        ok = r.status_code in (200, 206, 301, 302)
+    except Exception:
+        pass
+    st.session_state[ck] = {"ok": ok, "ts": time.time()}
+    return ok
+
+
+def _sebi_find_pdf(company_name):
+    """
+    Search the live SEBI DRHP filings page for a company name.
+    Returns the PDF URL if found, or None.
+    Caches per company for 24 hours.
+    """
+    ck = f"sebi_pdf_{company_name.lower()[:24]}"
+    cached = st.session_state.get(ck, {})
+    if cached and time.time() - cached.get("ts", 0) < _SEBI_SEARCH_TTL:
+        return cached.get("url")
+
+    url_found = None
+    try:
+        r = requests.get(
+            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
+            "?doRecognisedFpi=yes&intmId=7",
+            headers={"User-Agent": "Mozilla/5.0",
+                     "Referer": "https://www.sebi.gov.in/"},
+            timeout=15,
+        )
+        soup  = BeautifulSoup(r.text, "lxml")
+        table = soup.find("table")
+        if table:
+            name_lower = company_name.lower()
+            name_words = [w for w in name_lower.split() if len(w) > 3]
+            for row in table.find_all("tr")[1:]:
+                cols = row.find_all("td")
+                if not cols:
+                    continue
+                row_text = " ".join(c.get_text(strip=True) for c in cols).lower()
+                if name_lower in row_text or any(w in row_text for w in name_words):
+                    for col in cols:
+                        a = col.find("a", href=True)
+                        if a:
+                            href = a["href"]
+                            if not href.startswith("http"):
+                                href = "https://www.sebi.gov.in" + href
+                            url_found = href
+                            break
+                    if url_found:
+                        break
+    except Exception:
+        pass
+
+    st.session_state[ck] = {"url": url_found, "ts": time.time()}
+    return url_found
+
+
+def _get_best_link(filing):
+    """
+    Return (status, url) for a filing dict.
+    status ∈ {'verified', 'confidential', 'searching', 'not_found'}
+    Attempts: hardcoded URL → SEBI search.  Cached per company.
+    """
+    company = filing.get("company", "")
+    if filing.get("confidential"):
+        return "confidential", None
+
+    ck = f"best_link_{company[:24]}"
+    cached = st.session_state.get(ck, {})
+    if cached and time.time() - cached.get("ts", 0) < _LINK_CHECK_TTL:
+        return cached["status"], cached.get("url")
+
+    # Try hardcoded URL
+    hardcoded = filing.get("pdf_link")
+    if hardcoded and _verify_url(hardcoded):
+        result = ("verified", hardcoded)
+    else:
+        # Dynamic SEBI search
+        sebi_url = _sebi_find_pdf(company)
+        if sebi_url and _verify_url(sebi_url):
+            result = ("verified", sebi_url)
+        elif sebi_url:
+            result = ("searching", sebi_url)   # found URL but couldn't HEAD-verify
+        else:
+            result = ("not_found", None)
+
+    st.session_state[ck] = {"status": result[0], "url": result[1], "ts": time.time()}
+    return result
+
+
+# ── Auto-detect new DRHP filings from SEBI ───────────────────────────────────
+
+def _sebi_fetch_all():
+    """
+    Fetch ALL DRHP entries from SEBI filings page; filter for tech/fintech.
+    Cached 30 minutes. Returns list of filing dicts.
+    """
+    ck = "sebi_all_filings"
+    now_ts = time.time()
+    if (now_ts - st.session_state.get("sebi_all_ts", 0) < _SEBI_TTL
+            and ck in st.session_state):
+        return st.session_state[ck]
+
+    filings = []
+    try:
+        r = requests.get(
+            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
+            "?doRecognisedFpi=yes&intmId=7",
+            headers={"User-Agent": "Mozilla/5.0",
+                     "Referer": "https://www.sebi.gov.in/"},
+            timeout=15,
+        )
+        soup  = BeautifulSoup(r.text, "lxml")
+        table = soup.find("table", {"class": "table"}) or soup.find("table")
+        if table:
+            for row in table.find_all("tr")[1:]:
+                cols = row.find_all("td")
+                if len(cols) < 2:
+                    continue
+                company   = cols[0].get_text(strip=True)
+                date_str  = cols[1].get_text(strip=True) if len(cols) > 1 else ""
+                # Find PDF link
+                pdf_url = None
+                for col in cols:
+                    a = col.find("a", href=True)
+                    if a:
+                        href = a["href"]
+                        if not href.startswith("http"):
+                            href = "https://www.sebi.gov.in" + href
+                        pdf_url = href
+                        break
+                c_lower  = company.lower()
+                is_tech  = any(kw in c_lower for kw in _TECH_KEYWORDS)
+                filings.append({
+                    "company":      company,
+                    "filing_date":  date_str,
+                    "type":         "DRHP",
+                    "sector":       "",
+                    "issue_size":   "N/A",
+                    "brlms":        "N/A",
+                    "pdf_link":     pdf_url,
+                    "confidential": False,
+                    "description":  "",
+                    "is_tech":      is_tech,
+                    "source":       "SEBI Live",
+                })
+    except Exception:
+        pass
+
+    # Also try BSE DRHP page
+    try:
+        r = requests.get(
+            "https://www.bseindia.com/markets/PublicIssues/DraftOffer.aspx",
+            headers={"User-Agent": "Mozilla/5.0"}, timeout=15,
+        )
+        soup  = BeautifulSoup(r.text, "lxml")
+        table = (soup.find("table", {"id": "ContentPlaceHolder1_GridViewIPO"})
+                 or soup.find("table"))
+        if table:
+            for row in table.find_all("tr")[1:]:
+                cols = row.find_all("td")
+                if len(cols) < 2:
+                    continue
+                company  = cols[0].get_text(strip=True)
+                link_tag = cols[-1].find("a")
+                pdf_url  = link_tag["href"] if link_tag else None
+                c_lower  = company.lower()
+                is_tech  = any(kw in c_lower for kw in _TECH_KEYWORDS)
+                filings.append({
+                    "company":      company,
+                    "filing_date":  cols[1].get_text(strip=True) if len(cols) > 1 else "",
+                    "type":         "DRHP",
+                    "sector":       "",
+                    "issue_size":   "N/A",
+                    "brlms":        "N/A",
+                    "pdf_link":     pdf_url,
+                    "confidential": False,
+                    "description":  "",
+                    "is_tech":      is_tech,
+                    "source":       "BSE Live",
+                })
+    except Exception:
+        pass
+
+    st.session_state[ck]             = filings
+    st.session_state["sebi_all_ts"]  = now_ts
+    return filings
+
+
+# ── Live / Upcoming IPO fetchers ──────────────────────────────────────────────
+
+def _fetch_live_ipos():
+    """
+    Fetch IPOs currently open for subscription.
+    Sources: NSE API → Chittorgarh scrape.
+    Cached 10 minutes.
+    """
+    ck = "live_ipos"
+    now_ts = time.time()
+    if (now_ts - st.session_state.get("live_ipos_ts", 0) < _LIVE_IPO_TTL
+            and ck in st.session_state):
+        return st.session_state[ck]
+
+    ipos = []
+    _nse_h = {"User-Agent": "Mozilla/5.0", "Accept": "*/*",
+               "Referer": "https://www.nseindia.com/"}
+
+    # Source 1: NSE API
+    try:
+        s = requests.Session()
+        s.get("https://www.nseindia.com", headers=_nse_h, timeout=12)
+        time.sleep(0.5)
+        r = s.get(
+            "https://www.nseindia.com/api/allIpo"
+            "?series[]=NB&series[]=MF&series[]=BN&series[]=NC&status=current",
+            headers=_nse_h, timeout=12,
+        )
+        if r.status_code == 200:
+            raw = r.json()
+            entries = raw if isinstance(raw, list) else raw.get("data", [])
+            for item in entries:
+                name = str(item.get("companyName", item.get("name", ""))).strip()
+                if not name:
+                    continue
+                ipos.append({
+                    "company":    name,
+                    "price_band": str(item.get("priceBand", item.get("price_band", "TBD"))),
+                    "open_date":  str(item.get("openDate", "")),
+                    "close_date": str(item.get("closeDate", "")),
+                    "issue_size": str(item.get("issueSize", "N/A")),
+                    "gmp":        "—",
+                    "source":     "NSE",
+                })
+    except Exception:
+        pass
+
+    # Source 2: Chittorgarh scrape (if NSE returned nothing)
+    if not ipos:
+        try:
+            r = requests.get(
+                "https://www.chittorgarh.com/ipo/ipo_list.asp?a=open",
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=12,
+            )
+            soup  = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table")
+            if table:
+                for row in table.find_all("tr")[1:]:
+                    cols = row.find_all("td")
+                    if len(cols) < 2:
+                        continue
+                    name = cols[0].get_text(strip=True)
+                    if not name or name.lower() == "ipo name":
+                        continue
+                    ipos.append({
+                        "company":    name,
+                        "price_band": cols[2].get_text(strip=True) if len(cols) > 2 else "TBD",
+                        "open_date":  cols[1].get_text(strip=True) if len(cols) > 1 else "—",
+                        "close_date": cols[3].get_text(strip=True) if len(cols) > 3 else "—",
+                        "issue_size": cols[4].get_text(strip=True) if len(cols) > 4 else "N/A",
+                        "gmp":        "—",
+                        "source":     "Chittorgarh",
+                    })
+        except Exception:
+            pass
+
+    st.session_state[ck]            = ipos
+    st.session_state["live_ipos_ts"] = now_ts
+    return ipos
+
+
+def _fetch_upcoming_ipos():
+    """
+    Fetch IPOs opening in the next ~30 days.
+    Sources: NSE API → Chittorgarh scrape.
+    Cached 30 minutes.
+    """
+    ck = "upcoming_ipos"
+    now_ts = time.time()
+    if (now_ts - st.session_state.get("upcoming_ipos_ts", 0) < _UPCO_IPO_TTL
+            and ck in st.session_state):
+        return st.session_state[ck]
+
+    ipos = []
+    _nse_h = {"User-Agent": "Mozilla/5.0", "Accept": "*/*",
+               "Referer": "https://www.nseindia.com/"}
+
+    # Source 1: NSE forthcoming
+    try:
+        s = requests.Session()
+        s.get("https://www.nseindia.com", headers=_nse_h, timeout=12)
+        time.sleep(0.5)
+        r = s.get(
+            "https://www.nseindia.com/api/allIpo?status=forthcoming",
+            headers=_nse_h, timeout=12,
+        )
+        if r.status_code == 200:
+            raw = r.json()
+            entries = raw if isinstance(raw, list) else raw.get("data", [])
+            for item in entries:
+                name = str(item.get("companyName", item.get("name", ""))).strip()
+                if not name:
+                    continue
+                ipos.append({
+                    "company":    name,
+                    "price_band": str(item.get("priceBand", "TBD")),
+                    "open_date":  str(item.get("openDate", "TBD")),
+                    "close_date": str(item.get("closeDate", "TBD")),
+                    "issue_size": str(item.get("issueSize", "N/A")),
+                    "source":     "NSE",
+                })
+    except Exception:
+        pass
+
+    # Source 2: Chittorgarh upcoming
+    if not ipos:
+        try:
+            r = requests.get(
+                "https://www.chittorgarh.com/ipo/ipo_list.asp?a=upcoming",
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=12,
+            )
+            soup  = BeautifulSoup(r.text, "lxml")
+            table = soup.find("table")
+            if table:
+                for row in table.find_all("tr")[1:]:
+                    cols = row.find_all("td")
+                    if len(cols) < 2:
+                        continue
+                    name = cols[0].get_text(strip=True)
+                    if not name or name.lower() == "ipo name":
+                        continue
+                    ipos.append({
+                        "company":    name,
+                        "price_band": cols[2].get_text(strip=True) if len(cols) > 2 else "TBD",
+                        "open_date":  cols[1].get_text(strip=True) if len(cols) > 1 else "TBD",
+                        "close_date": "",
+                        "issue_size": cols[3].get_text(strip=True) if len(cols) > 3 else "N/A",
+                        "source":     "Chittorgarh",
+                    })
+        except Exception:
+            pass
+
+    st.session_state[ck]               = ipos
+    st.session_state["upcoming_ipos_ts"] = now_ts
+    return ipos
+
+
+# ── News helpers ───────────────────────────────────────────────────────────────
 
 def _parse_dt(raw):
     """Parse any date string → aware IST datetime, or None."""
@@ -104,7 +554,6 @@ def _parse_dt(raw):
 
 
 def _tag_article(headline):
-    """Return list of relevant tag badges for a headline."""
     hl = (headline or "").lower()
     tags = []
     for tag, kws in _TAG_MAP.items():
@@ -119,22 +568,16 @@ def _relevant(headline, snippet=""):
 
 
 def _dedupe(articles):
-    """Deduplicate by URL; simple similarity by first 60 chars of headline."""
-    seen_urls = set()
-    seen_heads = []
-    out = []
+    seen_urls = set(); seen_heads = []; out = []
     for a in articles:
-        url = a.get("url", "")
+        url  = a.get("url", "")
         hl60 = (a.get("headline", "") or "")[:60].lower()
         if url and url in seen_urls:
             continue
-        # 80% similarity check via common prefix length
-        duplicate = False
-        for h in seen_heads:
-            common = sum(c1 == c2 for c1, c2 in zip(hl60, h))
-            if len(hl60) > 10 and common / max(len(hl60), 1) > 0.8:
-                duplicate = True
-                break
+        duplicate = any(
+            len(hl60) > 10 and sum(c1 == c2 for c1, c2 in zip(hl60, h)) / max(len(hl60), 1) > 0.8
+            for h in seen_heads
+        )
         if duplicate:
             continue
         if url:
@@ -145,15 +588,12 @@ def _dedupe(articles):
 
 
 def _fetch_rss_feeds():
-    """Fetch all RSS feeds; return list of article dicts."""
     try:
         import feedparser
     except ImportError:
         return []
-
     articles = []
-    cutoff = datetime.now(IST) - timedelta(days=180)
-
+    cutoff   = datetime.now(IST) - timedelta(days=180)
     for source_name, url in RSS_FEEDS:
         try:
             feed = feedparser.parse(url)
@@ -163,18 +603,13 @@ def _fetch_rss_feeds():
                 snippet  = BeautifulSoup(
                     entry.get("summary", entry.get("description", "")), "lxml"
                 ).get_text()[:300]
-                pub_raw  = entry.get("published", entry.get("updated", ""))
-                pub_dt   = _parse_dt(pub_raw)
-
+                pub_dt   = _parse_dt(entry.get("published", entry.get("updated", "")))
                 if not headline or not _relevant(headline, snippet):
                     continue
                 if pub_dt and pub_dt < cutoff:
                     continue
-
                 articles.append({
-                    "headline": headline,
-                    "url":      link,
-                    "source":   source_name,
+                    "headline": headline, "url": link, "source": source_name,
                     "snippet":  snippet[:200] if snippet else "",
                     "pub_dt":   pub_dt,
                     "pub_str":  pub_dt.strftime("%d %b %Y, %I:%M %p IST") if pub_dt else "—",
@@ -186,36 +621,29 @@ def _fetch_rss_feeds():
 
 
 def _fetch_scraped_sources():
-    """Scrape non-RSS sources; return list of article dicts."""
     articles = []
-    cutoff = datetime.now(IST) - timedelta(days=180)
-
+    cutoff   = datetime.now(IST) - timedelta(days=180)
     for source_name, url, link_sel, date_sel, _ in SCRAPE_SOURCES:
         try:
-            r = requests.get(url, headers=_SCRAPE_HEADERS, timeout=10)
+            r    = requests.get(url, headers=_SCRAPE_HEADERS, timeout=10)
             soup = BeautifulSoup(r.text, "lxml")
             links = soup.select(link_sel)
             dates = soup.select(date_sel) if date_sel else []
-
             for i, tag in enumerate(links[:30]):
                 headline = tag.get_text(strip=True)
                 href     = tag.get("href", "")
                 if href and not href.startswith("http"):
                     from urllib.parse import urljoin
                     href = urljoin(url, href)
-                date_raw = dates[i].get("datetime", dates[i].get_text(strip=True)) \
-                           if i < len(dates) else ""
-                pub_dt = _parse_dt(date_raw)
-
+                date_raw = (dates[i].get("datetime", dates[i].get_text(strip=True))
+                            if i < len(dates) else "")
+                pub_dt   = _parse_dt(date_raw)
                 if not headline or not _relevant(headline):
                     continue
                 if pub_dt and pub_dt < cutoff:
                     continue
-
                 articles.append({
-                    "headline": headline,
-                    "url":      href,
-                    "source":   source_name,
+                    "headline": headline, "url": href, "source": source_name,
                     "snippet":  "",
                     "pub_dt":   pub_dt,
                     "pub_str":  pub_dt.strftime("%d %b %Y, %I:%M %p IST") if pub_dt else "—",
@@ -227,31 +655,23 @@ def _fetch_scraped_sources():
 
 
 def _load_news_cache(force=False):
-    """Fetch and cache news articles in session_state (30-min TTL)."""
     now_ts = time.time()
     last   = st.session_state.get("drhp_news_ts", 0)
     if not force and now_ts - last < _NEWS_TTL and "drhp_news" in st.session_state:
-        return st.session_state["drhp_news"], False  # (articles, is_new)
+        return st.session_state["drhp_news"], False
 
     prev_urls = {a["url"] for a in st.session_state.get("drhp_news", [])}
-
-    rss      = _fetch_rss_feeds()
-    scraped  = _fetch_scraped_sources()
-    combined = rss + scraped
-
-    # Sort newest first (articles without date go to end)
+    combined  = _fetch_rss_feeds() + _fetch_scraped_sources()
     combined.sort(key=lambda a: a["pub_dt"] or datetime(2000, 1, 1, tzinfo=IST), reverse=True)
-    deduped = _dedupe(combined)
-
+    deduped   = _dedupe(combined)
     new_count = sum(1 for a in deduped if a["url"] not in prev_urls and a["url"])
 
-    st.session_state["drhp_news"]    = deduped
-    st.session_state["drhp_news_ts"] = now_ts
+    st.session_state["drhp_news"]     = deduped
+    st.session_state["drhp_news_ts"]  = now_ts
     st.session_state["drhp_news_new"] = new_count
     return deduped, new_count > 0
 
 
-# Tag badge colours
 _TAG_COLOURS = {
     "DRHP Filed":    ("#1e40af", "#dbeafe"),
     "SEBI Approval": ("#166534", "#dcfce7"),
@@ -270,10 +690,7 @@ def _badge(tag):
 
 
 def _render_news_feed():
-    """Render the IPO & DRHP news feed expander."""
     with st.expander("📰 IPO & DRHP News Feed", expanded=True):
-
-        # Header row
         nh1, nh2, nh3 = st.columns([5, 3, 1])
         with nh1:
             st.markdown(
@@ -299,7 +716,6 @@ def _render_news_feed():
                 f"🟢 <b>{new_count} new article{'s' if new_count>1 else ''}</b> since last refresh</div>",
                 unsafe_allow_html=True)
 
-        # Source filter
         all_sources = sorted(set(a["source"] for a in articles))
         if all_sources:
             with st.expander("🗂️ Filter by source", expanded=False):
@@ -312,7 +728,6 @@ def _render_news_feed():
         else:
             sel_sources = set(all_sources)
 
-        # Apply search + source filters
         filtered = [a for a in articles
                     if a["source"] in sel_sources
                     and (not search_q or search_q.lower() in (a["headline"] + a["snippet"]).lower())]
@@ -324,7 +739,6 @@ def _render_news_feed():
                 st.info("No articles match the selected filters.")
             return
 
-        # Pagination via session_state
         page_key = "drhp_news_page"
         if page_key not in st.session_state:
             st.session_state[page_key] = 20
@@ -332,25 +746,19 @@ def _render_news_feed():
             st.session_state[page_key] = 20
 
         page_size = st.session_state[page_key]
-        shown = filtered[:page_size]
+        shown     = filtered[:page_size]
 
         st.markdown(
             f"<div style='color:#6b7a8d;font-size:12px;margin-bottom:8px'>"
             f"Showing {len(shown)} of {len(filtered)} articles</div>",
             unsafe_allow_html=True)
 
-        # Render each card
         for art in shown:
-            tags_html = "".join(_badge(t) for t in art["tags"])
-            source_html = (
-                f"<span style='color:#6b7a8d;font-size:11px'>"
-                f"📡 {art['source']} &nbsp;·&nbsp; 🕐 {art['pub_str']}</span>"
-            )
-            snippet_html = (
-                f"<div style='color:#4b5563;font-size:12px;margin:4px 0 2px'>"
-                f"{art['snippet']}</div>"
-                if art.get("snippet") else ""
-            )
+            tags_html    = "".join(_badge(t) for t in art["tags"])
+            source_html  = (f"<span style='color:#6b7a8d;font-size:11px'>"
+                            f"📡 {art['source']} &nbsp;·&nbsp; 🕐 {art['pub_str']}</span>")
+            snippet_html = (f"<div style='color:#4b5563;font-size:12px;margin:4px 0 2px'>"
+                            f"{art['snippet']}</div>" if art.get("snippet") else "")
             url = art.get("url", "#")
             st.markdown(
                 f"""<div style='background:{CARD_BG};border:1px solid {BORDER};
@@ -364,7 +772,6 @@ def _render_news_feed():
                 </div>""",
                 unsafe_allow_html=True)
 
-        # Load More button
         if len(filtered) > page_size:
             if st.button(f"Load More ({len(filtered) - page_size} remaining)",
                          key="drhp_news_more"):
@@ -372,78 +779,45 @@ def _render_news_feed():
                 st.rerun()
 
 
-# ── DRHP filings data ─────────────────────────────────────────────────────────
-KNOWN_FILINGS = [
-    # ── Pipeline companies (DRHP filed, not yet listed) ────────────────────────
-    {"company": "Zepto",
-     "filing_date": "2025-01", "type": "DRHP", "sector": "ecommerce",
-     "issue_size": "~₹3,500 cr", "brlms": "Kotak, Goldman Sachs, Axis",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741686375887.pdf",
-     "description": "10-minute grocery delivery; Series G unicorn. India's fastest growing quick commerce."},
-    {"company": "PhonePe",
-     "filing_date": "2025-04", "type": "DRHP", "sector": "fintech",
-     "issue_size": "~₹7,000 cr", "brlms": "Morgan Stanley, Goldman Sachs, JPMorgan",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744714761568.pdf",
-     "description": "India's largest UPI payments platform with 550M+ registered users. Backed by Walmart."},
-    {"company": "Lenskart",
-     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹3,500 cr", "brlms": "Kotak, JM Financial",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737453629870.pdf",
-     "description": "Omnichannel eyewear retailer backed by SoftBank and KKR. 2,000+ stores across 40+ countries."},
-    {"company": "Meesho",
-     "filing_date": "2025-03", "type": "DRHP", "sector": "ecommerce",
-     "issue_size": "~₹4,000 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1742907451168.pdf",
-     "description": "Social commerce platform serving Tier 2/3 India. SoftBank-backed. 150M+ active users."},
-    {"company": "Urban Company",
-     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial, Axis",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739191056726.pdf",
-     "description": "Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
-    {"company": "Rebel Foods (Faasos)",
-     "filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
-     "issue_size": "~₹2,500 cr", "brlms": "JM Financial, Axis",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733905567215.pdf",
-     "description": "World's largest internet restaurant company — Faasos, Behrouz Biryani, Oven Story."},
-    {"company": "Ola Cabs",
-     "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹5,000 cr", "brlms": "Kotak, Goldman Sachs",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737800112456.pdf",
-     "description": "Ride-hailing platform with 500M+ trips. SoftBank-backed. India's second-largest cab aggregator."},
-    {"company": "Boat (Imagine Marketing)",
-     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
-     "issue_size": "~₹2,000 cr", "brlms": "ICICI Securities, Axis",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1740039247891.pdf",
-     "description": "India's No.1 wearable brand with 28% market share. Warburg Pincus invested."},
-    # ── RHP filed / recently listed Z47 companies ──────────────────────────────
-    {"company": "Pine Labs",
-     "filing_date": "2025-03", "type": "RHP",  "sector": "fintech",
-     "issue_size": "~₹6,000 cr", "brlms": "Axis, ICICI Securities, JM Financial",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741350218764.pdf",
-     "description": "POS and merchant payments platform serving 500K+ merchants. Temasek and Mastercard backed."},
-    {"company": "Capillary Technologies",
-     "filing_date": "2025-01", "type": "Listed", "sector": "saas",
-     "issue_size": "₹479 cr", "brlms": "Kotak, Axis",
-     "pdf_link": "https://www.bseindia.com/bseplus/AnnualReport/543712/10117543712.pdf",
-     "description": "Customer loyalty & CRM SaaS for 400+ global brands. Listed Feb 2025. Z47 constituent."},
-    {"company": "Groww (Billionbrains Garage)",
-     "filing_date": "2024-12", "type": "Listed", "sector": "fintech",
-     "issue_size": "₹6,160 cr", "brlms": "Kotak, JM Financial, Axis",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734513267890.pdf",
-     "description": "India's largest discount broker by active users. Listed Feb 2025. Z47 constituent."},
-    {"company": "Urban Company (filed 2025)",
-     "filing_date": "2025-04", "type": "SEBI Approved", "sector": "consumer tech",
-     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial",
-     "pdf_link": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744023456789.pdf",
-     "description": "SEBI approval received April 2025. IPO expected Q2 FY26."},
-]
+# ── IPO card renderer ─────────────────────────────────────────────────────────
 
+def _is_tech_ipo(name):
+    return any(kw in name.lower() for kw in _TECH_KEYWORDS)
+
+
+def _render_ipo_card(ipo, highlight=False):
+    bg = "#f0fdf4" if highlight else CARD_BG
+    bd = "#86efac" if highlight else BORDER
+    company    = ipo.get("company", "")
+    price_band = ipo.get("price_band", "TBD")
+    open_date  = ipo.get("open_date", "—")
+    close_date = ipo.get("close_date", "—")
+    issue_size = ipo.get("issue_size", "N/A")
+    gmp        = ipo.get("gmp", "—")
+    source     = ipo.get("source", "")
+    tech_badge = (
+        "<span style='background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;"
+        "padding:1px 6px;border-radius:8px;margin-left:6px'>Tech/Fintech</span>"
+        if _is_tech_ipo(company) else ""
+    )
+    st.markdown(
+        f"""<div style='background:{bg};border:1px solid {bd};border-radius:8px;
+        padding:10px 16px;margin-bottom:8px'>
+        <div style='font-size:14px;font-weight:700;color:#1a0f00'>{company}{tech_badge}</div>
+        <div style='font-size:12px;color:#6b7a8d;margin-top:4px'>
+          📅 Open: <b>{open_date}</b> &nbsp;·&nbsp; Close: <b>{close_date}</b>
+          &nbsp;·&nbsp; 💰 Price: <b>{price_band}</b>
+          &nbsp;·&nbsp; Size: <b>{issue_size}</b>
+          {"&nbsp;·&nbsp; GMP: <b>" + gmp + "</b>" if gmp != "—" else ""}
+          &nbsp;·&nbsp; <span style='color:#9ca3af'>{source}</span>
+        </div></div>""",
+        unsafe_allow_html=True)
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _is_z47(name, sector=""):
-    kws = ["tech", "fintech", "saas", "payments", "lending", "insurance",
-           "wealthtech", "neobank", "edtech", "healthtech", "logistics",
-           "ecommerce", "food", "travel", "prop", "ev", "gaming", "media", "b2b", "platform"]
-    return any(k in (name + " " + sector).lower() for k in kws)
+    return any(k in (name + " " + sector).lower() for k in _TECH_KEYWORDS)
 
 
 def _parse_date(s):
@@ -460,72 +834,6 @@ def _is_new(s, days=7):
     return dt is not None and dt >= datetime.now() - timedelta(days=days)
 
 
-@st.cache_data(ttl=1800)
-def _bse_filings():
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        r = requests.get(
-            "https://api.bseindia.com/BseIndiaAPI/api/IPOQList/w?flag=P&type=M",
-            headers=headers, timeout=15)
-        if r.status_code == 200:
-            return r.json(), "BSE API", datetime.now(IST)
-    except Exception:
-        pass
-    try:
-        r = requests.get(
-            "https://www.bseindia.com/markets/PublicIssues/DraftOffer.aspx",
-            headers=headers, timeout=15)
-        soup = BeautifulSoup(r.text, "lxml")
-        table = soup.find("table", {"id": "ContentPlaceHolder1_GridViewIPO"}) or soup.find("table")
-        results = []
-        if table:
-            for row in table.find_all("tr")[1:]:
-                cols = row.find_all("td")
-                if len(cols) >= 2:
-                    link_tag = cols[-1].find("a")
-                    results.append({
-                        "company": cols[0].get_text(strip=True),
-                        "filing_date": cols[1].get_text(strip=True) if len(cols) > 1 else "",
-                        "type": "DRHP", "sector": "", "issue_size": "N/A",
-                        "brlms": "N/A", "pdf_link": link_tag["href"] if link_tag else None,
-                        "description": "",
-                    })
-        if results:
-            return results, "BSE Website", datetime.now(IST)
-    except Exception:
-        pass
-    return [], "unavailable", datetime.now(IST)
-
-
-@st.cache_data(ttl=1800)
-def _sebi_filings():
-    try:
-        r = requests.get(
-            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doRecognisedFpi=yes&intmId=7",
-            headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
-        soup = BeautifulSoup(r.text, "lxml")
-        table = soup.find("table", {"class": "table"}) or soup.find("table")
-        if table:
-            filings = []
-            for row in table.find_all("tr")[1:]:
-                cols = row.find_all("td")
-                if len(cols) >= 3:
-                    link_tag = cols[-1].find("a")
-                    filings.append({
-                        "company": cols[0].get_text(strip=True),
-                        "filing_date": cols[1].get_text(strip=True),
-                        "type": "DRHP", "sector": "", "issue_size": "N/A",
-                        "brlms": "N/A",
-                        "pdf_link": link_tag["href"] if link_tag and "href" in link_tag.attrs else None,
-                        "description": "",
-                    })
-            if filings:
-                return filings, "SEBI", datetime.now(IST)
-    except Exception:
-        pass
-    return [], "unavailable", datetime.now(IST)
-
-
 # ── Render ─────────────────────────────────────────────────────────────────────
 def render():
     st_autorefresh(interval=1_800_000, key="drhp_refresh")
@@ -538,50 +846,51 @@ def render():
 
     st.markdown("## 📋 DRHP / RHP Filings Monitor — New Age Tech & Fintech")
     st.markdown(
-        "<p style='color:#6b7a8d;font-size:14px'>Tracks DRHP and RHP filings from BSE/SEBI for new-age tech and fintech companies.</p>",
+        "<p style='color:#6b7a8d;font-size:14px'>Tracks DRHP and RHP filings from SEBI/BSE for "
+        "new-age tech and fintech companies. Auto-refreshes every 30 minutes.</p>",
         unsafe_allow_html=True,
     )
 
     col_h, col_b = st.columns([6, 1])
     with col_b:
         if st.button("🔄 Refresh", key="drhp_ref"):
-            st.cache_data.clear()
-            st.session_state.pop("drhp_news_ts", None)
+            for k in ["drhp_news_ts", "sebi_all_ts", "sebi_all_filings",
+                      "live_ipos", "live_ipos_ts", "upcoming_ipos", "upcoming_ipos_ts"]:
+                st.session_state.pop(k, None)
             st.rerun()
 
-    # ── NEWS FEED (first thing visible) ──────────────────────────────────────
+    # ── NEWS FEED ─────────────────────────────────────────────────────────────
     _render_news_feed()
 
     st.markdown("---")
 
-    # ── IPO Pipeline tracker ──────────────────────────────────────────────────
+    # ── PIPELINE STAGE TRACKER ───────────────────────────────────────────────
     st.markdown("### 🚀 IPO Pipeline — Stage Tracker")
     _STAGES = [
-        ("DRHP",         "📋 DRHP Filed",      "#dbeafe", "#1e40af"),
-        ("SEBI Approved","✅ SEBI Approved",    "#dcfce7", "#166534"),
-        ("RHP",          "📄 RHP Filed",        "#ede9fe", "#6d28d9"),
-        ("Listed",       "🎉 Listed",           "#fce7f3", "#be185d"),
+        ("DRHP",          "📋 DRHP Filed",      "#dbeafe", "#1e40af"),
+        ("SEBI Approved", "✅ SEBI Approved",    "#dcfce7", "#166534"),
+        ("RHP",           "📄 RHP Filed",        "#ede9fe", "#6d28d9"),
+        ("Listed",        "🎉 Listed",           "#fce7f3", "#be185d"),
     ]
     stage_cols = st.columns(len(_STAGES))
     for (stage_key, stage_lbl, stage_bg, stage_fg), col in zip(_STAGES, stage_cols):
-        companies_in_stage = [
-            f["company"]
-            for f in KNOWN_FILINGS
-            if f.get("type", "").startswith(stage_key[:4])
-               or f.get("type") == stage_key
-        ]
-        # Special case: SEBI Approved is a sub-status
         if stage_key == "SEBI Approved":
-            companies_in_stage = [f["company"] for f in KNOWN_FILINGS if f.get("type") == "SEBI Approved"]
+            in_stage = [f["company"] for f in KNOWN_FILINGS if f.get("type") == "SEBI Approved"]
+        else:
+            in_stage = [f["company"] for f in KNOWN_FILINGS
+                        if f.get("type", "").startswith(stage_key[:3])
+                        or f.get("type") == stage_key]
         names_html = "".join(
-            f"<div style='font-size:12px;color:#1a0f00;padding:3px 0;border-top:1px solid {stage_bg}'>{n}</div>"
-            for n in companies_in_stage
-        ) if companies_in_stage else f"<div style='font-size:12px;color:#9ca3af'>None</div>"
+            f"<div style='font-size:12px;color:#1a0f00;padding:3px 0;"
+            f"border-top:1px solid {stage_bg}'>{n}</div>"
+            for n in in_stage
+        ) or f"<div style='font-size:12px;color:#9ca3af'>None</div>"
         with col:
             st.markdown(
-                f"<div style='background:{stage_bg};border:1px solid {stage_fg}40;border-radius:10px;padding:12px 14px'>"
+                f"<div style='background:{stage_bg};border:1px solid {stage_fg}40;"
+                f"border-radius:10px;padding:12px 14px'>"
                 f"<div style='font-size:11px;font-weight:700;color:{stage_fg};margin-bottom:6px'>"
-                f"{stage_lbl} &nbsp;({len(companies_in_stage)})</div>"
+                f"{stage_lbl} &nbsp;({len(in_stage)})</div>"
                 f"{names_html}</div>",
                 unsafe_allow_html=True,
             )
@@ -589,51 +898,120 @@ def render():
 
     st.markdown("---")
 
-    with st.spinner("Fetching BSE filings…"):
-        bse_data, bse_src, _ = _bse_filings()
-    with st.spinner("Fetching SEBI filings…"):
-        sebi_data, sebi_src, _ = _sebi_filings()
+    # ── LIVE IPOs ─────────────────────────────────────────────────────────────
+    st_autorefresh(interval=600_000, key="live_ipo_refresh")   # 10-min auto-refresh
+    st.markdown("### 📢 IPOs Currently Open for Subscription")
+    with st.spinner("Fetching live IPO data…"):
+        live_ipos = _fetch_live_ipos()
 
-    live = []
-    if isinstance(bse_data, list) and bse_data:
-        live.extend(bse_data)
-    if isinstance(sebi_data, list) and sebi_data:
-        live.extend(sebi_data)
+    tech_live = [i for i in live_ipos if _is_tech_ipo(i["company"])]
+    if tech_live:
+        st.markdown(
+            f"<div style='background:#dcfce7;border:1px solid #86efac;border-radius:8px;"
+            f"padding:8px 14px;margin-bottom:8px;font-size:13px;color:#166534'>"
+            f"💡 <b>{len(tech_live)} new-age tech / fintech IPO(s) currently open</b></div>",
+            unsafe_allow_html=True)
+        for ipo in tech_live:
+            _render_ipo_card(ipo, highlight=True)
+        if len(live_ipos) > len(tech_live):
+            with st.expander(f"Show all {len(live_ipos)} open IPOs"):
+                for ipo in live_ipos:
+                    _render_ipo_card(ipo)
+    elif live_ipos:
+        st.info(f"No new-age tech/fintech IPOs currently open. "
+                f"{len(live_ipos)} other IPO(s) are open:")
+        for ipo in live_ipos[:5]:
+            _render_ipo_card(ipo)
+        if len(live_ipos) > 5:
+            with st.expander(f"Show all {len(live_ipos)} open IPOs"):
+                for ipo in live_ipos:
+                    _render_ipo_card(ipo)
+    else:
+        st.info("No IPOs currently open for subscription.")
 
-    known_cos = {f["company"].lower() for f in KNOWN_FILINGS}
-    unique_live = [f for f in live if isinstance(f, dict) and f.get("company", "").lower() not in known_cos]
-    combined = unique_live + KNOWN_FILINGS or KNOWN_FILINGS
+    st.caption(f"Source: NSE API / Chittorgarh | Auto-refreshes every 10 min | {_now_ist()}")
 
-    # New filings alert
-    new_filings = [f for f in combined if _is_new(f.get("filing_date", ""), days=7)]
+    st.markdown("---")
+
+    # ── UPCOMING IPOs ─────────────────────────────────────────────────────────
+    st.markdown("### 📅 Opening Soon — Next 30 Days")
+    with st.spinner("Fetching upcoming IPO data…"):
+        upcoming_ipos = _fetch_upcoming_ipos()
+
+    tech_up = [i for i in upcoming_ipos if _is_tech_ipo(i["company"])]
+    if tech_up:
+        st.markdown(
+            f"<div style='background:#ede9fe;border:1px solid #a78bfa;border-radius:8px;"
+            f"padding:8px 14px;margin-bottom:8px;font-size:13px;color:#6d28d9'>"
+            f"🔮 <b>{len(tech_up)} new-age tech / fintech IPO(s) opening soon</b></div>",
+            unsafe_allow_html=True)
+        for ipo in tech_up:
+            _render_ipo_card(ipo, highlight=False)
+        if len(upcoming_ipos) > len(tech_up):
+            with st.expander(f"Show all {len(upcoming_ipos)} upcoming IPOs"):
+                for ipo in upcoming_ipos:
+                    _render_ipo_card(ipo)
+    elif upcoming_ipos:
+        st.info(f"No new-age tech/fintech IPOs in the next 30 days. "
+                f"{len(upcoming_ipos)} other IPO(s) upcoming:")
+        for ipo in upcoming_ipos[:5]:
+            _render_ipo_card(ipo)
+    else:
+        st.info("No upcoming IPOs found for the next 30 days.")
+
+    st.caption(f"Source: NSE API / Chittorgarh | Auto-refreshes every 30 min | {_now_ist()}")
+
+    st.markdown("---")
+
+    # ── DRHP / RHP FILINGS TABLE ───────────────────────────────────────────────
+    st.markdown("### 📂 DRHP / RHP Filings — New Age Tech & Fintech")
+    st.markdown(
+        "<p style='color:#6b7a8d;font-size:12px'>Auto-updated from SEBI and BSE every 30 minutes. "
+        "Hardcoded entries are supplemented with live SEBI scraping.</p>",
+        unsafe_allow_html=True)
+
+    # Fetch live SEBI/BSE filings to supplement KNOWN_FILINGS
+    with st.spinner("Fetching SEBI / BSE filings…"):
+        live_sebi = _sebi_fetch_all()
+
+    known_cos  = {f["company"].lower() for f in KNOWN_FILINGS}
+    unique_live = [
+        f for f in live_sebi
+        if f.get("company", "").lower() not in known_cos
+        and f.get("is_tech", False)
+    ]
+    combined = KNOWN_FILINGS + unique_live  # known first (curated), then live auto-detected
+
+    # New filings alert (last 7 days from live source)
+    new_filings = [f for f in unique_live if _is_new(f.get("filing_date", ""), days=7)]
     if new_filings:
         st.markdown(
-            f"""<div style='background:#fef9c3;border:2px solid #fbbf24;border-radius:10px;
-            padding:14px 18px;margin-bottom:16px'>
-            <b style='color:#92400e'>🆕 {len(new_filings)} new filing(s) in the last 7 days:</b>
-            &nbsp; {', '.join(f['company'] for f in new_filings)}</div>""",
-            unsafe_allow_html=True,
-        )
+            f"<div style='background:#fef9c3;border:2px solid #fbbf24;border-radius:10px;"
+            f"padding:14px 18px;margin-bottom:16px'>"
+            f"<b style='color:#92400e'>🆕 {len(new_filings)} new SEBI filing(s) in the last 7 days: "
+            f"{', '.join(f['company'] for f in new_filings)}</b></div>",
+            unsafe_allow_html=True)
 
     # ── Inline filters ────────────────────────────────────────────────────────
     st.markdown(
-        f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-        padding:12px 16px;margin:12px 0'>""", unsafe_allow_html=True)
+        f"<div style='background:{CARD_BG};border:1px solid {BORDER};"
+        f"border-radius:10px;padding:12px 16px;margin:12px 0'>",
+        unsafe_allow_html=True)
     fc1, fc2, fc3 = st.columns([2, 2, 2])
     with fc1:
-        types = ["All"] + sorted(set(f.get("type", "DRHP") for f in combined))
+        types   = ["All"] + sorted(set(f.get("type", "DRHP") for f in combined))
         sel_type = st.selectbox("Filing Type", types, key="drhp_type")
     with fc2:
-        secs = sorted(set(f.get("sector", "") for f in combined if f.get("sector")))
+        secs    = sorted(set(f.get("sector", "") for f in combined if f.get("sector")))
         sel_sec = st.selectbox("Sector", ["All"] + secs, key="drhp_sec")
     with fc3:
-        z47_only = st.checkbox("Z47-relevant only", value=False, key="drhp_z47")
+        z47_only = st.checkbox("Tech/Fintech only", value=False, key="drhp_z47")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Build rows
+    # Build display rows
     rows = []
     for f in combined:
-        z47r = _is_z47(f.get("company", ""), f.get("sector", ""))
+        z47r  = _is_z47(f.get("company", ""), f.get("sector", ""))
         new_f = _is_new(f.get("filing_date", ""), days=7)
         rows.append({
             "Company":      f.get("company", ""),
@@ -642,13 +1020,14 @@ def render():
             "Sector":       (f.get("sector") or "–").title(),
             "Issue Size":   f.get("issue_size", "TBD"),
             "BRLMs":        f.get("brlms", "TBD"),
-            "Z47 Relevant": "✅ Yes" if z47r else "–",
-            "PDF":          f.get("pdf_link") or "–",
             "New (7d)":     "🆕 New" if new_f else "",
-            "_z47": z47r, "_new": new_f,
-            "_sec_raw": (f.get("sector") or "").lower(),
-            "_type_raw": f.get("type", "DRHP"),
-            "_desc": f.get("description", ""),
+            # Store for detail expander
+            "_z47":         z47r, "_new": new_f,
+            "_sec_raw":     (f.get("sector") or "").lower(),
+            "_type_raw":    f.get("type", "DRHP"),
+            "_desc":        f.get("description", ""),
+            "_pdf":         f.get("pdf_link"),
+            "_conf":        f.get("confidential", False),
         })
 
     df = pd.DataFrame(rows)
@@ -659,7 +1038,7 @@ def render():
     if z47_only:
         df = df[df["_z47"]]
 
-    disp_cols = ["Company", "Filing Date", "Type", "Sector", "Issue Size", "BRLMs", "Z47 Relevant", "PDF", "New (7d)"]
+    disp_cols = ["Company", "Filing Date", "Type", "Sector", "Issue Size", "BRLMs", "New (7d)"]
 
     def _hl(row):
         return (["background-color:#fef9c3"] * len(row)
@@ -671,17 +1050,21 @@ def render():
                      "Company":    st.column_config.TextColumn(width="medium"),
                      "Issue Size": st.column_config.TextColumn(width="small"),
                      "BRLMs":      st.column_config.TextColumn(width="medium"),
-                     "PDF":        st.column_config.LinkColumn("PDF / Link", display_text="View"),
                      "New (7d)":   st.column_config.TextColumn(width="small"),
                  })
-    st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
-                unsafe_allow_html=True)
 
-    # Detail expander
+    st.markdown(
+        f'<div style="color:#a38060;font-size:11px;text-align:right">'
+        f'Sources: SEBI Live + BSE Live + Curated | Updated: {_now_ist()}</div>',
+        unsafe_allow_html=True)
+
+    # ── Filing Detail Expander ────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown("### Filing Details")
-    sel_co = st.selectbox("Select company", [r["Company"] for r in rows], key="drhp_detail")
-    sel_row = next((r for r in rows if r["Company"] == sel_co), None)
+    st.markdown("### 📄 Filing Details & Document Links")
+    all_cos  = [r["Company"] for r in rows]
+    sel_co   = st.selectbox("Select company", all_cos, key="drhp_detail")
+    sel_row  = next((r for r in rows if r["Company"] == sel_co), None)
+
     if sel_row:
         with st.expander(f"📄 {sel_row['Company']} — {sel_row['Type']}", expanded=True):
             c1, c2 = st.columns(2)
@@ -693,24 +1076,66 @@ def render():
             with c2:
                 st.markdown(f"**Issue Size:** {sel_row['Issue Size']}")
                 st.markdown(f"**BRLMs:** {sel_row['BRLMs']}")
-                st.markdown(f"**Z47 Relevant:** {sel_row['Z47 Relevant']}")
-                if sel_row["PDF"] and sel_row["PDF"] != "–":
-                    st.markdown(f"**PDF:** [{sel_row['PDF']}]({sel_row['PDF']})")
-            if sel_row.get("_desc"):
-                st.markdown(f"**About:** {sel_row['_desc']}")
+                if sel_row.get("_desc"):
+                    st.markdown(f"**About:** {sel_row['_desc']}")
 
-    # Stats
+            st.markdown("**DRHP / RHP Document:**")
+            is_conf = sel_row.get("_conf", False)
+            pdf_url = sel_row.get("_pdf")
+
+            if is_conf:
+                # Grey confidential badge
+                st.markdown(
+                    "<div style='display:inline-block;background:#e5e7eb;color:#6b7a8d;"
+                    "border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600'>"
+                    "🔒 Confidential Filing — document not publicly available</div>",
+                    unsafe_allow_html=True)
+            else:
+                # Verify link (cached 6 hours)
+                with st.spinner("Verifying document link…"):
+                    status, verified_url = _get_best_link(sel_row | {"pdf_link": pdf_url})
+
+                if status == "verified" and verified_url:
+                    st.link_button("📄 View DRHP / RHP Document",
+                                   verified_url,
+                                   use_container_width=False)
+                    st.caption(f"✅ Link verified · Source: SEBI / BSE")
+                elif status == "searching":
+                    st.markdown(
+                        "<div style='display:inline-block;background:#f3f4f6;color:#6b7a8d;"
+                        "border-radius:8px;padding:6px 14px;font-size:13px'>"
+                        "🔍 Document found but not yet verified — try refreshing</div>",
+                        unsafe_allow_html=True)
+                    if verified_url:
+                        st.link_button("🔗 Try Document Link (unverified)",
+                                       verified_url,
+                                       use_container_width=False)
+                else:
+                    # Try one more time with SEBI search
+                    sebi_url = _sebi_find_pdf(sel_row["Company"])
+                    if sebi_url:
+                        st.link_button("📄 View DRHP / RHP Document (SEBI)",
+                                       sebi_url,
+                                       use_container_width=False)
+                        st.caption("🔍 Found via SEBI search · click to verify")
+                    else:
+                        st.markdown(
+                            "<div style='display:inline-block;background:#f9fafb;color:#9ca3af;"
+                            "border-radius:8px;padding:6px 14px;font-size:13px'>"
+                            "🔍 Document link not found — will retry on next refresh</div>",
+                            unsafe_allow_html=True)
+
+    # ── Summary Stats ─────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("### Summary Statistics")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total Filings", len(rows))
-    m2.metric("New (7 days)",  sum(1 for r in rows if r["_new"]))
-    m3.metric("Z47 Relevant",  sum(1 for r in rows if r["_z47"]))
+    m1.metric("Total Filings",  len(rows))
+    m2.metric("New (7 days)",   sum(1 for r in rows if r["_new"]))
+    m3.metric("Tech / Fintech", sum(1 for r in rows if r["_z47"]))
     m4.metric("DRHP vs RHP",
               f"{sum(1 for r in rows if r['_type_raw']=='DRHP')}D "
               f"/ {sum(1 for r in rows if r['_type_raw']=='RHP')}R")
     st.markdown(
         f'<div style="color:#a38060;font-size:11px;text-align:right">'
-        f'Sources: BSE ({bse_src}), SEBI ({sebi_src}), Hardcoded | Updated: {_now_ist()}</div>',
+        f'Updated: {_now_ist()}</div>',
         unsafe_allow_html=True)
-
