@@ -259,13 +259,14 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
                 "ofs_shares_lakhs": None,
                 "first_year": 2021,
             },
-            "Tiger Global Management": {
-                "waca": 74.41,
+            "Tiger Global Management (Internet Fund V)": {
+                "waca": 61.65,
                 "waca_type": "RHP",
-                "waca_source": "RHP Share Capital History — WACA ₹74.41/sh disclosed",
+                "waca_source": "RHP Share Capital History — WACA ₹61.65/sh (Internet Fund V); certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year": 2019,
+                "notes": "Internet Fund V (Tiger Global vehicle). WACA ₹61.65 from CA-certified RHP. ~1.67× at IPO / ~2.63× at listing.",
             },
         },
     },
@@ -1747,61 +1748,94 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     },
 
     "Meesho": {
-        "ipo_price": 400, "listing_price": None,
-        "fresh_issue_cr": 3000.0, "ofs_total_cr": 2000.0,
+        # ── NOTE: Exact OFS seller data now in VERIFIED_INVESTOR_DATA (v2) ──
+        # 10 OFS sellers certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025.
+        # OFS total: 96,759,577 shares (at ₹IPO price TBD — price band not announced as of May 2026).
+        "ipo_price": None,      # TBD — price band not announced
+        "listing_price": None,
+        "fresh_issue_cr": 2000.0,
+        "ofs_total_cr": None,   # TBD — depends on IPO price
+        "ofs_total_shares": 103_759_577,  # exact sum from RHP (verified)
         "investors": {
-            "SoftBank": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Series F–G (2021–22) at ~$4.9B valuation. "
-                               "Entry price per share TBD from RHP — valuation implies ~₹380–420/sh "
-                               "depending on total diluted share count (near IPO ₹400 → ~1× at IPO).",
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
-                "notes": "~24% stake. Likely large OFS seller. Listing pending.",
-            },
-            "Sequoia Capital / Peak XV": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Series B–D (2019–21) at $500M–$2.1B valuations. "
-                               "Multi-round blended WACA TBD from RHP.",
-                "ofs_shares_lakhs": None,
-                "first_year": 2019,
-                "notes": "~12% stake. Earlier investor — lower WACA than SoftBank. Listing pending.",
-            },
-            "Fidelity": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Series F (2021) at ~$4.9B valuation. WACA TBD from RHP.",
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
-                "notes": "~5% stake. Listing pending.",
-            },
-            "B Capital Group": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Series E (2021) at ~$2.1B valuation. WACA TBD from RHP.",
-                "ofs_shares_lakhs": None,
-                "first_year": 2021,
-                "notes": "~6% stake. Possible OFS seller. Listing pending.",
-            },
-            "Prosus (Naspers)": {
-                "waca": None,
-                "waca_type": "estimated",
-                "waca_source": "Series D (2020) at ~$2.1B valuation. WACA TBD from RHP.",
-                "ofs_shares_lakhs": None,
-                "first_year": 2020,
-                "notes": "~4% stake. Listing pending.",
-            },
-            "Founders: Vidit Aatrey & Sanjeev Barnwal": {
-                "waca": 1.0,
-                "waca_type": "estimated",
-                "waca_source": "Founding stake (2015). Nominal par value ~₹1/sh estimated. "
-                               "Exact WACA TBD from RHP.",
-                "ofs_shares_lakhs": None,
+            "Elevation Capital": {
+                "waca": 3.04,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹3.04/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 244.45,
                 "first_year": 2015,
-                "notes": "~18% combined. Did not sell in OFS (listing pending). "
-                         ">400× paper gain at IPO issue price if listing near ₹400.",
+                "notes": "Largest institutional OFS seller. 24,445,349 shares.",
+            },
+            "Peak XV Partners (Sequoia Capital India)": {
+                "waca": 4.29,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹4.29/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 173.81,
+                "first_year": 2016,
+                "notes": "17,380,873 shares in OFS.",
+            },
+            "Vidit Aatrey (Promoter)": {
+                "waca": 0.06,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹0.06/sh certified by B.B. & Associates CA (founder shares at near-par)",
+                "ofs_shares_lakhs": 160.00,
+                "first_year": 2015,
+                "notes": "Co-founder & CEO. 16,000,000 shares in OFS at near-nil cost basis.",
+            },
+            "Sanjeev Kumar Barnwal (Promoter)": {
+                "waca": 0.02,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹0.02/sh certified by B.B. & Associates CA (founder shares at near-par)",
+                "ofs_shares_lakhs": 160.00,
+                "first_year": 2015,
+                "notes": "Co-founder & CTO. 16,000,000 shares in OFS at near-nil cost basis.",
+            },
+            "Venture Highway": {
+                "waca": 46.81,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹46.81/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 86.37,
+                "first_year": 2018,
+                "notes": "8,636,727 shares in OFS.",
+            },
+            "Golden Summit Private Limited": {
+                "waca": 92.43,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹92.43/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 79.62,
+                "first_year": 2020,
+                "notes": "7,961,640 shares in OFS.",
+            },
+            "YC Continuity Fund": {
+                "waca": 1.02,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹1.02/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 71.95,
+                "first_year": 2016,
+                "notes": "7,195,453 shares in OFS.",
+            },
+            "Man Hay Tam": {
+                "waca": 0.51,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹0.51/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 33.01,
+                "first_year": 2015,
+                "notes": "3,301,140 shares in OFS.",
+            },
+            "Sarin Family (Ashutosh Sarin / Sarin Investments)": {
+                "waca": 2.22,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹2.22/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 15.91,
+                "first_year": 2015,
+                "notes": "1,591,044 shares in OFS.",
+            },
+            "Gemini Investments (Prosus / Naspers vehicle)": {
+                "waca": 8.28,
+                "waca_type": "RHP",
+                "waca_source": "RHP — WACA ₹8.28/sh certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "ofs_shares_lakhs": 12.47,
+                "first_year": 2017,
+                "notes": "1,247,351 shares in OFS.",
             },
         },
     },
@@ -1904,6 +1938,165 @@ VERIFIED_INVESTOR_DATA: dict[str, dict] = {
             },
         },
     },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # URBAN COMPANY (UrbanClap Technologies India)
+    # IPO Sep 2025. ₹103 issue price, ₹162.25 listing.
+    # Fresh issue ₹472 cr (₹4,720 mn) + OFS ₹1,428 cr (₹14,280 mn).
+    # 5 OFS sellers certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025.
+    # NOTE: Per-seller OFS share counts from RHP — exact counts per investor
+    #       shown as None where RHP used [●] placeholder (TBD at pricing).
+    #       OFS DID happen for all 5 sellers — display must NOT show "No OFS".
+    # ══════════════════════════════════════════════════════════════════════════
+    "Urban Company": {
+        "ipo_price":        103,
+        "listing_price":    162.25,
+        "listing_date":     "2025-09-17",
+        "ca_firm":          "J.C. Bhalla & Co., FRN: 001111N",
+        "ca_date":          "Sep 2 2025",
+        "fresh_issue_cr":   472.0,      # ₹4,720 mn
+        "ofs_total_cr":     1428.0,     # ₹14,280 mn
+        "ofs_total_shares": None,       # [●] in DRHP — derived: 1428 cr ÷ ₹103 = ~1.386 cr shares
+        "ofs_note":         "OFS ₹1,428 cr (₹14,280 mn). Share count was [●] in DRHP; final count at pricing.",
+        "investors": {
+            "Accel India": {
+                "type": "investor",
+                "waca": 3.77,
+                "waca_source": "RHP Share Capital History — WACA ₹3.77/sh; certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       None,   # [●] in DRHP — OFS DID happen
+                "ofs_confirmed":    True,   # flag: OFS happened, shares TBD at pricing
+                "notes": "~27.3× at IPO price (₹103 ÷ ₹3.77). ~43× at listing (₹162.25 ÷ ₹3.77). "
+                         "One of the highest MOIC in Indian startup IPOs.",
+            },
+            "Elevation Capital": {
+                "type": "investor",
+                "waca": 5.39,
+                "waca_source": "RHP Share Capital History — WACA ₹5.39/sh; certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       None,
+                "ofs_confirmed":    True,
+                "notes": "~19.1× at IPO / ~30.1× at listing.",
+            },
+            "Bessemer Venture Partners": {
+                "type": "investor",
+                "waca": 7.14,
+                "waca_source": "RHP Share Capital History — WACA ₹7.14/sh; certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       None,
+                "ofs_confirmed":    True,
+                "notes": "~14.4× at IPO / ~22.7× at listing.",
+            },
+            "VY Capital": {
+                "type": "investor",
+                "waca": 20.40,
+                "waca_source": "RHP Share Capital History — WACA ₹20.40/sh; certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       None,
+                "ofs_confirmed":    True,
+                "notes": "~5.05× at IPO / ~7.95× at listing.",
+            },
+            "Tiger Global Management (Internet Fund V)": {
+                "type": "investor",
+                "waca": 61.65,
+                "waca_source": "RHP Share Capital History — WACA ₹61.65/sh (Internet Fund V); certified by J.C. Bhalla & Co., CA, FRN: 001111N, Sep 2 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       None,
+                "ofs_confirmed":    True,
+                "notes": "~1.67× at IPO / ~2.63× at listing. Internet Fund V vehicle.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # MEESHO (Fashnear Technologies)
+    # IPO pricing TBD (price band not announced as of May 2026).
+    # Fresh issue ₹2,000 cr + OFS (96,759,577 shares at TBD IPO price).
+    # 10 OFS sellers certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Meesho": {
+        "ipo_price":        None,       # TBD — price band not announced
+        "listing_price":    None,
+        "listing_date":     None,
+        "ca_firm":          "B.B. & Associates",
+        "ca_udin":          "25511341BMIVDB9527",
+        "ca_date":          "Nov 27 2025",
+        "fresh_issue_cr":   2000.0,
+        "ofs_total_shares": 103_759_577,  # exact sum: 24,445,349+17,380,873+16M+16M+8,636,727+7,961,640+7,195,453+3,301,140+1,591,044+1,247,351
+        "ofs_total_cr":     None,        # TBD at pricing
+        "investors": {
+            "Elevation Capital": {
+                "type": "investor",
+                "waca": 3.04,
+                "waca_source": "RHP — WACA ₹3.04/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       24_445_349,
+            },
+            "Peak XV Partners (Sequoia Capital India)": {
+                "type": "investor",
+                "waca": 4.29,
+                "waca_source": "RHP — WACA ₹4.29/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       17_380_873,
+            },
+            "Vidit Aatrey": {
+                "type": "promoter",
+                "waca": 0.06,
+                "waca_source": "RHP — WACA ₹0.06/sh (co-founder); certified by B.B. & Associates CA",
+                "pre_offer_shares": None,
+                "ofs_shares":       16_000_000,
+            },
+            "Sanjeev Kumar Barnwal": {
+                "type": "promoter",
+                "waca": 0.02,
+                "waca_source": "RHP — WACA ₹0.02/sh (co-founder); certified by B.B. & Associates CA",
+                "pre_offer_shares": None,
+                "ofs_shares":       16_000_000,
+            },
+            "Venture Highway": {
+                "type": "investor",
+                "waca": 46.81,
+                "waca_source": "RHP — WACA ₹46.81/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       8_636_727,
+            },
+            "Golden Summit Private Limited": {
+                "type": "investor",
+                "waca": 92.43,
+                "waca_source": "RHP — WACA ₹92.43/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       7_961_640,
+            },
+            "YC Continuity Fund": {
+                "type": "investor",
+                "waca": 1.02,
+                "waca_source": "RHP — WACA ₹1.02/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       7_195_453,
+            },
+            "Man Hay Tam": {
+                "type": "investor",
+                "waca": 0.51,
+                "waca_source": "RHP — WACA ₹0.51/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       3_301_140,
+            },
+            "Sarin Family (Ashutosh Sarin)": {
+                "type": "investor",
+                "waca": 2.22,
+                "waca_source": "RHP — WACA ₹2.22/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       1_591_044,
+            },
+            "Gemini Investments (Prosus / Naspers)": {
+                "type": "investor",
+                "waca": 8.28,
+                "waca_source": "RHP — WACA ₹8.28/sh; certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       1_247_351,
+            },
+        },
+    },
 }
 
 
@@ -1916,10 +2109,11 @@ def calculate_returns(
     waca: float | None,
     ofs_shares: int | None,
     pre_offer_shares: int | None,
-    ipo_price: float,
+    ipo_price: float | None,
     listing_price: float | None,
     seller_type: str = "investor",
     ca_firm: str = "",
+    ofs_confirmed: bool = False,
 ) -> dict:
     """
     Compute all return metrics for a pre-IPO investor.
@@ -1931,15 +2125,21 @@ def calculate_returns(
         → Realised MOIC  = (ofs_shares × ipo_price) / (ofs_shares × waca)
         → Total MOIC     = (ofs_proceeds + retained × listing) / (pre_offer × waca)
         → moic_at_listing = listing / waca  (for non-OFS holders)
+
+    ofs_confirmed=True + ofs_shares=None:
+        OFS DID happen but exact share count was [●] (placeholder) in DRHP.
+        Returns moic_at_ipo / moic_at_listing without per-share proceeds.
+        Never shows "No OFS".
     """
     is_promoter = (waca is not None and waca <= 0.01) or seller_type == "promoter"
 
     if is_promoter:
-        proceeds = round((ofs_shares or 0) * ipo_price / 1e7, 2) if ofs_shares else 0.0
+        proceeds = round((ofs_shares or 0) * (ipo_price or 0) / 1e7, 2) if ofs_shares else 0.0
         return {
             "type": "promoter",
             "ofs_proceeds_cr": proceeds,
             "ofs_shares": ofs_shares,
+            "ofs_confirmed": ofs_confirmed,
             "note": "Promoter/Founder — negligible cost basis",
         }
 
@@ -1948,10 +2148,11 @@ def calculate_returns(
 
     warnings: list[str] = []
     result: dict = {"type": "investor", "waca": waca, "ca_firm": ca_firm,
-                    "pre_offer_shares": pre_offer_shares, "ofs_shares": ofs_shares}
+                    "pre_offer_shares": pre_offer_shares, "ofs_shares": ofs_shares,
+                    "ofs_confirmed": ofs_confirmed}
 
     # ── Realised return (OFS only) ───────────────────────────────────────────
-    if ofs_shares and ofs_shares > 0:
+    if ofs_shares and ofs_shares > 0 and ipo_price:
         cost_of_ofs   = ofs_shares * waca
         ofs_proceeds  = ofs_shares * ipo_price
         realised_moic = ofs_proceeds / cost_of_ofs
@@ -1966,6 +2167,24 @@ def calculate_returns(
             "realised_moic":   round(realised_moic, 2),
             "realised_pct":    round(realised_pct, 1),
         })
+    elif ofs_confirmed and not ofs_shares:
+        # [●] placeholder: OFS DID happen but share count was TBD at DRHP filing.
+        # Show moic_at_ipo as the realised return (WACA is known, IPO price is known).
+        if ipo_price:
+            ofs_moic = round(ipo_price / waca, 2)
+            ofs_pct  = (ofs_moic - 1) * 100
+            if waca > ipo_price:
+                warnings.append(f"WACA ₹{waca:.2f} > IPO ₹{ipo_price} — loss at IPO")
+            result.update({
+                "cost_of_ofs_cr":  None,
+                "ofs_proceeds_cr": None,
+                "realised_moic":   ofs_moic,
+                "realised_pct":    round(ofs_pct, 1),
+                "ofs_shares_tbd":  True,   # flag: share count is [●], MOIC is per-share
+            })
+        else:
+            result.update({"realised_moic": None, "realised_pct": None,
+                            "ofs_proceeds_cr": None, "cost_of_ofs_cr": None})
     else:
         result.update({"realised_moic": None, "realised_pct": None,
                         "ofs_proceeds_cr": None, "cost_of_ofs_cr": None})

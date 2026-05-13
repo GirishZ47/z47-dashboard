@@ -767,7 +767,7 @@ _ANCHOR_DATA = {
             {"investor": "Elevation Capital (SAIF Partners)", "round": "Series A–C (2015–18)", "entry_val": "WACA ₹5.39/sh (~$20–100M valuation)", "pct_held": "~14%", "return_at_ipo": "~19x at issue / ~30x at listing (WACA ₹5.39 → issue ₹103 = 19.1x; → listing ₹162.25 = 30.1x)", "return_at_cmp": "—"},
             {"investor": "Bessemer Venture Partners",         "round": "Series B–C (2016–18)", "entry_val": "WACA ₹7.14/sh (~$30–100M valuation)", "pct_held": "~10%", "return_at_ipo": "~14x at issue / ~23x at listing (WACA ₹7.14 → issue ₹103 = 14.4x; → listing ₹162.25 = 22.7x)", "return_at_cmp": "—"},
             {"investor": "VY Capital",                        "round": "Series E (2021)",      "entry_val": "WACA ₹20.40/sh (~$900M valuation)", "pct_held": "~8%",  "return_at_ipo": "~5x at issue / ~8x at listing (WACA ₹20.40 → issue ₹103 = 5.05x; → listing ₹162.25 = 7.95x)", "return_at_cmp": "—"},
-            {"investor": "Tiger Global Management",           "round": "Series D–E (2019–21)", "entry_val": "WACA ₹74.41/sh (~$1.5–2.8B valuation)", "pct_held": "~10%", "return_at_ipo": "~1.4x at issue / ~2.2x at listing (WACA ₹74.41 → issue ₹103 = 1.38x; → listing ₹162.25 = 2.18x)", "return_at_cmp": "—"},
+            {"investor": "Tiger Global Management (Internet Fund V)", "round": "Series D–E (2019–21)", "entry_val": "WACA ₹61.65/sh (RHP-certified, CA: J.C. Bhalla & Co.)", "pct_held": "~10%", "return_at_ipo": "~1.67x at issue / ~2.63x at listing (WACA ₹61.65 → issue ₹103 = 1.67x; → listing ₹162.25 = 2.63x)", "return_at_cmp": "—"},
         ],
     },
     "BlueStone": {
@@ -888,42 +888,68 @@ _ANCHOR_DATA = {
             {"investor": "ICICI Pru MF",       "category": "Mutual Fund",       "allocation_cr": 220},
             {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 180},
         ],
+        # ── OFS sellers: 10 verified from RHP (B.B. & Associates CA, UDIN: 25511341BMIVDB9527) ──
+        # IPO price TBD — show projected scenarios below in the render function
         "pripo_investors": [
-            {"investor": "SoftBank",
-             "round": "Series F–G (2021–22)",
-             "entry_val": "~$4.9B valuation",
-             "pct_held": "~24%",
-             "return_at_ipo": "Listing pending — IPO ₹400; entry at ~$4.9B vs listing TBD",
+            {"investor": "Elevation Capital",
+             "round": "Series A–C (2015–19)",
+             "entry_val": "WACA ₹3.04/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
              "return_at_cmp": "—"},
-            {"investor": "Sequoia Capital / Peak XV",
-             "round": "Series B–D (2019–21)",
-             "entry_val": "~$500M–$2.1B valuation",
-             "pct_held": "~12%",
-             "return_at_ipo": "Listing pending — multi-round blended WACA TBD from RHP",
+            {"investor": "Peak XV Partners (Sequoia Capital India)",
+             "round": "Series B–D (2016–21)",
+             "entry_val": "WACA ₹4.29/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
              "return_at_cmp": "—"},
-            {"investor": "Fidelity",
-             "round": "Series F (2021)",
-             "entry_val": "~$4.9B valuation",
-             "pct_held": "~5%",
-             "return_at_ipo": "Listing pending",
+            {"investor": "Vidit Aatrey",
+             "round": "Founder (2015)",
+             "entry_val": "WACA ₹0.06/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Promoter — OFS proceeds shown",
              "return_at_cmp": "—"},
-            {"investor": "B Capital Group",
-             "round": "Series E (2021)",
-             "entry_val": "~$2.1B valuation",
-             "pct_held": "~6%",
-             "return_at_ipo": "Listing pending — possible OFS seller",
+            {"investor": "Sanjeev Kumar Barnwal",
+             "round": "Founder (2015)",
+             "entry_val": "WACA ₹0.02/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Promoter — OFS proceeds shown",
              "return_at_cmp": "—"},
-            {"investor": "Prosus (Naspers)",
-             "round": "Series D (2020)",
-             "entry_val": "~$2.1B valuation",
-             "pct_held": "~4%",
-             "return_at_ipo": "Listing pending",
+            {"investor": "Venture Highway",
+             "round": "Series B (2018)",
+             "entry_val": "WACA ₹46.81/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
              "return_at_cmp": "—"},
-            {"investor": "Founders: Vidit Aatrey & Sanjeev Barnwal",
-             "round": "Founding (2015)",
-             "entry_val": "Negligible (founding stake ~₹1/sh est.)",
-             "pct_held": "~18% combined",
-             "return_at_ipo": "Listing pending — >400× paper gain at IPO issue price",
+            {"investor": "Golden Summit Private Limited",
+             "round": "Series D–E (2020–21)",
+             "entry_val": "WACA ₹92.43/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
+             "return_at_cmp": "—"},
+            {"investor": "YC Continuity Fund",
+             "round": "Series C (2017)",
+             "entry_val": "WACA ₹1.02/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
+             "return_at_cmp": "—"},
+            {"investor": "Man Hay Tam",
+             "round": "Early stage (2015)",
+             "entry_val": "WACA ₹0.51/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
+             "return_at_cmp": "—"},
+            {"investor": "Sarin Family (Ashutosh Sarin)",
+             "round": "Early stage (2015)",
+             "entry_val": "WACA ₹2.22/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
+             "return_at_cmp": "—"},
+            {"investor": "Gemini Investments (Prosus / Naspers)",
+             "round": "Series C–D (2017–20)",
+             "entry_val": "WACA ₹8.28/sh (CA-certified RHP)",
+             "pct_held": "—",
+             "return_at_ipo": "Projected — price band TBD",
              "return_at_cmp": "—"},
         ],
     },
@@ -2456,11 +2482,75 @@ def render():
         _list_px = ipo.get("listing_price")
         _company = ipo.get("company", "")
 
-        if pripo and _ipo_px:
+        _is_upcoming = (not _ipo_px)   # price band not yet announced
+
+        if pripo and (_ipo_px or _is_upcoming):
+
+            # ── Upcoming IPO: scenario table (no price yet) ───────────────────
+            if _is_upcoming:
+                _v2_up = VERIFIED_INVESTOR_DATA.get(_company)
+                if _v2_up:
+                    st.info(
+                        f"**{_company} — IPO price band not yet announced.**  "
+                        f"WACA figures from RHP, certified by {_v2_up.get('ca_firm','CA')}.  "
+                        f"Projected returns shown at price scenarios below."
+                    )
+                    _scenarios = [100, 200, 300, 400, 500, 600, 700, 800]
+                    _inv_rows = [
+                        inv for inv in _v2_up.get("investors", {}).values()
+                        if inv.get("waca") and inv.get("waca", 0) > 0.01
+                        and inv.get("type") != "promoter"
+                    ]
+                    if _inv_rows:
+                        _hdr = ["**Investor**", "**WACA (₹/sh)**"] + [f"**₹{s}**" for s in _scenarios]
+                        _cols_s = st.columns([2.2, 1.2] + [0.9] * len(_scenarios))
+                        for _c, _h in zip(_cols_s, _hdr):
+                            _c.markdown(_h)
+                        st.markdown(
+                            "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
+                            unsafe_allow_html=True)
+                        for _inv_key, _inv_v in _v2_up.get("investors", {}).items():
+                            _w2 = _inv_v.get("waca")
+                            if not _w2 or _w2 <= 0 or _inv_v.get("type") == "promoter":
+                                continue
+                            _inv_s_cols = st.columns([2.2, 1.2] + [0.9] * len(_scenarios))
+                            _inv_s_cols[0].markdown(
+                                f"<div style='font-size:13px;font-weight:600'>{_inv_key.split('(')[0].strip()}</div>",
+                                unsafe_allow_html=True)
+                            _inv_s_cols[1].markdown(
+                                f"<div style='font-size:13px'>₹{_w2:,.2f}</div>",
+                                unsafe_allow_html=True)
+                            for _si, _sp in enumerate(_scenarios):
+                                _sm = round(_sp / _w2, 1)
+                                _sc = "#16a34a" if _sm >= 2 else ("#d97706" if _sm >= 1 else "#dc2626")
+                                _inv_s_cols[2 + _si].markdown(
+                                    f"<div style='font-size:12px;color:{_sc};font-weight:600'>"
+                                    f"{_sm:.1f}×</div>",
+                                    unsafe_allow_html=True)
+                    # Promoters
+                    _prom_rows = {k: v for k, v in _v2_up.get("investors", {}).items()
+                                  if v.get("type") == "promoter" and v.get("ofs_shares")}
+                    if _prom_rows:
+                        st.markdown("**Promoter OFS sellers:**")
+                        for _pk, _pv in _prom_rows.items():
+                            _ps = _pv["ofs_shares"]
+                            _proc_cols = [f"₹{round(_ps * _sp / 1e7, 0):.0f} cr" for _sp in _scenarios]
+                            st.markdown(
+                                f"- **{_pk}** — {_ps:,} shares × IPO price → "
+                                + " / ".join(f"₹{s}: {p}" for s, p in zip(_scenarios, _proc_cols))
+                            )
+                    st.caption(
+                        f"*WACA certified by {_v2_up.get('ca_firm','CA')} "
+                        f"({_v2_up.get('ca_date','')}).  Scenarios are per-share MOIC only; "
+                        f"exact OFS proceeds depend on final share count.*"
+                    )
+                else:
+                    st.info(f"**{_company}** — IPO price band not yet announced. "
+                            f"Investor returns will be shown once price band is filed.")
 
             # ── OFS Verification log (console) ───────────────────────────────
             _v2 = VERIFIED_INVESTOR_DATA.get(_company)
-            if _v2:
+            if _v2 and not _is_upcoming:
                 _ofs_exp = _v2.get("ofs_total_shares", 0)
                 _ofs_act = sum(
                     (v.get("ofs_shares") or 0)
@@ -2473,12 +2563,15 @@ def render():
                 )
 
             # ── Column headers (6 cols) ───────────────────────────────────────
-            _hcols = st.columns([2.5, 1.5, 1.2, 2.0, 2.0, 1.5])
-            for _hc, _hl in zip(_hcols,
+            if _is_upcoming:
+                pass  # Scenario table already rendered above; skip the returns table
+            if not _is_upcoming:
+             _hcols = st.columns([2.5, 1.5, 1.2, 2.0, 2.0, 1.5])
+             for _hc, _hl in zip(_hcols,
                 ["**Investor**", "**Round**", "**WACA (₹/sh)**",
                  "**Realised Return**", "**Total Return at Listing**", "**Details**"]):
                 _hc.markdown(_hl)
-            st.markdown(
+             st.markdown(
                 "<hr style='margin:2px 0 6px;border:none;border-top:1px solid #ccdaea'>",
                 unsafe_allow_html=True)
 
@@ -2489,6 +2582,8 @@ def render():
                 return "#dc2626"                    # red
 
             for _idx_inv, _inv in enumerate(pripo):
+                if _is_upcoming:
+                    continue  # Upcoming IPO: full scenario table shown above; skip per-row render
                 _inv_name = _inv.get("investor", "")
                 _rc = st.columns([2.5, 1.5, 1.2, 2.0, 2.0, 1.5])
 
@@ -2519,6 +2614,7 @@ def render():
                         listing_price   = _list_px,
                         seller_type     = _inv_data.get("type", "investor"),
                         ca_firm         = _inv_data.get("_ca_firm", ""),
+                        ofs_confirmed   = _inv_data.get("ofs_confirmed", False),
                     )
                     _waca_display = _inv_data.get("waca")
                     _waca_src_lbl = _inv_data.get("waca_source", "")
@@ -2564,15 +2660,25 @@ def render():
                         unsafe_allow_html=True)
 
                 elif _waca_display and _ipo_px:
-                    # No OFS — show moic at IPO as "No OFS"
                     _moic_ipo = (_r.get("moic_at_ipo") or
                                  (round(_ipo_px / _waca_display, 2) if _waca_display else None))
+                    _ofs_tbd  = _r.get("ofs_shares_tbd", False)
+                    _ofs_conf = _r.get("ofs_confirmed", False)
                     if _moic_ipo:
                         _col_r = _moic_color(_moic_ipo)
-                        _rc[3].markdown(
-                            f"<div style='font-size:13px;color:{_col_r}'>"
-                            f"No OFS — {_moic_ipo:.2f}× at IPO</div>",
-                            unsafe_allow_html=True)
+                        if _ofs_tbd or _ofs_conf:
+                            # OFS DID happen — [●] shares in DRHP, show per-share MOIC
+                            _rc[3].markdown(
+                                f"<div style='font-size:13px;color:{_col_r}'>"
+                                f"OFS ✓ — {_moic_ipo:.2f}× at IPO<br>"
+                                f"<span style='font-size:11px;color:#6b7a8d'>"
+                                f"[●] shares in DRHP</span></div>",
+                                unsafe_allow_html=True)
+                        else:
+                            _rc[3].markdown(
+                                f"<div style='font-size:13px;color:{_col_r}'>"
+                                f"No OFS — {_moic_ipo:.2f}× at IPO</div>",
+                                unsafe_allow_html=True)
                     else:
                         _rc[3].markdown(
                             "<div style='font-size:13px;color:#6b7a8d'>No OFS</div>",
@@ -2638,10 +2744,10 @@ def render():
                                 _w    = _inv_data.get("waca")
                                 st.markdown(f"**WACA:** ₹{_w:,.2f}/sh  \n*{_wsrc}*")
                                 st.divider()
+                                _ofs_conf_d = _inv_data.get("ofs_confirmed", False)
                                 if _os:
-                                    st.markdown(
-                                        f"**Pre-offer shares:** {_pre:,}" if _pre else ""
-                                    )
+                                    if _pre:
+                                        st.markdown(f"**Pre-offer shares:** {_pre:,}")
                                     st.markdown(
                                         f"**OFS shares sold:** {_os:,}  \n"
                                         f"**OFS proceeds:** {_os:,} × ₹{_ipo_px} = "
@@ -2662,6 +2768,22 @@ def render():
                                             f"**Total MOIC:** ₹{_r.get('total_value_cr', 0):,.2f} cr ÷ "
                                             f"₹{_r.get('total_cost_cr', 0):,.2f} cr = "
                                             f"**{_r.get('total_moic', '—')}×**"
+                                        )
+                                elif _ofs_conf_d:
+                                    # OFS confirmed but [●] share count — show per-share MOIC
+                                    _moic_v = _r.get("realised_moic") or _r.get("moic_at_ipo")
+                                    _moic_l = _r.get("moic_at_listing")
+                                    st.markdown(
+                                        f"**✅ OFS confirmed** — sold in IPO OFS  \n"
+                                        f"*OFS share count was [●] (TBD at pricing) in DRHP.*  \n"
+                                        f"**Per-share MOIC at IPO:** "
+                                        f"₹{_ipo_px} ÷ ₹{_w:,.2f} = **{_moic_v:.2f}×**" if _moic_v else
+                                        f"**✅ OFS confirmed** — share count TBD [●]"
+                                    )
+                                    if _moic_l:
+                                        st.markdown(
+                                            f"**Per-share MOIC at listing:** "
+                                            f"₹{_list_px} ÷ ₹{_w:,.2f} = **{_moic_l:.2f}×**"
                                         )
                                 else:
                                     st.markdown(
