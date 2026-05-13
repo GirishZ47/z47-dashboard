@@ -1869,28 +1869,89 @@ def _combined_lockup_chart(ticker, listing_dt, expiry_lines_full, ipo_company):
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # ── 7-day and 30-day price impact around each expiry ───────────
+        # ── Price impact table: −7d→expiry | 7d | −7d→+7d | 30d ──────
+        # Helper: find nearest trading-day price in df_p
+        def _nearest_price(target_dt, search_back=True, max_days=7):
+            """Return Close price nearest to target_dt; search backward if search_back else forward."""
+            for i in range(max_days + 1):
+                delta = timedelta(days=i if not search_back else -i) if i > 0 else timedelta(0)
+                check = target_dt + (timedelta(days=i) if not search_back else timedelta(days=-i))
+                mask = df_p.index.date == check.date()
+                if mask.any():
+                    return float(df_p.loc[mask, "Close"].iloc[0])
+            return None
+
+        def _pct(p1, p2):
+            if p1 and p2 and p1 > 0:
+                return round((p2 - p1) / p1 * 100, 1)
+            return None
+
+        def _fmt(v):
+            if v is None:
+                return "N/A"
+            return f"{v:+.1f}%"
+
+        # Raw numeric rows for insight generation
+        _raw_impact_rows = []
         impact_rows = []
         for exp_dt, exp_lbl, _ in expiry_lines_full:
             if exp_dt > datetime.now():
-                impact_rows.append({"Lock-Up": exp_lbl, "7-Day Impact": "—", "30-Day Impact": "—", "Status": "⏳ Pending"})
-                continue
-            try:
-                prices_before = df_p[df_p.index <= exp_dt]["Close"]
-                prices_after  = df_p[df_p.index >= exp_dt]["Close"]
-                p0 = prices_before.iloc[-1] if not prices_before.empty else None
-                p7 = prices_after.iloc[min(5,  len(prices_after)-1)] if not prices_after.empty else None
-                p30= prices_after.iloc[min(21, len(prices_after)-1)] if not prices_after.empty else None
-                chg7  = f"{(p7 -p0)/p0*100:+.1f}%" if (p0 and p7  and p0>0) else "N/A"
-                chg30 = f"{(p30-p0)/p0*100:+.1f}%" if (p0 and p30 and p0>0) else "N/A"
+                _raw_impact_rows.append({
+                    "Lock-Up": exp_lbl, "status": "pending",
+                    "minus7_to_expiry": None, "day7_impact": None,
+                    "minus7_to_plus7": None, "day30_impact": None,
+                })
                 impact_rows.append({
                     "Lock-Up": exp_lbl,
-                    "7-Day Impact":  chg7,
-                    "30-Day Impact": chg30,
+                    "−7d to Expiry": "—",
+                    "7-Day Impact":  "—",
+                    "−7d to +7d":   "—",
+                    "30-Day Impact": "—",
+                    "Status": "⏳ Pending",
+                })
+                continue
+            try:
+                # Reference prices
+                p_minus7     = _nearest_price(exp_dt - timedelta(days=7),  search_back=True)
+                p_day_before = _nearest_price(exp_dt - timedelta(days=1),  search_back=True)
+                p_at_expiry  = _nearest_price(exp_dt,                      search_back=False)
+                p_plus7      = _nearest_price(exp_dt + timedelta(days=7),  search_back=False)
+                p_plus30     = _nearest_price(exp_dt + timedelta(days=30), search_back=False)
+
+                m7e  = _pct(p_minus7,     p_at_expiry)   # −7d → expiry
+                d7   = _pct(p_day_before, p_plus7)        # day before → +7d
+                m7p7 = _pct(p_minus7,     p_plus7)        # −7d → +7d
+                d30  = _pct(p_day_before, p_plus30)       # day before → +30d
+
+                _raw_impact_rows.append({
+                    "Lock-Up": exp_lbl, "status": "expired",
+                    "minus7_to_expiry": m7e, "day7_impact": d7,
+                    "minus7_to_plus7": m7p7, "day30_impact": d30,
+                })
+                impact_rows.append({
+                    "Lock-Up": exp_lbl,
+                    "−7d to Expiry": _fmt(m7e),
+                    "7-Day Impact":  _fmt(d7),
+                    "−7d to +7d":   _fmt(m7p7),
+                    "30-Day Impact": _fmt(d30),
                     "Status": "✅ Expired",
                 })
             except Exception:
-                impact_rows.append({"Lock-Up": exp_lbl, "7-Day Impact": "N/A", "30-Day Impact": "N/A", "Status": "✅ Expired"})
+                _raw_impact_rows.append({
+                    "Lock-Up": exp_lbl, "status": "expired",
+                    "minus7_to_expiry": None, "day7_impact": None,
+                    "minus7_to_plus7": None, "day30_impact": None,
+                })
+                impact_rows.append({
+                    "Lock-Up": exp_lbl,
+                    "−7d to Expiry": "N/A",
+                    "7-Day Impact":  "N/A",
+                    "−7d to +7d":   "N/A",
+                    "30-Day Impact": "N/A",
+                    "Status": "✅ Expired",
+                })
+
+        _IMPACT_COLS = ["−7d to Expiry", "7-Day Impact", "−7d to +7d", "30-Day Impact"]
 
         def _impact_color(val):
             v = str(val)
@@ -1898,13 +1959,56 @@ def _combined_lockup_chart(ticker, listing_dt, expiry_lines_full, ipo_company):
                 return "color:#16a34a;font-weight:600"
             if v.startswith("-"):
                 return "color:#dc2626;font-weight:600"
-            return ""
+            return "color:#6b7a8d"
 
         impact_df = pd.DataFrame(impact_rows)
-        styled_impact = impact_df.style.map(_impact_color, subset=["7-Day Impact", "30-Day Impact"])
-        st.markdown("<div style='font-size:12px;color:#6b7a8d;margin:8px 0 4px'>Price impact relative to day before expiry:</div>",
-                    unsafe_allow_html=True)
+        styled_impact = impact_df.style.map(_impact_color, subset=_IMPACT_COLS)
+
+        # Column header tooltips via HTML above the table
+        _t1 = "Price change from 7 calendar days before expiry to the expiry date. Shows whether investors sold ahead of the unlock."
+        _t2 = "Price change from the day before expiry to 7 trading days after. Shows immediate post-unlock impact."
+        _t3 = "Price change from 7 days before expiry to 7 days after. Shows the full event-window impact."
+        _t4 = "Price change from the day before expiry to 30 days after. Shows medium-term post-unlock impact."
+        _tooltip_html = (
+            "<div style='font-size:11px;color:#6b7a8d;margin:10px 0 2px;line-height:1.8'>"
+            "<b>Price impact around lock-in expiry</b> &nbsp;|&nbsp; "
+            f"<span title='{_t1}' style='cursor:help;border-bottom:1px dotted #6b7a8d'>−7d to Expiry &#9432;</span>"
+            " &nbsp;&middot;&nbsp; "
+            f"<span title='{_t2}' style='cursor:help;border-bottom:1px dotted #6b7a8d'>7-Day Impact &#9432;</span>"
+            " &nbsp;&middot;&nbsp; "
+            f"<span title='{_t3}' style='cursor:help;border-bottom:1px dotted #6b7a8d'>−7d to +7d &#9432;</span>"
+            " &nbsp;&middot;&nbsp; "
+            f"<span title='{_t4}' style='cursor:help;border-bottom:1px dotted #6b7a8d'>30-Day Impact &#9432;</span>"
+            "</div>"
+        )
+        st.markdown(_tooltip_html, unsafe_allow_html=True)
         st.dataframe(styled_impact, use_container_width=True, hide_index=True)
+
+        # ── Auto-generated insight ────────────────────────────────────
+        _expired_raw = [r for r in _raw_impact_rows if r["status"] == "expired"
+                        and r["minus7_to_plus7"] is not None]
+        if _expired_raw:
+            _most = max(_expired_raw, key=lambda r: abs(r["minus7_to_plus7"]))
+            _dir  = "fell" if _most["minus7_to_plus7"] < 0 else "rose"
+            _pabs = abs(_most["minus7_to_plus7"])
+            _insight = (
+                f"The most significant unlock for **{ipo_company}** was the "
+                f"**{_most['Lock-Up']}** expiry, around which the stock "
+                f"**{_dir} {_pabs:.1f}%** over the 14-day window (−7d to +7d)."
+            )
+            # Pre-IPO specific add-on
+            _pripo_raw = [r for r in _expired_raw if "Pre-IPO" in r["Lock-Up"]
+                          and r["minus7_to_expiry"] is not None]
+            if _pripo_raw:
+                _pr = _pripo_raw[0]
+                _run_dir = "up" if _pr["minus7_to_expiry"] > 0 else "down"
+                _insight += (
+                    f" Pre-IPO investor unlock saw the stock move "
+                    f"**{_run_dir} {abs(_pr['minus7_to_expiry']):.1f}%** "
+                    f"in the 7 days leading into expiry."
+                )
+            st.info(_insight)
+
         return True
     except Exception:
         return False
