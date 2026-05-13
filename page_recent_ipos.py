@@ -252,202 +252,291 @@ IPOS = [
 ]
 
 
-# ── Verified lock-in expiry dates (from RHP and BSE allotment certificates) ───
-# SEBI ICDR rules:
-#   Anchor T1  = allotment + 30 days  (50% of anchor allocation)
-#   Anchor T2  = allotment + 90 days  (remaining 50% of anchor allocation)
-#   Pre-IPO 6M = allotment + 6 months (investors who held > 1 yr before DRHP)
-#   Pre-IPO 1Y = allotment + 1 year   (pre-IPO placements within 1 yr of DRHP)
-#   Promoter   = allotment + 18M (80% of stake) / allotment + 3Y (remaining 20%)
+# ── Verified lock-in expiry dates ─────────────────────────────────────────────
+# SEBI ICDR rules (verified empirically across 8+ IPOs with news cross-checks):
+#   Anchor T1  = allotment_basis_date + 30 days
+#   Anchor T2  = allotment_basis_date + 90 days
+#   Pre-IPO 6M = LISTING date + 6 calendar months  ← NOT allotment date
+#   Pre-IPO 1Y = LISTING date + 12 calendar months
+#   Promoter   = LISTING date + 18M / 3Y
+#
+# Key empirical verifications:
+#   Groww    listing Nov 12 → pripo May 12 (ET/MC/Upstox confirmed May 12 2026)
+#   Ather    listing May  6 → pripo Nov  6 (Angel One: block deal + 11% fall Nov 6 2025)
+#   MobiKwik listing Dec 18 → pripo Jun 18 (Outlook: fell 10% Jun 18 2025)
+#   Urban Co listing Sep 17 → pripo Mar 17 (Goodreturns: fell 5.3% Mar 17 2026)
+#   PW       listing Nov 18 → pripo May 18 (indiaipo.in: May 18 2026)
+#   Meesho   listing Dec 10 → pripo Jun 10 (indiaipo.in: Jun 10 2026)
+#
+# Allotment corrections (3 IPOs had wrong date):
+#   Ola Electric: old Aug 6 (IPO close date) → correct Aug 7 (allotment basis)
+#   Shadowfax:    old Jan 26 (demat credit)  → correct Jan 23 (allotment basis)
+#   Ixigo:        old Jun 14 (demat credit)  → correct Jun 13 (allotment basis)
 LOCK_IN_DATES: dict[str, dict] = {
     "Groww": {
+        # Allotment: 10 Nov 2025 (IPOWatch + BusinessToday confirmed)
+        # Listing:   12 Nov 2025
+        # Pre-IPO 6M = listing + 6M = 12 May 2026
+        # NEWS CONFIRMED: ET "lock-in expired May 12, 2026"; Upstox "31 cr shares changed hands"
         "allotment": "2025-11-10",
-        "anchor_t1": "2025-12-10",
-        "anchor_t2": "2026-02-08",
-        "pripo_6m":  "2026-05-10",
-        "pripo_1y":  "2026-11-10",
-        "promoter_18m": "2027-05-10",
-        "promoter_3y":  "2028-11-10",
+        "anchor_t1": "2025-12-10",   # allotment + 30d
+        "anchor_t2": "2026-02-08",   # allotment + 90d
+        "pripo_6m":  "2026-05-12",   # listing Nov 12 + 6M  ← FIXED (was May 10)
+        "pripo_1y":  "2026-11-12",   # listing Nov 12 + 12M ← FIXED (was Nov 10)
+        "promoter_18m": "2027-05-12",# listing Nov 12 + 18M ← FIXED (was May 10)
+        "promoter_3y":  "2028-11-12",# listing Nov 12 + 3Y  ← FIXED (was Nov 10)
     },
     "Swiggy": {
+        # Allotment: 11 Nov 2024 (BusinessStandard confirmed)
+        # Listing:   13 Nov 2024
+        # Pre-IPO 6M = listing + 6M = 13 May 2025
+        # (Outlook "May 12" = last day locked; first free trading day = May 13)
         "allotment": "2024-11-11",
-        "anchor_t1": "2024-12-11",
-        "anchor_t2": "2025-02-09",
-        "pripo_6m":  "2025-05-11",
-        "pripo_1y":  "2025-11-11",
-        "promoter_18m": "2026-05-11",
-        "promoter_3y":  "2027-11-11",
+        "anchor_t1": "2024-12-11",   # allotment + 30d
+        "anchor_t2": "2025-02-09",   # allotment + 90d
+        "pripo_6m":  "2025-05-13",   # listing Nov 13 + 6M  ← FIXED (was May 11)
+        "pripo_1y":  "2025-11-13",   # listing Nov 13 + 12M ← FIXED (was Nov 11)
+        "promoter_18m": "2026-05-13",# listing Nov 13 + 18M ← FIXED (was May 11)
+        "promoter_3y":  "2027-11-13",# listing Nov 13 + 3Y  ← FIXED (was Nov 11)
     },
     "Ola Electric": {
-        "allotment": "2024-08-06",   # confirmed: BSE allotment certificate
-        "anchor_t1": "2024-09-05",
-        "anchor_t2": "2024-11-04",
-        "pripo_6m":  "2025-02-06",
-        "pripo_1y":  "2025-08-06",
-        "promoter_18m": "2026-02-06",
-        "promoter_3y":  "2027-08-06",
+        # Allotment: 7 Aug 2024 (IPOWatch confirmed; old code used Aug 6 = IPO close date — WRONG)
+        # Listing:   9 Aug 2024
+        # Pre-IPO 6M = listing + 6M = 9 Feb 2025
+        # (Angel One: "available from Feb 10" = Feb 9 is Sunday → next business day Feb 10)
+        "allotment": "2024-08-07",   # FIXED from 2024-08-06
+        "anchor_t1": "2024-09-06",   # allotment + 30d ← FIXED (was Sep 5)
+        "anchor_t2": "2024-11-05",   # allotment + 90d ← FIXED (was Nov 4)
+        "pripo_6m":  "2025-02-09",   # listing Aug 9 + 6M   ← FIXED (was Feb 6)
+        "pripo_1y":  "2025-08-09",   # listing Aug 9 + 12M  ← FIXED (was Aug 6)
+        "promoter_18m": "2026-02-09",# listing Aug 9 + 18M  ← FIXED (was Feb 6)
+        "promoter_3y":  "2027-08-09",# listing Aug 9 + 3Y   ← FIXED (was Aug 6)
     },
     "Ather Energy": {
+        # Allotment: 2 May 2025 (BusinessStandard confirmed)
+        # Listing:   6 May 2025
+        # Pre-IPO 6M = listing + 6M = 6 Nov 2025
+        # NEWS CONFIRMED: Angel One "fell 11%, Rs 856 cr block deal on Nov 6 2025"
         "allotment": "2025-05-02",
-        "anchor_t1": "2025-06-01",
-        "anchor_t2": "2025-07-31",
-        "pripo_6m":  "2025-11-02",
-        "pripo_1y":  "2026-05-02",
-        "promoter_18m": "2026-11-02",
-        "promoter_3y":  "2028-05-02",
+        "anchor_t1": "2025-06-01",   # allotment + 30d
+        "anchor_t2": "2025-07-31",   # allotment + 90d
+        "pripo_6m":  "2025-11-06",   # listing May 6 + 6M   ← FIXED (was Nov 2) NEWS CONFIRMED
+        "pripo_1y":  "2026-05-06",   # listing May 6 + 12M  ← FIXED (was May 2)
+        "promoter_18m": "2026-11-06",# listing May 6 + 18M  ← FIXED (was Nov 2)
+        "promoter_3y":  "2028-05-06",# listing May 6 + 3Y   ← FIXED (was May 2)
     },
     "BlackBuck": {
-        "allotment": "2024-11-19",   # listing 2024-11-22
-        "anchor_t1": "2024-12-19",
-        "anchor_t2": "2025-02-17",
-        "pripo_6m":  "2025-05-19",
-        "pripo_1y":  "2025-11-19",
-        "promoter_18m": "2026-05-19",
-        "promoter_3y":  "2027-11-19",
+        # Allotment: 19 Nov 2024 (IPOWatch confirmed)
+        # Listing:   22 Nov 2024 (delayed: Maharashtra election holiday Nov 20)
+        # Pre-IPO 6M = listing + 6M = 22 May 2025
+        "allotment": "2024-11-19",
+        "anchor_t1": "2024-12-19",   # allotment + 30d
+        "anchor_t2": "2025-02-17",   # allotment + 90d
+        "pripo_6m":  "2025-05-22",   # listing Nov 22 + 6M  ← FIXED (was May 19)
+        "pripo_1y":  "2025-11-22",   # listing Nov 22 + 12M ← FIXED (was Nov 19)
+        "promoter_18m": "2026-05-22",# listing Nov 22 + 18M ← FIXED (was May 19)
+        "promoter_3y":  "2027-11-22",# listing Nov 22 + 3Y  ← FIXED (was Nov 19)
     },
     "MobiKwik": {
+        # Allotment: 16 Dec 2024 (BusinessStandard confirmed)
+        # Listing:   18 Dec 2024
+        # Pre-IPO 6M = listing + 6M = 18 Jun 2025
+        # NEWS CONFIRMED: Outlook + Angel One "fell 10% Jun 18 2025"
         "allotment": "2024-12-16",
-        "anchor_t1": "2025-01-15",
-        "anchor_t2": "2025-03-16",
-        "pripo_6m":  "2025-06-16",
-        "pripo_1y":  "2025-12-16",
-        "promoter_18m": "2026-06-16",
-        "promoter_3y":  "2027-12-16",
+        "anchor_t1": "2025-01-15",   # allotment + 30d
+        "anchor_t2": "2025-03-16",   # allotment + 90d
+        "pripo_6m":  "2025-06-18",   # listing Dec 18 + 6M  ← FIXED (was Jun 16) NEWS CONFIRMED
+        "pripo_1y":  "2025-12-18",   # listing Dec 18 + 12M ← FIXED (was Dec 16)
+        "promoter_18m": "2026-06-18",# listing Dec 18 + 18M ← FIXED (was Jun 16)
+        "promoter_3y":  "2027-12-18",# listing Dec 18 + 3Y  ← FIXED (was Dec 16)
     },
     "Shadowfax": {
-        "allotment": "2026-01-26",
-        "anchor_t1": "2026-02-25",
-        "anchor_t2": "2026-04-26",
-        "pripo_6m":  "2026-07-26",
-        "pripo_1y":  "2027-01-26",
-        "promoter_18m": "2027-07-26",
-        "promoter_3y":  "2029-01-26",
+        # Allotment: 23 Jan 2026 (IPOWatch + IndMoney confirmed; old code used Jan 26 = demat credit — WRONG)
+        # Listing:   28 Jan 2026
+        # Pre-IPO 6M = listing + 6M = 28 Jul 2026
+        "allotment": "2026-01-23",   # FIXED from 2026-01-26
+        "anchor_t1": "2026-02-22",   # allotment + 30d ← FIXED (was Feb 25)
+        "anchor_t2": "2026-04-23",   # allotment + 90d ← FIXED (was Apr 26)
+        "pripo_6m":  "2026-07-28",   # listing Jan 28 + 6M  ← FIXED (was Jul 26)
+        "pripo_1y":  "2027-01-28",   # listing Jan 28 + 12M ← FIXED (was Jan 26)
+        "promoter_18m": "2027-07-28",# listing Jan 28 + 18M ← FIXED (was Jul 26)
+        "promoter_3y":  "2029-01-28",# listing Jan 28 + 3Y  ← FIXED (was Jan 26)
     },
     "Unicommerce": {
+        # Allotment: 9 Aug 2024 (Chittorgarh + IPOWatch confirmed)
+        # Listing:   13 Aug 2024
+        # Pre-IPO 6M = listing + 6M = 13 Feb 2025
         "allotment": "2024-08-09",
-        "anchor_t1": "2024-09-08",
-        "anchor_t2": "2024-11-07",
-        "pripo_6m":  "2025-02-09",
-        "pripo_1y":  "2025-08-09",
-        "promoter_18m": "2026-02-09",
-        "promoter_3y":  "2027-08-09",
+        "anchor_t1": "2024-09-08",   # allotment + 30d
+        "anchor_t2": "2024-11-07",   # allotment + 90d
+        "pripo_6m":  "2025-02-13",   # listing Aug 13 + 6M  ← FIXED (was Feb 9)
+        "pripo_1y":  "2025-08-13",   # listing Aug 13 + 12M ← FIXED (was Aug 9)
+        "promoter_18m": "2026-02-13",# listing Aug 13 + 18M ← FIXED (was Feb 9)
+        "promoter_3y":  "2027-08-13",# listing Aug 13 + 3Y  ← FIXED (was Aug 9)
     },
     "Ixigo": {
-        "allotment": "2024-06-14",
-        "anchor_t1": "2024-07-14",
-        "anchor_t2": "2024-09-12",
-        "pripo_6m":  "2024-12-14",
-        "pripo_1y":  "2025-06-14",
-        "promoter_18m": "2025-12-14",
-        "promoter_3y":  "2027-06-14",
+        # Allotment: 13 Jun 2024 (BusinessStandard "allotment today" Jun 13 confirmed;
+        #            old code used Jun 14 = demat credit date — WRONG)
+        # Listing:   18 Jun 2024
+        # Pre-IPO 6M = listing + 6M = 18 Dec 2024
+        "allotment": "2024-06-13",   # FIXED from 2024-06-14
+        "anchor_t1": "2024-07-13",   # allotment + 30d ← FIXED (was Jul 14)
+        "anchor_t2": "2024-09-11",   # allotment + 90d ← FIXED (was Sep 12)
+        "pripo_6m":  "2024-12-18",   # listing Jun 18 + 6M  ← FIXED (was Dec 14)
+        "pripo_1y":  "2025-06-18",   # listing Jun 18 + 12M ← FIXED (was Jun 14)
+        "promoter_18m": "2025-12-18",# listing Jun 18 + 18M ← FIXED (was Dec 14)
+        "promoter_3y":  "2027-06-18",# listing Jun 18 + 3Y  ← FIXED (was Jun 14)
     },
     "BlueStone": {
-        "allotment": "2025-08-14",   # Aug 15 = Independence Day holiday
-        "anchor_t1": "2025-09-13",
-        "anchor_t2": "2025-11-12",
-        "pripo_6m":  "2026-02-14",
-        "pripo_1y":  "2026-08-14",
-        "promoter_18m": "2027-02-14",
-        "promoter_3y":  "2028-08-14",
+        # Allotment: 14 Aug 2025 (Chittorgarh confirmed; Aug 15 = Independence Day → listing Aug 19)
+        # Listing:   19 Aug 2025
+        # Pre-IPO 6M = listing + 6M = 19 Feb 2026
+        "allotment": "2025-08-14",
+        "anchor_t1": "2025-09-13",   # allotment + 30d
+        "anchor_t2": "2025-11-12",   # allotment + 90d
+        "pripo_6m":  "2026-02-19",   # listing Aug 19 + 6M  ← FIXED (was Feb 14)
+        "pripo_1y":  "2026-08-19",   # listing Aug 19 + 12M ← FIXED (was Aug 14)
+        "promoter_18m": "2027-02-19",# listing Aug 19 + 18M ← FIXED (was Feb 14)
+        "promoter_3y":  "2028-08-19",# listing Aug 19 + 3Y  ← FIXED (was Aug 14)
     },
     "Smartworks": {
-        "allotment": "2025-07-15",   # listing 2025-07-17
-        "anchor_t1": "2025-08-14",
-        "anchor_t2": "2025-10-13",
-        "pripo_6m":  "2026-01-15",
-        "pripo_1y":  "2026-07-15",
-        "promoter_18m": "2027-01-15",
-        "promoter_3y":  "2028-07-15",
+        # Allotment: 15 Jul 2025 (IPOWatch confirmed)
+        # Listing:   17 Jul 2025
+        # Pre-IPO 6M = listing + 6M = 17 Jan 2026
+        "allotment": "2025-07-15",
+        "anchor_t1": "2025-08-14",   # allotment + 30d
+        "anchor_t2": "2025-10-13",   # allotment + 90d
+        "pripo_6m":  "2026-01-17",   # listing Jul 17 + 6M  ← FIXED (was Jan 15)
+        "pripo_1y":  "2026-07-17",   # listing Jul 17 + 12M ← FIXED (was Jul 15)
+        "promoter_18m": "2027-01-17",# listing Jul 17 + 18M ← FIXED (was Jan 15)
+        "promoter_3y":  "2028-07-17",# listing Jul 17 + 3Y  ← FIXED (was Jul 15)
     },
     "FirstCry": {
+        # Allotment: 9 Aug 2024 (IPOWatch + BusinessToday confirmed)
+        # Listing:   13 Aug 2024
+        # Pre-IPO 6M = listing + 6M = 13 Feb 2025
+        # (BusinessStandard: "lock-in ends Nov 2024" for anchor = allotment + 90d = Nov 7 ✓)
         "allotment": "2024-08-09",
-        "anchor_t1": "2024-09-08",
-        "anchor_t2": "2024-11-07",
-        "pripo_6m":  "2025-02-09",
-        "pripo_1y":  "2025-08-09",
-        "promoter_18m": "2026-02-09",
-        "promoter_3y":  "2027-08-09",
+        "anchor_t1": "2024-09-08",   # allotment + 30d
+        "anchor_t2": "2024-11-07",   # allotment + 90d
+        "pripo_6m":  "2025-02-13",   # listing Aug 13 + 6M  ← FIXED (was Feb 9)
+        "pripo_1y":  "2025-08-13",   # listing Aug 13 + 12M ← FIXED (was Aug 9)
+        "promoter_18m": "2026-02-13",# listing Aug 13 + 18M ← FIXED (was Feb 9)
+        "promoter_3y":  "2027-08-13",# listing Aug 13 + 3Y  ← FIXED (was Aug 9)
     },
     "Awfis Space": {
+        # Allotment: 28 May 2024 (Chittorgarh confirmed)
+        # Listing:   30 May 2024
+        # Pre-IPO 6M = listing + 6M = 30 Nov 2024
         "allotment": "2024-05-28",
-        "anchor_t1": "2024-06-27",
-        "anchor_t2": "2024-08-26",
-        "pripo_6m":  "2024-11-28",
-        "pripo_1y":  "2025-05-28",
-        "promoter_18m": "2025-11-28",
-        "promoter_3y":  "2027-05-28",
+        "anchor_t1": "2024-06-27",   # allotment + 30d
+        "anchor_t2": "2024-08-26",   # allotment + 90d
+        "pripo_6m":  "2024-11-30",   # listing May 30 + 6M  ← FIXED (was Nov 28)
+        "pripo_1y":  "2025-05-30",   # listing May 30 + 12M ← FIXED (was May 28)
+        "promoter_18m": "2025-11-30",# listing May 30 + 18M ← FIXED (was Nov 28)
+        "promoter_3y":  "2027-05-30",# listing May 30 + 3Y  ← FIXED (was May 28)
     },
     "PhysicsWallah": {
-        "allotment": "2025-11-14",   # listing 2025-11-18
-        "anchor_t1": "2025-12-14",
-        "anchor_t2": "2026-02-12",
-        "pripo_6m":  "2026-05-14",
-        "pripo_1y":  "2026-11-14",
-        "promoter_18m": "2027-05-14",
-        "promoter_3y":  "2028-11-14",
+        # Allotment: 14 Nov 2025 (IPOWatch + Upstox confirmed)
+        # Listing:   18 Nov 2025
+        # Pre-IPO 6M = listing + 6M = 18 May 2026
+        # NEWS CONFIRMED: indiaipo.in "18 May 2026" anchor 90d Feb 12 confirmed by BusinessStandard
+        "allotment": "2025-11-14",
+        "anchor_t1": "2025-12-14",   # allotment + 30d
+        "anchor_t2": "2026-02-12",   # allotment + 90d ✓ CONFIRMED BusinessStandard Feb 12 2026
+        "pripo_6m":  "2026-05-18",   # listing Nov 18 + 6M  ← FIXED (was May 14) NEWS CONFIRMED
+        "pripo_1y":  "2026-11-18",   # listing Nov 18 + 12M ← FIXED (was Nov 14)
+        "promoter_18m": "2027-05-18",# listing Nov 18 + 18M ← FIXED (was May 14)
+        "promoter_3y":  "2028-11-18",# listing Nov 18 + 3Y  ← FIXED (was Nov 14)
     },
     "TBO Tek": {
+        # Allotment: 13 May 2024 (Chittorgarh confirmed)
+        # Listing:   15 May 2024
+        # Pre-IPO 6M = listing + 6M = 15 Nov 2024
         "allotment": "2024-05-13",
-        "anchor_t1": "2024-06-12",
-        "anchor_t2": "2024-08-11",
-        "pripo_6m":  "2024-11-13",
-        "pripo_1y":  "2025-05-13",
-        "promoter_18m": "2025-11-13",
-        "promoter_3y":  "2027-05-13",
+        "anchor_t1": "2024-06-12",   # allotment + 30d
+        "anchor_t2": "2024-08-11",   # allotment + 90d
+        "pripo_6m":  "2024-11-15",   # listing May 15 + 6M  ← FIXED (was Nov 13)
+        "pripo_1y":  "2025-05-15",   # listing May 15 + 12M ← FIXED (was May 13)
+        "promoter_18m": "2025-11-15",# listing May 15 + 18M ← FIXED (was Nov 13)
+        "promoter_3y":  "2027-05-15",# listing May 15 + 3Y  ← FIXED (was May 13)
     },
     "Go Digit Insurance": {
+        # Allotment: 21 May 2024 (BusinessToday confirmed)
+        # Listing:   23 May 2024
+        # Pre-IPO 6M = listing + 6M = 23 Nov 2024
         "allotment": "2024-05-21",
-        "anchor_t1": "2024-06-20",
-        "anchor_t2": "2024-08-19",
-        "pripo_6m":  "2024-11-21",
-        "pripo_1y":  "2025-05-21",
-        "promoter_18m": "2025-11-21",
-        "promoter_3y":  "2027-05-21",
+        "anchor_t1": "2024-06-20",   # allotment + 30d
+        "anchor_t2": "2024-08-19",   # allotment + 90d
+        "pripo_6m":  "2024-11-23",   # listing May 23 + 6M  ← FIXED (was Nov 21)
+        "pripo_1y":  "2025-05-23",   # listing May 23 + 12M ← FIXED (was May 21)
+        "promoter_18m": "2025-11-23",# listing May 23 + 18M ← FIXED (was Nov 21)
+        "promoter_3y":  "2027-05-23",# listing May 23 + 3Y  ← FIXED (was May 21)
     },
     "Pine Labs": {
+        # Allotment: 12 Nov 2025 (BusinessToday + Upstox confirmed)
+        # Listing:   14 Nov 2025
+        # Pre-IPO 6M = listing + 6M = 14 May 2026
+        # (indiaipo.in "13 May" = last day locked, first free = 14 May)
         "allotment": "2025-11-12",
-        "anchor_t1": "2025-12-12",
-        "anchor_t2": "2026-02-10",
-        "pripo_6m":  "2026-05-12",
-        "pripo_1y":  "2026-11-12",
-        "promoter_18m": "2027-05-12",
-        "promoter_3y":  "2028-11-12",
+        "anchor_t1": "2025-12-12",   # allotment + 30d
+        "anchor_t2": "2026-02-10",   # allotment + 90d
+        "pripo_6m":  "2026-05-14",   # listing Nov 14 + 6M  ← FIXED (was May 12)
+        "pripo_1y":  "2026-11-14",   # listing Nov 14 + 12M ← FIXED (was Nov 12)
+        "promoter_18m": "2027-05-14",# listing Nov 14 + 18M ← FIXED (was May 12)
+        "promoter_3y":  "2028-11-14",# listing Nov 14 + 3Y  ← FIXED (was Nov 12)
     },
     "Urban Company": {
+        # Allotment: 15 Sep 2025 (Upstox confirmed)
+        # Listing:   17 Sep 2025
+        # Pre-IPO 6M = listing + 6M = 17 Mar 2026
+        # NEWS CONFIRMED: Goodreturns + indiaipo.in "fell 5.34% on Mar 17 2026"
         "allotment": "2025-09-15",
-        "anchor_t1": "2025-10-15",
-        "anchor_t2": "2025-12-14",
-        "pripo_6m":  "2026-03-15",
-        "pripo_1y":  "2026-09-15",
-        "promoter_18m": "2027-03-15",
-        "promoter_3y":  "2028-09-15",
+        "anchor_t1": "2025-10-15",   # allotment + 30d
+        "anchor_t2": "2025-12-14",   # allotment + 90d
+        "pripo_6m":  "2026-03-17",   # listing Sep 17 + 6M  ← FIXED (was Mar 15) NEWS CONFIRMED
+        "pripo_1y":  "2026-09-17",   # listing Sep 17 + 12M ← FIXED (was Sep 15)
+        "promoter_18m": "2027-03-17",# listing Sep 17 + 18M ← FIXED (was Mar 15)
+        "promoter_3y":  "2028-09-17",# listing Sep 17 + 3Y  ← FIXED (was Sep 15)
     },
     "Meesho": {
-        "allotment": "2025-12-08",   # listing 2025-12-10
-        "anchor_t1": "2026-01-07",
-        "anchor_t2": "2026-03-08",
-        "pripo_6m":  "2026-06-08",
-        "pripo_1y":  "2026-12-08",
-        "promoter_18m": "2027-06-08",
-        "promoter_3y":  "2028-12-08",
+        # Allotment: 8 Dec 2025 (Paytm Money confirmed)
+        # Listing:   10 Dec 2025
+        # Pre-IPO 6M = listing + 6M = 10 Jun 2026
+        # NEWS CONFIRMED: indiaipo.in "10 Jun 2026 — 3,083 mn shares (68%) unlock"
+        "allotment": "2025-12-08",
+        "anchor_t1": "2026-01-07",   # allotment + 30d
+        "anchor_t2": "2026-03-08",   # allotment + 90d
+        "pripo_6m":  "2026-06-10",   # listing Dec 10 + 6M  ← FIXED (was Jun 8) NEWS CONFIRMED
+        "pripo_1y":  "2026-12-10",   # listing Dec 10 + 12M ← FIXED (was Dec 8)
+        "promoter_18m": "2027-06-10",# listing Dec 10 + 18M ← FIXED (was Jun 8)
+        "promoter_3y":  "2028-12-10",# listing Dec 10 + 3Y  ← FIXED (was Dec 8)
     },
     "Capillary Technologies": {
+        # Allotment: 19 Nov 2025 (BusinessStandard confirmed)
+        # Listing:   21 Nov 2025
+        # Pre-IPO 6M = listing + 6M = 21 May 2026
+        # (indiaipo.in "20 May" = last day locked; first free = 21 May)
+        # Anchor T1 Dec 19 and T2 Feb 17 confirmed by search results
         "allotment": "2025-11-19",
-        "anchor_t1": "2025-12-19",
-        "anchor_t2": "2026-02-17",
-        "pripo_6m":  "2026-05-19",
-        "pripo_1y":  "2026-11-19",
-        "promoter_18m": "2027-05-19",
-        "promoter_3y":  "2028-11-19",
+        "anchor_t1": "2025-12-19",   # allotment + 30d ✓ CONFIRMED
+        "anchor_t2": "2026-02-17",   # allotment + 90d ✓ CONFIRMED
+        "pripo_6m":  "2026-05-21",   # listing Nov 21 + 6M  ← FIXED (was May 19)
+        "pripo_1y":  "2026-11-21",   # listing Nov 21 + 12M ← FIXED (was Nov 19)
+        "promoter_18m": "2027-05-21",# listing Nov 21 + 18M ← FIXED (was May 19)
+        "promoter_3y":  "2028-11-21",# listing Nov 21 + 3Y  ← FIXED (was Nov 19)
     },
     "Kissht (OnEMI Technology)": {
+        # Allotment: 6 May 2026 (ipoguru.in + Groww app confirmed)
+        # Listing:   8 May 2026
+        # Pre-IPO 6M = listing + 6M = 8 Nov 2026
         "allotment": "2026-05-06",
-        "anchor_t1": "2026-06-05",
-        "anchor_t2": "2026-08-04",
-        "pripo_6m":  "2026-11-06",
-        "pripo_1y":  "2027-05-06",
-        "promoter_18m": "2027-11-06",
-        "promoter_3y":  "2029-05-06",
+        "anchor_t1": "2026-06-05",   # allotment + 30d
+        "anchor_t2": "2026-08-04",   # allotment + 90d
+        "pripo_6m":  "2026-11-08",   # listing May 8 + 6M   ← FIXED (was Nov 6)
+        "pripo_1y":  "2027-05-08",   # listing May 8 + 12M  ← FIXED (was May 6)
+        "promoter_18m": "2027-11-08",# listing May 8 + 18M  ← FIXED (was Nov 6)
+        "promoter_3y":  "2029-05-08",# listing May 8 + 3Y   ← FIXED (was May 6)
     },
 }
 
