@@ -199,13 +199,13 @@ DRHP_SUMMARIES: dict[str, dict] = {
     },
     "Meesho": {
         "business_model": "Social commerce / value e-commerce platform serving Tier 2–4 India. Zero-commission model for sellers; revenue from logistics, ads, and financial services.",
-        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities.",
-        "financials": "Revenue FY24 ~₹7,615 cr (+33% YoY). Net loss significantly reduced. Contribution margin positive since FY23.",
-        "ipo_details": "DRHP filed Nov 2025. Issue size ~₹4,000 cr + OFS. BRLMs: Goldman Sachs, ICICI Securities, Kotak. Target valuation ~$4–5B.",
+        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities. NSE ticker: MEESHO.",
+        "financials": "Revenue FY24 ~₹7,615 cr (+33% YoY). Net loss significantly reduced. Contribution margin positive since FY23. Listed MCap ~₹75,676 cr at ₹162.50.",
+        "ipo_details": "✅ LISTED 10 Dec 2025. IPO price ₹111 (band ₹105–111). Listing price ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). Subscription: 79×. Issue size ₹3,152 cr (₹2,000 cr fresh + ₹1,152 cr OFS). BRLMs: Goldman Sachs, ICICI Securities, Kotak.",
         "market": "India e-commerce ~$70B by 2027. Value segment (sub-₹500 orders) largely under-served by Amazon/Flipkart.",
-        "key_risks": "Low average selling price limits per-order revenue, logistics costs, returns rate, competition from quick commerce.",
-        "investors": "SoftBank, Peak XV Partners (Sequoia), Elevation Capital, Fidelity, Meta, B Capital.",
-        "source": "DRHP Nov 2025 + public disclosures",
+        "key_risks": "Low average selling price limits per-order revenue, logistics costs, returns rate, competition from quick commerce, post-listing lock-in expiry (pre-IPO: Jun 10 2026).",
+        "investors": "SoftBank, Peak XV Partners (Sequoia), Elevation Capital, Fidelity, Meta, B Capital, YC Continuity Fund.",
+        "source": "NSE, Groww, Indian Express, Screener — as of 13 May 2026",
     },
     "Urban Company": {
         "business_model": "Asset-light home-services marketplace connecting consumers with trained professional partners for beauty, cleaning, repairs, and appliance servicing. Present in 50+ cities and 3 international markets.",
@@ -545,10 +545,10 @@ KNOWN_FILINGS = [
      "description": "India's largest UPI payments platform with 550M+ registered users. Backed by Walmart. Confidential DRHP filing."},
 
     {"company": "Meesho",
-     "filing_date": "2025-01", "type": "DRHP", "sector": "ecommerce",
-     "issue_size": "~₹4,000 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
+     "filing_date": "2025-12", "type": "Listed", "sector": "ecommerce",
+     "issue_size": "₹3,152 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
      "pdf_link": DRHP_LINKS["Meesho"]["url"], "confidential": False,
-     "description": "Social commerce platform serving Tier 2/3 India. SoftBank-backed. 150M+ active users."},
+     "description": "Listed 10 Dec 2025 @ ₹162.50 NSE (+46.4%). IPO price ₹111. Sub: 79×. Social commerce serving Tier 2/3 India. Ticker: MEESHO.NS"},
 
     {"company": "Lenskart",
      "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",

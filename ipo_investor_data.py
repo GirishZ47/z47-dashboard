@@ -1750,11 +1750,11 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     "Meesho": {
         # ── NOTE: Exact OFS seller data now in VERIFIED_INVESTOR_DATA (v2) ──
         # 10 OFS sellers certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025.
-        # OFS total: 96,759,577 shares (at ₹IPO price TBD — price band not announced as of May 2026).
-        "ipo_price": None,      # TBD — price band not announced
-        "listing_price": None,
+        # LISTED 10 Dec 2025. IPO price ₹111 (upper band). Listing ₹162.50 on NSE (+46.4%).
+        "ipo_price": 111,           # ₹111 upper band. Listed 10 Dec 2025.
+        "listing_price": 162.50,    # NSE listing price. BSE: ₹161.20.
         "fresh_issue_cr": 2000.0,
-        "ofs_total_cr": None,   # TBD — depends on IPO price
+        "ofs_total_cr": 1151.73,    # 103,759,577 × ₹111 / 1e7 = ₹1,151.73 cr
         "ofs_total_shares": 103_759_577,  # exact sum from RHP (verified)
         "investors": {
             "Elevation Capital": {
@@ -2009,21 +2009,24 @@ VERIFIED_INVESTOR_DATA: dict[str, dict] = {
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # MEESHO (Fashnear Technologies)
-    # IPO pricing TBD (price band not announced as of May 2026).
-    # Fresh issue ₹2,000 cr + OFS (96,759,577 shares at TBD IPO price).
+    # MEESHO (Fashnear Technologies Private Limited)
+    # LISTED 10 Dec 2025. Price band ₹105–111. IPO price ₹111 (upper band).
+    # Listing price ₹162.50 NSE / ₹161.20 BSE (+46.4% / +45.2%).
+    # Fresh issue ₹2,000 cr + OFS 103,759,577 shares (= ₹1,151.73 cr at ₹111).
     # 10 OFS sellers certified by B.B. & Associates CA, UDIN: 25511341BMIVDB9527, Nov 27 2025.
+    # Overall subscription: 79×. Ticker: MEESHO.NS
+    # Source: NSE, Groww, Indian Express, Screener (13 May 2026)
     # ══════════════════════════════════════════════════════════════════════════
     "Meesho": {
-        "ipo_price":        None,       # TBD — price band not announced
-        "listing_price":    None,
-        "listing_date":     None,
+        "ipo_price":        111,        # ₹111 upper band. Listed 10 Dec 2025.
+        "listing_price":    162.50,     # NSE listing price (+46.4%); BSE ₹161.20
+        "listing_date":     "2025-12-10",
         "ca_firm":          "B.B. & Associates",
         "ca_udin":          "25511341BMIVDB9527",
         "ca_date":          "Nov 27 2025",
         "fresh_issue_cr":   2000.0,
         "ofs_total_shares": 103_759_577,  # exact sum: 24,445,349+17,380,873+16M+16M+8,636,727+7,961,640+7,195,453+3,301,140+1,591,044+1,247,351
-        "ofs_total_cr":     None,        # TBD at pricing
+        "ofs_total_cr":     1151.73,    # 103,759,577 × ₹111 / 1e7
         "investors": {
             "Elevation Capital": {
                 "type": "investor",
