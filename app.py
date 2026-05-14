@@ -20,7 +20,7 @@ import page_recent_ipos
 import page_upcoming_ipos
 import page_block_deals
 import page_drhp
-from z47_assistant import render_z47_assistant
+from z47_assistant import render_z47_assistant, ask_z47_with_search, SYSTEM_PROMPTS, _SEARCH_GUIDANCE
 
 # ── Startup health check ──────────────────────────────────────────────────────
 def _run_startup_health_check() -> None:
@@ -1413,36 +1413,28 @@ def build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_
     return "\n".join(lines)
 
 
-def stream_ai_response(user_question, data_context):
-    api_key = st.secrets.get("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))
-    if not api_key or api_key.startswith("sk-ant-..."):
-        yield "⚠️ No Anthropic API key configured. Add your key to `.streamlit/secrets.toml` under `ANTHROPIC_API_KEY`."
-        return
+def _build_z47_system_prompt(data_context: str) -> str:
+    """Build the full system prompt for the Z47 Index chat with web search guidance."""
+    base = SYSTEM_PROMPTS["z47_index"]
+    if data_context:
+        return (
+            base
+            + "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            + "PRE-COMPUTED LIVE DATA (use this for return / price questions)\n"
+            + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            + data_context
+        )
+    return base
 
-    client = anthropic.Anthropic(api_key=api_key)
-    system_prompt = (
-        "You are an expert financial analyst for Z47, a venture capital firm that tracks an index "
-        "of 47 Indian internet and new-age tech companies. You have access to live index data "
-        "provided below. Answer questions clearly and concisely. When quoting numbers, be precise. "
-        "If the answer isn't in the data provided, say so and offer what context you can.\n\n"
-        + data_context
-    )
 
-    try:
-        with client.messages.stream(
-            model="claude-haiku-4-5",
-            max_tokens=1024,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_question}],
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
-    except anthropic.AuthenticationError:
-        yield "⚠️ Invalid API key. Please update `ANTHROPIC_API_KEY` in `.streamlit/secrets.toml` with a valid key from console.anthropic.com."
-    except anthropic.RateLimitError:
-        yield "⚠️ Rate limit hit. Please wait a moment and try again."
-    except Exception as e:
-        yield f"⚠️ Error contacting AI: {e}"
+def call_ai_response(messages: list, data_context: str) -> str:
+    """
+    Non-streaming AI response with web search.  Replaces stream_ai_response().
+    Uses ask_z47_with_search() from z47_assistant — automatically searches
+    the web for P/E ratios, quarterly results, analyst targets, and news.
+    """
+    system_prompt = _build_z47_system_prompt(data_context)
+    return ask_z47_with_search(messages, system_prompt)
 
 
 # ── Mobile layout ─────────────────────────────────────────────────────────────
@@ -1527,8 +1519,12 @@ def main_mobile():
         prompt = user_input.strip()
         st.session_state.mob_chat.append({"role": "user", "content": prompt})
         data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live)
+        msgs_for_api = [{"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.mob_chat]
         with st.chat_message("assistant"):
-            response_text = st.write_stream(stream_ai_response(prompt, data_ctx))
+            with st.spinner("🔍 Searching and analyzing…"):
+                response_text = call_ai_response(msgs_for_api, data_ctx)
+            st.markdown(response_text)
         st.session_state.mob_chat.append({"role": "assistant", "content": response_text})
 
     # ── Top 5 gainers / losers (stacked) ─────────────────────────────
@@ -1749,8 +1745,12 @@ def main():
         prompt = user_input.strip()
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
         data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live)
+        msgs_for_api = [{"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.chat_messages]
         with st.chat_message("assistant"):
-            response_text = st.write_stream(stream_ai_response(prompt, data_ctx))
+            with st.spinner("🔍 Searching and analyzing…"):
+                response_text = call_ai_response(msgs_for_api, data_ctx)
+            st.markdown(response_text)
         st.session_state.chat_messages.append({"role": "assistant", "content": response_text})
 
     st.markdown("<br>", unsafe_allow_html=True)
