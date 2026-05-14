@@ -1222,6 +1222,19 @@ def build_extended_df(hist, nifty_live, sensex_live):
     return pd.concat([hist, new], ignore_index=True)
 
 
+def safe_render(fn, name: str) -> None:
+    """
+    Wrap any page/section render call with crash protection.
+    Shows a friendly error banner and logs the full traceback to console.
+    """
+    try:
+        fn()
+    except Exception as _e:
+        import traceback as _tb
+        st.error(f"⚠️ {name} encountered an error. Press F5 / ⌘R to refresh.")
+        print(f"[CRASH] {name}: {type(_e).__name__}: {_e}\n{_tb.format_exc()}")
+
+
 def pct_since(df, col, days=None, ytd=False):
     last_val = df[col].iloc[-1]
     if ytd:

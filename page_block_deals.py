@@ -968,22 +968,34 @@ def render():
     tab1, tab2, tab3, tab4 = st.tabs(["📦 Block Deals", "📊 Bulk Deals", "🗓️ All Deals Today", "📚 History (60–90 Days)"])
 
     with tab1:
-        st.markdown("**Block Deals for Z47 Index Companies**")
-        _show(block_df, "block deals", bsrc)
-        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {bts.strftime("%d-%m-%Y %H:%M IST") if bts else "N/A"}</div>',
-                    unsafe_allow_html=True)
+        try:
+            st.markdown("**Block Deals for Z47 Index Companies**")
+            _show(block_df, "block deals", bsrc)
+            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {bts.strftime("%d-%m-%Y %H:%M IST") if bts else "N/A"}</div>',
+                        unsafe_allow_html=True)
+        except Exception as _e:
+            st.error("⚠️ Block Deals tab error. Refresh to try again.")
+            print(f"[TAB] Block Deals: {_e}")
 
     with tab2:
-        st.markdown("**Bulk Deals for Z47 Index Companies**")
-        _show(bulk_df, "bulk deals", usrc)
-        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {uts.strftime("%d-%m-%Y %H:%M IST") if uts else "N/A"}</div>',
-                    unsafe_allow_html=True)
+        try:
+            st.markdown("**Bulk Deals for Z47 Index Companies**")
+            _show(bulk_df, "bulk deals", usrc)
+            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {uts.strftime("%d-%m-%Y %H:%M IST") if uts else "N/A"}</div>',
+                        unsafe_allow_html=True)
+        except Exception as _e:
+            st.error("⚠️ Bulk Deals tab error. Refresh to try again.")
+            print(f"[TAB] Bulk Deals: {_e}")
 
     with tab3:
-        st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
-        _show(all_df, "deals", f"{bsrc}/{usrc}")
-        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
-                    unsafe_allow_html=True)
+        try:
+            st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
+            _show(all_df, "deals", f"{bsrc}/{usrc}")
+            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
+                        unsafe_allow_html=True)
+        except Exception as _e:
+            st.error("⚠️ All Deals tab error. Refresh to try again.")
+            print(f"[TAB] All Deals: {_e}")
 
     # ── Optional news enrichment — manual, never auto ────────────────────────
     still_zero = (
@@ -1008,5 +1020,10 @@ def render():
                 st.rerun()
 
     with tab4:
-        _render_history_tab()
+        try:
+            _render_history_tab()
+        except Exception as _e:
+            import traceback as _tb
+            st.error("⚠️ History tab error. Refresh to try again.")
+            print(f"[TAB] BD History: {_e}\n{_tb.format_exc()}")
 

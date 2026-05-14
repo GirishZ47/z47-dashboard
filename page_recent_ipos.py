@@ -2590,21 +2590,25 @@ def render():
     t1, t2, t4, t5, t6 = st.tabs(["📋 Overview", "📊 Performance", "📬 Subscription", "🏦 Investors", "🔒 Lock-Up Analysis"])
 
     with t1:
-        a, b = st.columns(2)
-        with a:
-            st.markdown(f"**Company:** {ipo['company']}")
-            st.markdown(f"**Sector:** {ipo['sector']}")
-            st.markdown(f"**Exchange:** {ipo['exchange']}")
-            st.markdown(f"**Listing Date:** {ipo['listing_date']}")
-            st.markdown(f"**Price Band:** {ipo['price_band']}")
-            st.markdown(f"**Issue Price:** {'₹' + str(ipo['issue_price']) if ipo['issue_price'] else 'TBD'}")
-        with b:
-            st.markdown(f"**Lot Size:** {ipo['lot_size'] or 'TBD'}")
-            st.markdown(f"**Issue Size:** {ipo['issue_size']}")
-            st.markdown(f"**Fresh Issue:** {ipo['fresh_issue']}")
-            st.markdown(f"**OFS:** {ipo['ofs']}")
-            st.markdown(f"**Use of Funds:** {ipo['use_of_funds']}")
-            st.markdown(f"**Key Investors:** {ipo['key_investors']}")
+        try:
+            a, b = st.columns(2)
+            with a:
+                st.markdown(f"**Company:** {ipo['company']}")
+                st.markdown(f"**Sector:** {ipo['sector']}")
+                st.markdown(f"**Exchange:** {ipo['exchange']}")
+                st.markdown(f"**Listing Date:** {ipo['listing_date']}")
+                st.markdown(f"**Price Band:** {ipo['price_band']}")
+                st.markdown(f"**Issue Price:** {'₹' + str(ipo['issue_price']) if ipo['issue_price'] else 'TBD'}")
+            with b:
+                st.markdown(f"**Lot Size:** {ipo['lot_size'] or 'TBD'}")
+                st.markdown(f"**Issue Size:** {ipo['issue_size']}")
+                st.markdown(f"**Fresh Issue:** {ipo['fresh_issue']}")
+                st.markdown(f"**OFS:** {ipo['ofs']}")
+                st.markdown(f"**Use of Funds:** {ipo['use_of_funds']}")
+                st.markdown(f"**Key Investors:** {ipo['key_investors']}")
+        except Exception as _t1_err:
+            st.error("⚠️ Overview tab error. Refresh to try again.")
+            print(f"[TAB] Overview/{ipo.get('company','?')}: {_t1_err}")
 
     with t2:
         price, h52, l52 = _live_price(ipo["ticker"])
@@ -2710,80 +2714,93 @@ def render():
 
             # helper: popover for EV/Revenue
             def _pop_ev_rev(price_pt, fy, rev_mn, label):
-                mcap_mn = price_pt * _sh
-                tev_mn  = mcap_mn - _cash + _debt + _min + _pref
-                ev_rev  = round(tev_mn / rev_mn, 1) if rev_mn > 0 else None
-                with st.popover("See Calculation"):
-                    st.markdown(f"**EV/Revenue at {label} ({fy})**")
-                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
-                    st.markdown(f"- Shares: **{_sh:,.2f} mn**")
-                    st.markdown(f"- MCap: ₹{price_pt:.2f} × {_sh:.2f}mn = **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
-                    tev_formula = f"{mcap_mn:,.0f} − {_cash:,.0f} + {_debt:,.0f}"
-                    if _min: tev_formula += f" + {_min:,.0f} (minority)"
-                    if _pref: tev_formula += f" + {_pref:,.0f} (pref equity)"
-                    st.markdown(f"- TEV = {tev_formula} = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
-                    st.markdown(f"- Revenue {fy}: **₹{rev_mn:,.0f} mn (₹{rev_mn/10:,.0f} cr)**")
-                    if ev_rev:
-                        st.markdown(f"- **EV/Revenue = {tev_mn:,.0f} ÷ {rev_mn:,.0f} = {ev_rev:.1f}x**")
-                    st.caption("Source: Financials from S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+                try:
+                    mcap_mn = price_pt * _sh
+                    tev_mn  = mcap_mn - _cash + _debt + _min + _pref
+                    ev_rev  = round(tev_mn / rev_mn, 1) if rev_mn > 0 else None
+                    with st.popover("See Calculation"):
+                        st.markdown(f"**EV/Revenue at {label} ({fy})**")
+                        st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                        st.markdown(f"- Shares: **{_sh:,.2f} mn**")
+                        st.markdown(f"- MCap: ₹{price_pt:.2f} × {_sh:.2f}mn = **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
+                        tev_formula = f"{mcap_mn:,.0f} − {_cash:,.0f} + {_debt:,.0f}"
+                        if _min: tev_formula += f" + {_min:,.0f} (minority)"
+                        if _pref: tev_formula += f" + {_pref:,.0f} (pref equity)"
+                        st.markdown(f"- TEV = {tev_formula} = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
+                        st.markdown(f"- Revenue {fy}: **₹{rev_mn:,.0f} mn (₹{rev_mn/10:,.0f} cr)**")
+                        if ev_rev:
+                            st.markdown(f"- **EV/Revenue = {tev_mn:,.0f} ÷ {rev_mn:,.0f} = {ev_rev:.1f}x**")
+                        st.caption("Source: Financials from S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+                except Exception as _pe:
+                    print(f"[POPOVER] EV/Rev: {_pe}")
 
             # helper: popover for EV/EBITDA
             def _pop_ev_ebitda(price_pt, fy, ebitda_mn, label, ind116=False):
-                mcap_mn = price_pt * _sh
-                tev_mn  = mcap_mn - _cash + _debt + _min + _pref
-                ev_ebitda = round(tev_mn / ebitda_mn, 1) if (ebitda_mn and ebitda_mn > 0) else None
-                with st.popover("See Calculation"):
-                    st.markdown(f"**EV/EBITDA at {label} ({fy})**")
-                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
-                    st.markdown(f"- Shares: **{_sh:,.2f} mn**")
-                    st.markdown(f"- MCap: **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
-                    st.markdown(f"- Cash: ₹{_cash:,.0f} mn | Debt: ₹{_debt:,.0f} mn" +
-                                (f" | Minority: ₹{_min:,.0f} mn" if _min else "") +
-                                (f" | Pref Equity: ₹{_pref:,.0f} mn" if _pref else ""))
-                    st.markdown(f"- TEV = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
-                    if ebitda_mn is not None and ebitda_mn > 0:
-                        st.markdown(f"- EBITDA {fy}: **₹{ebitda_mn:,.0f} mn (₹{ebitda_mn/10:,.0f} cr)**")
-                        st.markdown(f"- **EV/EBITDA = {tev_mn:,.0f} ÷ {ebitda_mn:,.0f} = {ev_ebitda:.1f}x**")
-                    else:
-                        emn = ebitda_mn or 0
-                        st.markdown(f"- EBITDA {fy}: **₹{emn:,.0f} mn** (negative — N/M)")
-                        st.markdown("- EV/EBITDA is not meaningful when EBITDA is negative.")
-                    if ind116:
-                        st.warning("⚠️ EBITDA elevated by Ind AS 116 lease accounting. Lease costs sit below the EBITDA line. Pre-Ind AS 116 EBITDA would be materially lower.")
-                    st.caption("Source: S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+                try:
+                    mcap_mn = price_pt * _sh
+                    tev_mn  = mcap_mn - _cash + _debt + _min + _pref
+                    ev_ebitda = round(tev_mn / ebitda_mn, 1) if (ebitda_mn and ebitda_mn > 0) else None
+                    with st.popover("See Calculation"):
+                        st.markdown(f"**EV/EBITDA at {label} ({fy})**")
+                        st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                        st.markdown(f"- Shares: **{_sh:,.2f} mn**")
+                        st.markdown(f"- MCap: **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
+                        st.markdown(f"- Cash: ₹{_cash:,.0f} mn | Debt: ₹{_debt:,.0f} mn" +
+                                    (f" | Minority: ₹{_min:,.0f} mn" if _min else "") +
+                                    (f" | Pref Equity: ₹{_pref:,.0f} mn" if _pref else ""))
+                        st.markdown(f"- TEV = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
+                        if ebitda_mn is not None and ebitda_mn > 0:
+                            st.markdown(f"- EBITDA {fy}: **₹{ebitda_mn:,.0f} mn (₹{ebitda_mn/10:,.0f} cr)**")
+                            st.markdown(f"- **EV/EBITDA = {tev_mn:,.0f} ÷ {ebitda_mn:,.0f} = {ev_ebitda:.1f}x**")
+                        else:
+                            emn = ebitda_mn or 0
+                            st.markdown(f"- EBITDA {fy}: **₹{emn:,.0f} mn** (negative — N/M)")
+                            st.markdown("- EV/EBITDA is not meaningful when EBITDA is negative.")
+                        if ind116:
+                            st.warning("⚠️ EBITDA elevated by Ind AS 116 lease accounting. Lease costs sit below the EBITDA line. Pre-Ind AS 116 EBITDA would be materially lower.")
+                        st.caption("Source: S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+                except Exception as _pe:
+                    print(f"[POPOVER] EV/EBITDA: {_pe}")
 
             # helper: popover for P/E
             def _pop_pe(price_pt, fy, eps, label, exc_note=None):
-                pe = round(price_pt / eps, 1) if (eps and eps > 0) else None
-                with st.popover("See Calculation"):
-                    st.markdown(f"**P/E at {label} ({fy})**")
-                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
-                    if eps and eps > 0:
-                        st.markdown(f"- EPS {fy}: **₹{eps:.4f}/share** (diluted, from S&P CIQ)")
-                        st.markdown(f"- **P/E = ₹{price_pt:.2f} ÷ ₹{eps:.4f} = {pe:.1f}x**")
-                    else:
-                        st.markdown(f"- EPS {fy}: **₹{eps:.4f}** (negative — loss-making)")
-                        st.markdown("- P/E is not meaningful when earnings are negative.")
-                    if exc_note:
-                        st.warning(f"⚠️ {exc_note}")
-                    if _mt == "insurance":
-                        st.info("ℹ️ P/E is the primary valuation metric for insurance companies. EV/EBITDA is not standard for insurers.")
-                    elif _mt == "nbfc_pe_pb":
-                        st.info("ℹ️ P/E is a primary valuation metric for NBFCs. P/B (Price-to-Book) is shown separately below.")
-                    st.caption("Source: EPS from S&P Capital IQ | Price from NSE via yfinance")
+                try:
+                    pe = round(price_pt / eps, 1) if (eps and eps > 0) else None
+                    with st.popover("See Calculation"):
+                        st.markdown(f"**P/E at {label} ({fy})**")
+                        st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                        if eps and eps > 0:
+                            st.markdown(f"- EPS {fy}: **₹{eps:.4f}/share** (diluted, from S&P CIQ)")
+                            st.markdown(f"- **P/E = ₹{price_pt:.2f} ÷ ₹{eps:.4f} = {pe:.1f}x**")
+                        else:
+                            eps_disp = f"{eps:.4f}" if eps is not None else "N/A"
+                            st.markdown(f"- EPS {fy}: **₹{eps_disp}** (negative — loss-making)")
+                            st.markdown("- P/E is not meaningful when earnings are negative.")
+                        if exc_note:
+                            st.warning(f"⚠️ {exc_note}")
+                        if _mt == "insurance":
+                            st.info("ℹ️ P/E is the primary valuation metric for insurance companies. EV/EBITDA is not standard for insurers.")
+                        elif _mt == "nbfc_pe_pb":
+                            st.info("ℹ️ P/E is a primary valuation metric for NBFCs. P/B (Price-to-Book) is shown separately below.")
+                        st.caption("Source: EPS from S&P Capital IQ | Price from NSE via yfinance")
+                except Exception as _pe:
+                    print(f"[POPOVER] P/E: {_pe}")
 
             # helper: popover for P/B (NBFC companies only)
             def _pop_pb(price_pt, fy, bvps, label):
-                pb = round(price_pt / bvps, 2) if (bvps and bvps > 0) else None
-                with st.popover("See Calculation"):
-                    st.markdown(f"**P/B at {label} ({fy})**")
-                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
-                    if bvps and bvps > 0:
-                        st.markdown(f"- Book Value/Share {fy}: **₹{bvps:.2f}/share** (from S&P Capital IQ / RHP)")
-                        st.markdown(f"- **P/B = ₹{price_pt:.2f} ÷ ₹{bvps:.2f} = {pb:.2f}x**")
-                    else:
-                        st.markdown(f"- Book Value/Share: not available for {fy}.")
-                    st.caption("Source: Book value per share from S&P Capital IQ / RHP | P/B = Price ÷ Book Value per Share")
+                try:
+                    pb = round(price_pt / bvps, 2) if (bvps and bvps > 0) else None
+                    with st.popover("See Calculation"):
+                        st.markdown(f"**P/B at {label} ({fy})**")
+                        st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                        if bvps and bvps > 0:
+                            st.markdown(f"- Book Value/Share {fy}: **₹{bvps:.2f}/share** (from S&P Capital IQ / RHP)")
+                            st.markdown(f"- **P/B = ₹{price_pt:.2f} ÷ ₹{bvps:.2f} = {pb:.2f}x**")
+                        else:
+                            st.markdown(f"- Book Value/Share: not available for {fy}.")
+                        st.caption("Source: Book value per share from S&P Capital IQ / RHP | P/B = Price ÷ Book Value per Share")
+                except Exception as _pe:
+                    print(f"[POPOVER] P/B: {_pe}")
 
             # ── per-fiscal-year rendering ────────────────────────────────────
             for _fy in _ciq["fiscal_years"]:
@@ -2973,12 +2990,16 @@ def render():
             _warn(f"Live price unavailable for {ipo['ticker']}.")
 
     with t4:
-        st.markdown("**Final Subscription Data**")
-        st.dataframe(pd.DataFrame({
-            "Category":     ["QIB", "NII (HNI)", "RII (Retail)", "Overall"],
-            "Subscription": [ipo["qib_sub"], ipo["nii_sub"], ipo["rii_sub"], ipo["overall_sub"]],
-        }), use_container_width=True, hide_index=True)
-        st.caption("Source: NSE/BSE final subscription data (hardcoded from official filings).")
+        try:
+            st.markdown("**Final Subscription Data**")
+            st.dataframe(pd.DataFrame({
+                "Category":     ["QIB", "NII (HNI)", "RII (Retail)", "Overall"],
+                "Subscription": [ipo["qib_sub"], ipo["nii_sub"], ipo["rii_sub"], ipo["overall_sub"]],
+            }), use_container_width=True, hide_index=True)
+            st.caption("Source: NSE/BSE final subscription data (hardcoded from official filings).")
+        except Exception as _t4_err:
+            st.error("⚠️ Subscription tab error. Refresh to try again.")
+            print(f"[TAB] Subscription/{ipo.get('company','?')}: {_t4_err}")
 
     with t5:
         # ── Section 1: Shareholding Pattern ──────────────────────────────────
@@ -3441,5 +3462,10 @@ def render():
 
     # ── t6: Lock-Up Expiry Analysis ───────────────────────────────────────────
     with t6:
-        _render_lockup_tab(ipo)
+        try:
+            _render_lockup_tab(ipo)
+        except Exception as _t6_err:
+            import traceback as _tb
+            st.error("⚠️ Lock-Up Analysis tab error. Refresh to try again.")
+            print(f"[TAB] Lock-Up/{ipo.get('company','?')}: {_t6_err}\n{_tb.format_exc()}")
 
