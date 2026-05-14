@@ -172,14 +172,14 @@ button[data-testid="baseButton-primary"]:hover {{
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_history() -> pd.DataFrame:
     csv_path = os.path.join(os.path.dirname(__file__), "z47_history.csv")
     df = pd.read_csv(csv_path, parse_dates=["date"])
     return df.sort_values("date").reset_index(drop=True)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner=False)
 def fetch_live_indices() -> tuple:
     nifty = sensex = None
     headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com/"}
@@ -204,7 +204,7 @@ def fetch_live_indices() -> tuple:
     return nifty, sensex
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_usdinr() -> float:
     try:
         return round(float(yf.Ticker("USDINR=X").fast_info.last_price), 2)
@@ -212,7 +212,7 @@ def get_usdinr() -> float:
         return 85.0
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner=False)
 def fetch_nse_price(symbol: str) -> dict:
     headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com/"}
     try:
@@ -229,7 +229,7 @@ def fetch_nse_price(symbol: str) -> dict:
     return {}
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner=False)
 def fetch_nasdaq_price(symbol: str) -> dict:
     try:
         fi = yf.Ticker(symbol).fast_info
@@ -241,7 +241,7 @@ def fetch_nasdaq_price(symbol: str) -> dict:
         return {}
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_market_caps() -> dict:
     """Live market cap for all 47 companies via parallel yfinance fast_info calls."""
     def _get(c):
@@ -265,7 +265,7 @@ def fetch_market_caps() -> dict:
     return results
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_1m_returns() -> dict[str, float]:
     """Batch download ~35 days of prices for 1-month return calculation."""
     tickers = [yf_ticker(c) for c in COMPANIES]
@@ -290,7 +290,7 @@ def fetch_1m_returns() -> dict[str, float]:
     return result
 
 
-@st.cache_data(ttl=86400)   # refresh once per day — historical data is stable
+@st.cache_data(ttl=86400, show_spinner=False)   # refresh once per day — historical data is stable
 def fetch_long_history() -> dict:
     """
     Compute % market-cap change since listing and since 1 Jan 2024 for all 47 stocks.
@@ -365,7 +365,7 @@ def fetch_long_history() -> dict:
     return results
 
 
-@st.cache_data(ttl=300)   # same cadence as prices
+@st.cache_data(ttl=300, show_spinner=False)   # same cadence as prices
 def fetch_company_news(yf_tk: str) -> list:
     """
     Fetch and normalise news from yfinance.
@@ -530,7 +530,7 @@ def _yf_info_with_fallback(c: dict) -> dict:
     }
 
 
-@st.cache_data(ttl=86400)  # refresh daily — analyst data changes slowly
+@st.cache_data(ttl=86400, show_spinner=False)  # refresh daily — analyst data changes slowly
 def fetch_all_analyst_data() -> dict:
     """Pre-fetch analyst price targets + key stats for all 47 companies.
 
@@ -549,7 +549,7 @@ def fetch_all_analyst_data() -> dict:
     return results
 
 
-@st.cache_data(ttl=86400)  # financial statements are quarterly — refresh daily
+@st.cache_data(ttl=86400, show_spinner=False)  # financial statements are quarterly — refresh daily
 def fetch_company_financials(yf_tk: str) -> dict:
     """Income statement, balance sheet, cash flow — slow-changing data."""
     try:
@@ -570,7 +570,7 @@ def fetch_company_financials(yf_tk: str) -> dict:
         return {}
 
 
-@st.cache_data(ttl=300)   # same cadence as prices
+@st.cache_data(ttl=300, show_spinner=False)   # same cadence as prices
 def fetch_company_live(yf_tk: str) -> dict:
     """Key stats, analyst targets, recommendations, earnings dates — refreshed with prices."""
     result = {}

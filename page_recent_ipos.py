@@ -7,6 +7,7 @@ import pytz
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from z47_assistant import render_z47_assistant
 import time
 import re
@@ -1399,22 +1400,15 @@ _BSE_CODES = {
     "MEESHO":    "381966",   # Listed 10 Dec 2025
 }
 
-_SH_CACHE_TTL = 1800  # 30 minutes
-
-
+@st.cache_data(ttl=1800, show_spinner=False)
 def _fetch_shareholding(ticker, company_name=""):
     """
     Fetch shareholding pattern via 5-source fallback chain.
     Returns dict: {rows, quarters, source, ts}. Never raises.
     rows: list of {Category, Value}
     quarters: list of {Quarter, Promoter %, FII/FPI %, DII %, Public %} — last 4
+    Cached 30 minutes via @st.cache_data (cross-session, shared across all users).
     """
-    cache_key = f"sh_{ticker}"
-    now_ts    = time.time()
-    if (now_ts - st.session_state.get(f"{cache_key}_ts", 0) < _SH_CACHE_TTL
-            and cache_key in st.session_state):
-        return st.session_state[cache_key]
-
     sym = ticker.replace(".NS", "").replace(".BO", "").upper()
     bse_code = _BSE_CODES.get(sym, "")
 
@@ -1424,10 +1418,7 @@ def _fetch_shareholding(ticker, company_name=""):
              "Accept-Language": "en-US,en;q=0.9", "Referer": "https://www.nseindia.com/"}
 
     def _save(rows, quarters, src):
-        result = {"rows": rows, "quarters": quarters, "source": src, "ts": datetime.now(IST)}
-        st.session_state[cache_key]            = result
-        st.session_state[f"{cache_key}_ts"]   = now_ts
-        return result
+        return {"rows": rows, "quarters": quarters, "source": src, "ts": datetime.now(IST)}
 
     def _to_float(v):
         try:
@@ -1593,9 +1584,7 @@ def _fetch_shareholding(ticker, company_name=""):
     except Exception:
         pass
 
-    # All sources exhausted — return any previously cached data or empty
-    if cache_key in st.session_state:
-        return st.session_state[cache_key]
+    # All sources exhausted — return empty (st.cache_data will cache this too)
     return _save([], [], "—")
 
 
@@ -1838,7 +1827,7 @@ def _bse_quote(symbol):
 
 
 # ── Cached helpers ─────────────────────────────────────────────────────────────
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner=False)
 def _live_price(ticker):
     """yfinance fast_info → yfinance history → NSE API → BSE API."""
     # 1. yfinance fast_info
@@ -1900,10 +1889,72 @@ def _scrape_gmp(company_name):
 
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _batch_live_prices():
+    """
+    Fetch live prices for ALL IPO tickers in ONE yf.download() batch call.
+    21 symbols → 1 HTTP request instead of 21 sequential requests.
+    Cached 5 minutes — same cadence as _live_price().
+    Falls back to parallel fast_info if download fails.
+    """
+    tickers = [ipo["ticker"] for ipo in IPOS if ipo.get("ticker")]
+    result  = {t: None for t in tickers}
+
+    try:
+        data = yf.download(
+            tickers,
+            period="2d",
+            progress=False,
+            timeout=20,
+            auto_adjust=True,
+        )
+        if not data.empty and "Close" in data.columns:
+            close = data["Close"]
+            if hasattr(close, "columns"):   # multiple tickers → DataFrame
+                for tk in tickers:
+                    try:
+                        if tk in close.columns:
+                            last = close[tk].dropna()
+                            if not last.empty:
+                                result[tk] = float(last.iloc[-1])
+                    except Exception:
+                        pass
+            else:                           # single ticker → Series
+                if len(tickers) == 1:
+                    last = close.dropna()
+                    if not last.empty:
+                        result[tickers[0]] = float(last.iloc[-1])
+            hits = sum(1 for v in result.values() if v)
+            print(f"[BATCH PRICES] yf.download: {hits}/{len(tickers)} symbols")
+            if hits > 0:
+                return result
+    except Exception as _e:
+        print(f"[BATCH PRICES] yf.download failed: {_e}, falling back to parallel fast_info")
+
+    # ── Fallback: parallel fast_info via ThreadPoolExecutor ──────────────
+    def _one(tk):
+        try:
+            p = yf.Ticker(tk).fast_info.last_price
+            return tk, float(p) if p and float(p) > 0 else None
+        except Exception:
+            return tk, None
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        for tk, px in ex.map(_one, tickers):
+            if px:
+                result[tk] = px
+    print(f"[BATCH PRICES] fallback fast_info: "
+          f"{sum(1 for v in result.values() if v)}/{len(tickers)} symbols")
+    return result
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def _build_df():
+    # Fetch all 21 prices in one batch (replaces 21 sequential _live_price() calls)
+    all_px = _batch_live_prices()
     rows = []
     for ipo in IPOS:
-        price, h52, l52 = _live_price(ipo["ticker"])
+        price = all_px.get(ipo["ticker"])
         ip, lp = ipo["issue_price"], ipo["listing_price"]
         ret_ipo  = round((price - ip) / ip * 100, 2) if price and ip else None
         ret_list = round((price - lp) / lp * 100, 2) if price and lp else None
@@ -1941,7 +1992,7 @@ def _build_df():
 
 
 # ── Lock-Up Expiry helpers ────────────────────────────────────────────────────
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _hist_prices(ticker, start, end):
     """Fetch OHLC history from yfinance for price impact chart."""
     try:
@@ -2408,6 +2459,11 @@ def _render_lockup_tab(ipo):
 # ── Render ─────────────────────────────────────────────────────────────────────
 def render():
     st_autorefresh(interval=900_000, key="recent_ipo_refresh")
+
+    # ── Warm up the batch price cache immediately on page load ────────────────
+    # This triggers _batch_live_prices() (which is @st.cache_data) on the first
+    # render. Subsequent rerenders return the cached result instantly.
+    _batch_live_prices()
 
     render_z47_assistant(
         context="recent_ipos",
