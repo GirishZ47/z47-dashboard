@@ -1493,7 +1493,7 @@ def main_mobile():
         st.markdown(
             f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47 vs Nifty</div>'
             f'<div class="mobile-kpi-value" style="font-size:15px">Z47 {ow}</div>'
-            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf):.1f} pp</div></div>',
+            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf or 0):.1f} pp</div></div>',
             unsafe_allow_html=True)
 
     # ── Performance chart (compact) ──────────────────────────────────
@@ -1678,9 +1678,24 @@ def main():
 
     screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_w")
     if screen_width is not None and screen_width < 768:
-        main_mobile()
+        try:
+            main_mobile()
+        except Exception as _mob_err:
+            import traceback as _tb
+            st.error("⚠️ Z47 Index encountered an error. Press F5 / ⌘R to refresh.")
+            print(f"[CRASH] main_mobile: {type(_mob_err).__name__}: {_mob_err}\n{_tb.format_exc()}")
         return
 
+    try:
+        _run_z47_desktop()
+    except Exception as _desk_err:
+        import traceback as _tb
+        st.error("⚠️ Z47 Index encountered an error. Press F5 / ⌘R to refresh.")
+        print(f"[CRASH] z47_desktop: {type(_desk_err).__name__}: {_desk_err}\n{_tb.format_exc()}")
+
+
+def _run_z47_desktop():
+    """Desktop Z47 Index page — wrapped by main() for crash safety."""
     hist = load_history()
     nifty_live, sensex_live = fetch_live_indices()
     usdinr = get_usdinr()
@@ -1789,7 +1804,7 @@ def main():
             f'<div class="metric-card">'
             f'<div class="metric-label">Z47 vs Nifty 50</div>'
             f'<div class="metric-value" style="font-size:20px">Z47 {ow}</div>'
-            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf):.1f} pp vs Nifty</div>'
+            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf or 0):.1f} pp vs Nifty</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
