@@ -2650,9 +2650,9 @@ def render():
             # header card
             st.markdown(
                 f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:8px 14px;margin-bottom:6px'>
-                <b style='color:#1e40af;font-size:14px'>📊 Valuation Multiples</b>
-                <span style='color:#6b7a8d;font-size:12px;margin-left:10px'>
+                padding:10px 16px;margin-bottom:8px'>
+                <b style='color:#1e40af;font-size:16px'>📊 Valuation Multiples</b>
+                <span style='color:#6b7a8d;font-size:13px;margin-left:10px'>
                 Source: S&amp;P Capital IQ &nbsp;|&nbsp; Figures in ₹ Cr</span></div>""",
                 unsafe_allow_html=True)
 
@@ -2679,34 +2679,34 @@ def render():
             # column-header helper
             def _col_hdr(label, colour="#6b7a8d"):
                 st.markdown(
-                    f"<div style='font-size:11px;color:{colour};font-weight:600;"
+                    f"<div style='font-size:14px;color:{colour};font-weight:700;"
                     f"padding-bottom:2px'>{label}</div>",
                     unsafe_allow_html=True)
 
             # value helper — green positive, red loss
             def _val_html(val, suffix="x", loss_label="📉 N/M", is_cr=False):
                 if val is None:
-                    return f"<span style='color:#dc2626;font-size:13px'>{loss_label}</span>"
+                    return f"<span style='color:#dc2626;font-size:15px;font-weight:500'>{loss_label}</span>"
                 elif val == "insurance_na":
-                    return "<span style='color:#6b7a8d;font-size:12px'>N/A (Insurance)</span>"
+                    return "<span style='color:#6b7a8d;font-size:14px'>N/A (Insurance)</span>"
                 else:
                     num = f"₹{val:,.0f}" if is_cr else f"{val:.1f}{suffix}"
                     colour = "#16a34a" if (not is_cr and val > 0) or is_cr else "#dc2626"
-                    return f"<span style='color:{colour};font-size:13px;font-weight:600'>{num}</span>"
+                    return f"<span style='color:{colour};font-size:18px;font-weight:700'>{num}</span>"
 
             def _ni_html(val_cr):
                 if val_cr is None:
                     return "<span style='color:#6b7a8d'>N/A</span>"
                 col = "#16a34a" if val_cr >= 0 else "#dc2626"
                 sign = "+" if val_cr >= 0 else ""
-                return f"<span style='color:{col};font-size:13px'>₹{val_cr:,.0f} cr</span>"
+                return f"<span style='color:{col};font-size:15px;font-weight:600'>₹{val_cr:,.0f} cr</span>"
 
             def _eps_html(eps):
                 if eps is None:
                     return "<span style='color:#6b7a8d'>N/A</span>"
                 col = "#16a34a" if eps >= 0 else "#dc2626"
                 pfx = "+" if eps >= 0 else ""
-                return f"<span style='color:{col};font-size:13px'>₹{eps:.2f}</span>"
+                return f"<span style='color:{col};font-size:15px;font-weight:600'>₹{eps:.2f}</span>"
 
             # helper: popover for EV/Revenue
             def _pop_ev_rev(price_pt, fy, rev_mn, label):
@@ -2797,10 +2797,10 @@ def render():
                 _fy_tag_txt = "Analyst Estimate" if _is_est else "Reported"
                 _ctx_sfx    = " · Context only" if _is_ctx else ""
                 st.markdown(
-                    f"<div style='border-top:1px solid {BORDER};padding:6px 0 2px'>"
-                    f"<b style='font-size:13px'>{_fy}</b>&nbsp;"
-                    f"<span style='font-size:11px;background:#f1f5f9;color:{_fy_tag_col};"
-                    f"border-radius:4px;padding:1px 6px'>{_fy_tag_txt}{_ctx_sfx}</span>"
+                    f"<div style='border-top:2px solid {BORDER};padding:10px 0 4px;margin-top:6px'>"
+                    f"<b style='font-size:18px;color:#1a1a2e'>{_fy}</b>&nbsp;&nbsp;"
+                    f"<span style='font-size:12px;background:#f1f5f9;color:{_fy_tag_col};"
+                    f"border-radius:4px;padding:2px 8px;font-weight:600'>{_fy_tag_txt}{_ctx_sfx}</span>"
                     f"</div>",
                     unsafe_allow_html=True)
 
@@ -2824,17 +2824,15 @@ def render():
 
                 # Revenue row
                 _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                with _c1: st.markdown("**Revenue** (₹ cr)")
-                with _c2: st.markdown(f"₹{_rev_mn/10:,.0f}")
-                with _c3: st.markdown(f"₹{_rev_mn/10:,.0f}")   # financials don't change with price
+                with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>Revenue</span> <span style='font-size:13px;color:#6b7a8d'>(₹ cr)</span>", unsafe_allow_html=True)
+                with _c2: st.markdown(f"<span style='font-size:15px;font-weight:600'>₹{_rev_mn/10:,.0f}</span>", unsafe_allow_html=True)
+                with _c3: st.markdown(f"<span style='font-size:15px;font-weight:600'>₹{_rev_mn/10:,.0f}</span>", unsafe_allow_html=True)   # financials don't change with price
 
                 # EBITDA row (always show, even if N/A)
                 _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
                 with _c1:
-                    _ebi_lbl = "**EBITDA** (₹ cr)"
-                    if _ind116:
-                        _ebi_lbl += " ⚠️"
-                    st.markdown(_ebi_lbl)
+                    _ebi_warn = " ⚠️" if _ind116 else ""
+                    st.markdown(f"<span style='font-size:15px;font-weight:600'>EBITDA{_ebi_warn}</span> <span style='font-size:13px;color:#6b7a8d'>(₹ cr)</span>", unsafe_allow_html=True)
                 with _c2:
                     if _ebi_mn is None:
                         st.markdown("<span style='color:#6b7a8d'>N/A</span>", unsafe_allow_html=True)
@@ -2848,26 +2846,25 @@ def render():
 
                 # Net Income row
                 _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                with _c1: st.markdown("**Net Income** (₹ cr)")
+                with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>Net Income</span> <span style='font-size:13px;color:#6b7a8d'>(₹ cr)</span>", unsafe_allow_html=True)
                 with _c2: st.markdown(_ni_html(_ni_mn / 10 if _ni_mn is not None else None), unsafe_allow_html=True)
                 with _c3: st.markdown(_ni_html(_ni_mn / 10 if _ni_mn is not None else None), unsafe_allow_html=True)
 
                 # EPS row
                 _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                with _c1: st.markdown("**EPS** (₹/share)")
+                with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>EPS</span> <span style='font-size:13px;color:#6b7a8d'>(₹/share)</span>", unsafe_allow_html=True)
                 with _c2: st.markdown(_eps_html(_eps), unsafe_allow_html=True)
                 with _c3: st.markdown(_eps_html(_eps), unsafe_allow_html=True)
 
                 # helper: show "—" placeholder when listing price not available
-                _na_html = "<span style='color:#9ca3af;font-size:13px'>—</span>"
+                _na_html = "<span style='color:#9ca3af;font-size:15px'>—</span>"
 
                 # ── EV/Revenue or EV/EBITDA row ──────────────────────────────
                 if _mt == "ev_rev":
-                    _mul_lbl = "**EV/Revenue**"
                     _ml_val  = _ml.get("ev_rev")
                     _mc_val  = _mc.get("ev_rev")
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                    with _c1: st.markdown(_mul_lbl)
+                    with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>EV/Revenue</span>", unsafe_allow_html=True)
                     with _c2:
                         if _no_listing:
                             st.markdown(_na_html, unsafe_allow_html=True)
@@ -2882,29 +2879,28 @@ def render():
 
                 elif _mt == "insurance":
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                    with _c1: st.markdown("**EV/EBITDA**")
-                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
-                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
+                    with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>EV/EBITDA</span>", unsafe_allow_html=True)
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — Insurance</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — Insurance</span>", unsafe_allow_html=True)
 
                 elif _mt == "nbfc_pe_pb":
                     # NBFCs: EV/Revenue and EV/EBITDA are not meaningful
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                    with _c1: st.markdown("**EV/Revenue**")
-                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
-                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>EV/Revenue</span>", unsafe_allow_html=True)
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — NBFC</span>", unsafe_allow_html=True)
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                    with _c1: st.markdown("**EV/EBITDA**")
-                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
-                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>EV/EBITDA</span>", unsafe_allow_html=True)
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:14px'>N/A — NBFC</span>", unsafe_allow_html=True)
 
                 else:  # ev_ebitda
                     _ml_val  = _ml.get("ev_ebitda")
                     _mc_val  = _mc.get("ev_ebitda")
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
                     with _c1:
-                        _ebi_row_lbl = "**EV/EBITDA**"
-                        if _ind116: _ebi_row_lbl += " ⚠️"
-                        st.markdown(_ebi_row_lbl)
+                        _ebi_warn2 = " ⚠️" if _ind116 else ""
+                        st.markdown(f"<span style='font-size:15px;font-weight:600'>EV/EBITDA{_ebi_warn2}</span>", unsafe_allow_html=True)
                     with _c2:
                         if _no_listing:
                             st.markdown(_na_html, unsafe_allow_html=True)
@@ -2921,7 +2917,7 @@ def render():
                 _pe_l = _ml.get("pe")
                 _pe_c = _mc.get("pe")
                 _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                with _c1: st.markdown("**P/E**")
+                with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>P/E</span>", unsafe_allow_html=True)
                 with _c2:
                     if _no_listing:
                         st.markdown(_na_html, unsafe_allow_html=True)
@@ -2940,7 +2936,7 @@ def render():
                     _pb_l    = _ml.get("pb")
                     _pb_c    = _mc.get("pb")
                     _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
-                    with _c1: st.markdown("**P/B** (Price/Book)")
+                    with _c1: st.markdown("<span style='font-size:15px;font-weight:600'>P/B</span> <span style='font-size:13px;color:#6b7a8d'>(Price/Book)</span>", unsafe_allow_html=True)
                     with _c2:
                         if _no_listing:
                             st.markdown(_na_html, unsafe_allow_html=True)

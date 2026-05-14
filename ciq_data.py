@@ -781,16 +781,8 @@ CIQ_DATA: dict = {
         "debt_mn":        0,             # not used for TEV (NBFC)
         "minority_mn":    0,
         "pref_equity_mn": 0,
-        "fiscal_years": ["FY24A", "FY25A", "FY26E"],
+        "fiscal_years": ["FY25A", "FY26E"],   # FY24A removed — irrelevant for May 2026 listing
         "financials": {
-            "FY24A": {
-                # Source: yfinance FY ended Mar 2024
-                "revenue_mn":           16_744.46,  # ₹1,674.45 cr
-                "ebitda_mn":            None,
-                "net_income_mn":        1_972.9,    # ₹197.29 cr
-                "eps_diluted":          11.71,       # 1972.9 / 168.48 (post-IPO shares basis)
-                "book_value_per_share": None,        # pre-IPO BV not in CIQ file
-            },
             "FY25A": {
                 # Source: yfinance FY ended Mar 2025 + RHP
                 "revenue_mn":           13_374.65,  # ₹1,337.47 cr
