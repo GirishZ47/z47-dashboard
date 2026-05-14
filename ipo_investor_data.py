@@ -1090,98 +1090,170 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     # GROWW (Groww Financials / Billionbrains Garage Ventures)
     # IPO Nov 2025. ₹100 issue, ₹114 listing.
     # Total size ~₹6,632 cr: Fresh ₹1,060 cr + OFS ₹5,572.3 cr (84% OFS).
-    # OFS sellers per RHP: Peak XV 1582L, Ribbit 1181L, YC Holdings 1054L,
-    #   Tiger 518L, Kauffman Fellows (small tranche).
-    # NOTE: Previous data wrongly showed this as pure fresh issue (₹6,160 cr fresh, no OFS).
+    # OFS sellers per RHP: Peak XV 1582.81L, Ribbit Fund V 656.68L,
+    #   Ribbit Opportunity V 524.64L, YC Holdings II 1054.82L,
+    #   Tiger Global (Internet Fund VI) 648.04L, Kauffman Fellows 275.05L
+    #   + promoters (Keshre, Jain, Singh, Bansal).
+    # WACA certified by: Manian & Rao, Chartered Accountants, Sep 16 2025.
     # ══════════════════════════════════════════════════════════════════════════
     "Groww": {
-        "ipo_price":      100,
-        "listing_price":  114.0,
-        "fresh_issue_cr": 1060.0,
-        "ofs_total_cr":   5572.3,
+        "ipo_price":         100,
+        "listing_price":     114.0,
+        "fresh_issue_cr":    1060.0,
+        "ofs_total_cr":      5572.3,
+        "waca_certified_by": "Manian & Rao, Chartered Accountants, September 16 2025",
         "investors": {
-            "Peak XV Partners (Sequoia Capital India)": {
-                "waca": 2.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~52× at listing ₹114 (earliest-entry price) → "
-                               "114 ÷ 52 = ₹2.19/sh. Multi-round investor Series A–C. "
-                               "Blended WACA higher — exact from RHP.",
+            # ── OFS Sellers ────────────────────────────────────────────────
+            "Peak XV Partners Investments VI-1": {
+                "waca":            1.91,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹1.91/sh "
+                                   "(Manian & Rao, Sep 16 2025)",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 1582.0,
-                "ofs_source": "RHP Selling Shareholders — Peak XV sold 1,58,2xx,xxx shares (~₹1,582 cr at ₹100)",
-                "first_year": 2016,
-                "notes": "Largest OFS seller. ~52× at listing on earliest entry. "
-                          "Realised ₹1,582 cr proceeds at IPO price.",
+                "ofs_shares_lakhs": 1582.81,
+                "ofs_source":      "RHP Selling Shareholders — 1,58,281,491 shares at ₹100",
+                "first_year":      2016,
+                "notes":           "Largest OFS seller. RHP WACA ₹1.91 → ~52.4× at IPO, ~59.7× at listing.",
             },
-            "Ribbit Capital": {
-                "waca": 2.65,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~43× at listing ₹114  →  114 ÷ 43 = ₹2.65/sh",
+            "Ribbit Capital (Fund V, L.P.)": {
+                "waca":            2.30,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹2.30/sh "
+                                   "(Manian & Rao, Sep 16 2025). Entity: Ribbit Capital V, L.P.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 1181.0,
-                "ofs_source": "RHP Selling Shareholders — Ribbit sold ~1,181L shares (~₹1,181 cr at ₹100)",
-                "first_year": 2018,
-                "notes": "~38× at IPO (estimated). Sold 1181L shares = ₹1,181 cr proceeds.",
+                "ofs_shares_lakhs": 656.68,
+                "ofs_source":      "RHP Selling Shareholders — 6,56,68,147 shares at ₹100",
+                "first_year":      2018,
+                "notes":           "Ribbit Capital V, L.P. — early fund entry. "
+                                   "WACA ₹2.30 → ~43.5× at IPO, ~49.6× at listing.",
             },
-            "YC Continuity Fund / YC Holdings": {
-                "waca": 3.93,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~29× at listing ₹114  →  114 ÷ 29 = ₹3.93/sh",
+            "Ribbit Capital (Opportunity Fund V, LLC)": {
+                "waca":            37.87,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹37.87/sh "
+                                   "(Manian & Rao, Sep 16 2025). Entity: GW-E Ribbit Opportunity V, LLC.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 1054.0,
-                "ofs_source": "RHP Selling Shareholders — YC Holdings sold ~1,054L shares (~₹1,054 cr at ₹100)",
-                "first_year": 2017,
-                "notes": "~25× at IPO (estimated). Sold 1054L shares = ₹1,054 cr proceeds.",
+                "ofs_shares_lakhs": 524.64,
+                "ofs_source":      "RHP Selling Shareholders — 5,24,64,086 shares at ₹100",
+                "first_year":      2021,
+                "notes":           "GW-E Ribbit Opportunity V, LLC — later-stage opportunity fund. "
+                                   "WACA ₹37.87 → ~2.6× at IPO, ~3.0× at listing.",
+            },
+            "YC Holdings II, LLC": {
+                "waca":            3.45,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹3.45/sh "
+                                   "(Manian & Rao, Sep 16 2025). Entity: YC Holdings II, LLC.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 1054.82,
+                "ofs_source":      "RHP Selling Shareholders — 1,05,481,609 shares at ₹100",
+                "first_year":      2017,
+                "notes":           "Y Combinator continuity fund. WACA ₹3.45 → ~29× at IPO, ~33× at listing.",
             },
             "Tiger Global Management": {
-                "waca": 25.3,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~4.5× at listing ₹114  →  114 ÷ 4.5 = ₹25.3/sh",
+                "waca":            21.97,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹21.97/sh "
+                                   "(Manian & Rao, Sep 16 2025). Entity: Internet Fund VI Pte Ltd.",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 518.0,
-                "ofs_source": "RHP Selling Shareholders — Tiger sold ~518L shares (~₹518 cr at ₹100)",
-                "first_year": 2020,
-                "notes": "~4× at IPO (estimated). Sold 518L shares = ₹518 cr proceeds.",
+                "ofs_shares_lakhs": 648.04,
+                "ofs_source":      "RHP Selling Shareholders — 6,48,03,513 shares at ₹100",
+                "first_year":      2020,
+                "notes":           "Internet Fund VI Pte Ltd (Tiger Global). "
+                                   "WACA ₹21.97 → ~4.6× at IPO, ~5.2× at listing.",
             },
-            "Alkeon Capital Management": {
-                "waca": 43.8,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2.6× at listing ₹114  →  114 ÷ 2.6 = ₹43.8/sh",
+            "Kauffman Fellows Fund LP": {
+                "waca":            0.51,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹0.51/sh "
+                                   "(Manian & Rao, Sep 16 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 275.05,
+                "ofs_source":      "RHP Selling Shareholders — 2,75,05,088 shares at ₹100",
+                "first_year":      2016,
+                "notes":           "Earliest entry — WACA ₹0.51 → ~196× at IPO, ~223× at listing.",
+            },
+            # ── Promoters (sold at IPO) ────────────────────────────────────
+            "Lalit Keshre (Co-founder & CEO)": {
+                "waca":            1.98,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹1.98/sh "
+                                   "(Manian & Rao, Sep 16 2025).",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2021,
-                "notes": "Did not sell in OFS. Retained stake. Paper gain ~2.6× at listing.",
+                "first_year":      2016,
+                "notes":           "Promoter. WACA ₹1.98 → ~50.5× at IPO, ~57.6× at listing.",
+            },
+            "Harsh Jain (Co-founder)": {
+                "waca":            2.37,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹2.37/sh "
+                                   "(Manian & Rao, Sep 16 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2016,
+                "notes":           "Promoter. WACA ₹2.37 → ~42.2× at IPO, ~48.1× at listing.",
+            },
+            "Neeraj Singh (Co-founder)": {
+                "waca":            2.54,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹2.54/sh "
+                                   "(Manian & Rao, Sep 16 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2016,
+                "notes":           "Promoter. WACA ₹2.54 → ~39.4× at IPO, ~44.9× at listing.",
+            },
+            "Ishan Bansal (Co-founder)": {
+                "waca":            3.18,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹3.18/sh "
+                                   "(Manian & Rao, Sep 16 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2016,
+                "notes":           "Promoter. WACA ₹3.18 → ~31.4× at IPO, ~35.8× at listing.",
+            },
+            # ── Non-OFS investors (paper gains at listing) ──────────────────
+            "Alkeon Capital Management": {
+                "waca":            43.8,
+                "waca_type":       "derived",
+                "waca_source":     "Derived: stated ~2.6× at listing ₹114  →  114 ÷ 2.6 = ₹43.8/sh",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2021,
+                "notes":           "Did not sell in OFS. Retained stake. Paper gain ~2.6× at listing.",
             },
             "ICONIQ Capital": {
-                "waca": 57.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2–2.5× at listing  →  114 ÷ 2.25 = ₹50.7/sh (mid-point)",
-                "waca_low": 45.6,
-                "waca_high": 57.0,
+                "waca":            57.0,
+                "waca_type":       "derived",
+                "waca_source":     "Derived: stated ~2–2.5× at listing  →  114 ÷ 2.25 = ₹50.7/sh (mid-point)",
+                "waca_low":        45.6,
+                "waca_high":       57.0,
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2020,
-                "notes": "Did not sell in OFS. Retained stake.",
+                "first_year":      2020,
+                "notes":           "Did not sell in OFS. Retained stake.",
             },
             "Temasek Holdings": {
-                "waca": 65.1,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.5–2× at listing  →  114 ÷ 1.75 = ₹65.1/sh (mid)",
-                "waca_low": 57.0,
-                "waca_high": 76.0,
+                "waca":            65.1,
+                "waca_type":       "derived",
+                "waca_source":     "Derived: stated ~1.5–2× at listing  →  114 ÷ 1.75 = ₹65.1/sh (mid)",
+                "waca_low":        57.0,
+                "waca_high":       76.0,
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2020,
-                "notes": "Did not sell in OFS. Retained stake.",
+                "first_year":      2020,
+                "notes":           "Did not sell in OFS. Retained stake.",
             },
             "Satya Nadella (personal)": {
-                "waca": 49.6,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2.3× at listing ₹114  →  114 ÷ 2.3 = ₹49.6/sh",
+                "waca":            49.6,
+                "waca_type":       "derived",
+                "waca_source":     "Derived: stated ~2.3× at listing ₹114  →  114 ÷ 2.3 = ₹49.6/sh",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2021,
-                "notes": "Did not sell in OFS. Series F ($3B val). Minority personal holding.",
+                "first_year":      2021,
+                "notes":           "Did not sell in OFS. Series F ($3B val). Minority personal holding.",
             },
         },
     },
@@ -1535,71 +1607,138 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # KISSHT (OnEMI Technology)
-    # IPO May 2026. ₹171 issue, ₹190 listing. OFS ₹76 cr (tiny).
+    # KISSHT (OnEMI Technology Solutions)
+    # IPO May 2026. ₹171 issue, ₹190 listing.
+    # OFS sellers per RHP Share Capital History (Manian & Rao, CA, Apr 22 2025):
+    #   Caladium Investment (GIC) 60.03L, NIIF II 26.35L, Internet Fund III 4.00L,
+    #   IITMS Rural Technology 0.04L, Amit Bhatia 0.19L. Total ~90.6L OFS shares.
+    # Promoters: Tarun Sanjay Mehta & Swapnil Babanlal Jain (WACA ₹21.09).
+    # WACA certified by: Manian & Rao, Chartered Accountants, April 22 2025.
     # ══════════════════════════════════════════════════════════════════════════
     "Kissht (OnEMI Technology)": {
-        "ipo_price":      171,
-        "listing_price":  190.0,
-        "fresh_issue_cr": 850.0,
-        "ofs_total_cr":   76.0,
+        "ipo_price":         171,
+        "listing_price":     190.0,
+        "fresh_issue_cr":    850.0,
+        "ofs_total_cr":      154.94,   # 90,60,696 shares × ₹171 (RHP-certified sellers only)
+        "waca_certified_by": "Manian & Rao, Chartered Accountants, April 22 2025",
         "investors": {
-            "Vertex Ventures SE Asia & India (Temasek-backed)": {
-                "waca": 15.5,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated >5× at listing ₹190  →  190 ÷ 5 = ₹38/sh minimum. "
-                               "Using ₹15.5/sh (blended Series A–C 2016–19 at $20–100M val).",
+            # ── OFS Sellers (RHP-certified WACAs) ──────────────────────────
+            "Caladium Investment Pte Ltd (GIC Singapore)": {
+                "waca":            204.24,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹204.24/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 60.03,
+                "ofs_source":      "RHP Selling Shareholders — 60,03,460 shares at ₹171",
+                "first_year":      2019,
+                "notes":           "GIC Singapore's vehicle. WACA ₹204.24 — selling below WACA "
+                                   "(₹171 IPO < ₹204.24 cost). OFS proceeds ₹102.7 cr.",
+            },
+            "NIIF Strategic Opportunities Fund II": {
+                "waca":            183.71,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹183.71/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 26.35,
+                "ofs_source":      "RHP Selling Shareholders — 26,34,514 shares at ₹171",
+                "first_year":      2020,
+                "notes":           "NIIF II — WACA ₹183.71, selling below cost at ₹171 IPO price. "
+                                   "OFS proceeds ₹45.0 cr.",
+            },
+            "Internet Fund III Pte Ltd (Tiger Global)": {
+                "waca":            38.58,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹38.58/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 4.00,
+                "ofs_source":      "RHP Selling Shareholders — 4,00,000 shares at ₹171",
+                "first_year":      2018,
+                "notes":           "Tiger Global vehicle. WACA ₹38.58 → ~4.4× at IPO. "
+                                   "OFS proceeds ₹6.8 cr.",
+            },
+            "IITM Incubation Cell (IIT Madras)": {
+                "waca":            None,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — WACA listed as Nil "
+                                   "(Manian & Rao, Apr 22 2025). Equity granted at nominal/nil cost.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2016,
-                "notes": "Largest VC holder. Partial OFS exit.",
+                "first_year":      2015,
+                "notes":           "IIT Madras incubation — nominal/nil cost. Did not sell in OFS per RHP.",
+            },
+            "IITMS Rural Technology & Business Incubator": {
+                "waca":            8.31,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹8.31/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 0.04,
+                "ofs_source":      "RHP Selling Shareholders — 4,191 shares at ₹171",
+                "first_year":      2015,
+                "notes":           "IITM Rural Technology arm. WACA ₹8.31 → ~20.6× at IPO.",
+            },
+            "Amit Bhatia": {
+                "waca":            184.82,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹184.82/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 0.19,
+                "ofs_source":      "RHP Selling Shareholders — 18,531 shares at ₹171",
+                "first_year":      2020,
+                "notes":           "Individual selling shareholder. WACA ₹184.82 — selling below cost.",
+            },
+            # ── Promoters ──────────────────────────────────────────────────
+            "Tarun Sanjay Mehta (Promoter)": {
+                "waca":            21.09,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹21.09/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2015,
+                "notes":           "Co-founder & promoter. WACA ₹21.09 → ~8.1× at IPO price.",
+            },
+            "Swapnil Babanlal Jain (Promoter)": {
+                "waca":            21.09,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP Share Capital History — CA certified WACA ₹21.09/sh "
+                                   "(Manian & Rao, Apr 22 2025).",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2015,
+                "notes":           "Co-founder & promoter. WACA ₹21.09 → ~8.1× at IPO price.",
+            },
+            # ── Other financial investors (derived WACAs) ───────────────────
+            "Vertex Ventures SE Asia & India": {
+                "waca":            15.5,
+                "waca_type":       "derived",
+                "waca_source":     "Derived estimate — blended Series A–C 2016–19 at $20–100M val.",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": None,
+                "first_year":      2016,
+                "notes":           "Largest VC holder. Did not sell in OFS per RHP.",
             },
             "Ventureast (Finquest Fund / Tenedo Fund)": {
-                "waca": 12.5,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~4–6× at listing ₹190  →  190 ÷ 5 = ₹38/sh. "
-                               "Using ₹12.5/sh (blended seed–Series B).",
+                "waca":            12.5,
+                "waca_type":       "derived",
+                "waca_source":     "Derived estimate — blended seed–Series B entry.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2016,
+                "first_year":      2016,
+                "notes":           "Early backer. Did not sell in OFS per RHP.",
             },
             "Sistema Asia Fund": {
-                "waca": 35.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~2–3× at listing ₹190  →  190 ÷ 2.5 = ₹76/sh. "
-                               "Using ₹35/sh (Series B–C 2018–20).",
+                "waca":            35.0,
+                "waca_type":       "derived",
+                "waca_source":     "Derived estimate — Series B–C 2018–20.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
-                "first_year": 2018,
-            },
-            "Endiya Partners (Endiya Seed Co-creation Fund)": {
-                "waca": 18.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~8–15× at listing ₹190  →  190 ÷ 11.5 = ₹16.5/sh. "
-                               "Using ₹18/sh (seed–Series A, WACA ~₹13–23 noted in filing).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": 5.35,
-                "ofs_source": "RHP Selling Shareholders — stated 5.35 lakh shares sold in OFS",
-                "first_year": 2015,
-                "notes": "Realised 9.5× at IPO on OFS shares. "
-                         "(₹18/sh WACA → ₹171 IPO = 9.5×). Early seed backer.",
-            },
-            "AION Capital Partners (Apollo-ICICI JV)": {
-                "waca": 65.0,
-                "waca_type": "derived",
-                "waca_source": "Derived: stated ~1.5–2.5× at listing  →  190 ÷ 2 = ₹95/sh mid. Using ₹65/sh.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2020,
-            },
-            "Founders: Ranvir Singh & Krishnan Vishwanathan": {
-                "waca": 1.0,
-                "waca_type": "estimated",
-                "waca_source": "Founding stake (2015). Nominal cost ~₹1–2/sh estimated.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year": 2015,
-                "notes": "~30.9% combined. Did NOT sell in OFS. >190× paper gain at listing.",
+                "first_year":      2018,
+                "notes":           "Did not sell in OFS per RHP.",
             },
         },
     },

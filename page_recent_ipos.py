@@ -561,14 +561,23 @@ _ANCHOR_DATA = {
             {"investor": "Axis MF",                 "category": "Mutual Fund",  "allocation_cr": 118},
         ],
         "pripo_investors": [
-            {"investor": "Peak XV Partners (Sequoia Capital India)", "round": "Series A–C (2016–18)", "entry_val": "~$13–70M valuation", "pct_held": "~12%", "return_at_ipo": "~52x at listing (earliest entry ~₹2/sh → listing ₹114)", "return_at_cmp": "—"},
-            {"investor": "Ribbit Capital",            "round": "Series D–E (2018–19)", "entry_val": "~$180–300M valuation", "pct_held": "~8%",  "return_at_ipo": "~43x at listing",  "return_at_cmp": "—"},
-            {"investor": "YC Continuity Fund",        "round": "Series C (2017)",      "entry_val": "~$115M valuation",     "pct_held": "~4%",  "return_at_ipo": "~29x at listing",  "return_at_cmp": "—"},
-            {"investor": "Tiger Global Management",   "round": "Series D–E (2020)",    "entry_val": "~$750M valuation",     "pct_held": "~5%",  "return_at_ipo": "~4.5x at listing", "return_at_cmp": "—"},
-            {"investor": "Alkeon Capital Management", "round": "Series F (2021)",      "entry_val": "$3.0B valuation",      "pct_held": "~2%",  "return_at_ipo": "~2.6x at listing (IPO MCap ~$8B vs $3B entry)", "return_at_cmp": "—"},
-            {"investor": "ICONIQ Capital",            "round": "Series E–F (2020–21)", "entry_val": "~$1–3B valuation",     "pct_held": "~3%",  "return_at_ipo": "~2–2.5x at listing", "return_at_cmp": "—"},
-            {"investor": "Temasek Holdings",          "round": "Series E–F (2020–21)", "entry_val": "~$1–3B valuation",     "pct_held": "~2%",  "return_at_ipo": "~1.5–2x at listing", "return_at_cmp": "—"},
-            {"investor": "Satya Nadella (personal)",  "round": "Series F (2021)",      "entry_val": "$3.0B valuation",      "pct_held": "<1%",  "return_at_ipo": "~2.3x at listing", "return_at_cmp": "—"},
+            # OFS sellers — RHP-certified WACAs (Manian & Rao, Sep 16 2025)
+            {"investor": "Peak XV Partners Investments VI-1", "round": "Series A–C (2016–18)", "entry_val": "~$13–70M valuation", "pct_held": "~12%", "return_at_ipo": "~52.4× at IPO (WACA ₹1.91 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Ribbit Capital (Fund V, L.P.)",           "round": "Series D (2018)",      "entry_val": "~$180M valuation",     "pct_held": "~5%",  "return_at_ipo": "~43.5× at IPO (WACA ₹2.30 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Ribbit Capital (Opportunity Fund V, LLC)", "round": "Series F (2021)",      "entry_val": "~$3B valuation",       "pct_held": "~3%",  "return_at_ipo": "~2.6× at IPO (WACA ₹37.87 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "YC Holdings II, LLC",                      "round": "Series C (2017)",      "entry_val": "~$115M valuation",     "pct_held": "~4%",  "return_at_ipo": "~29× at IPO (WACA ₹3.45 → ₹100; RHP certified)",   "return_at_cmp": "—"},
+            {"investor": "Tiger Global Management",                   "round": "Series D–E (2020)",    "entry_val": "~$750M valuation",     "pct_held": "~5%",  "return_at_ipo": "~4.6× at IPO (WACA ₹21.97 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Kauffman Fellows Fund LP",                  "round": "Seed (2016)",          "entry_val": "~$13M valuation",      "pct_held": "~1%",  "return_at_ipo": "~196× at IPO (WACA ₹0.51 → ₹100; RHP certified)",  "return_at_cmp": "—"},
+            # Promoters selling
+            {"investor": "Lalit Keshre (Co-founder & CEO)",          "round": "Founding (2016)",      "entry_val": "—",                    "pct_held": "—",    "return_at_ipo": "~50.5× at IPO (WACA ₹1.98 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Harsh Jain (Co-founder)",                   "round": "Founding (2016)",      "entry_val": "—",                    "pct_held": "—",    "return_at_ipo": "~42.2× at IPO (WACA ₹2.37 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Neeraj Singh (Co-founder)",                 "round": "Founding (2016)",      "entry_val": "—",                    "pct_held": "—",    "return_at_ipo": "~39.4× at IPO (WACA ₹2.54 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            {"investor": "Ishan Bansal (Co-founder)",                 "round": "Founding (2016)",      "entry_val": "—",                    "pct_held": "—",    "return_at_ipo": "~31.4× at IPO (WACA ₹3.18 → ₹100; RHP certified)", "return_at_cmp": "—"},
+            # Non-OFS investors (retained)
+            {"investor": "Alkeon Capital Management",                 "round": "Series F (2021)",      "entry_val": "$3.0B valuation",      "pct_held": "~2%",  "return_at_ipo": "~2.6× at listing (IPO MCap ~$8B vs $3B entry)",    "return_at_cmp": "—"},
+            {"investor": "ICONIQ Capital",                            "round": "Series E–F (2020–21)", "entry_val": "~$1–3B valuation",     "pct_held": "~3%",  "return_at_ipo": "~2–2.5× at listing",                               "return_at_cmp": "—"},
+            {"investor": "Temasek Holdings",                          "round": "Series E–F (2020–21)", "entry_val": "~$1–3B valuation",     "pct_held": "~2%",  "return_at_ipo": "~1.5–2× at listing",                               "return_at_cmp": "—"},
+            {"investor": "Satya Nadella (personal)",                  "round": "Series F (2021)",      "entry_val": "$3.0B valuation",      "pct_held": "<1%",  "return_at_ipo": "~2.3× at listing",                                 "return_at_cmp": "—"},
         ],
     },
     "Swiggy": {
@@ -822,12 +831,19 @@ _ANCHOR_DATA = {
             {"investor": "ACM Global Fund",              "category": "FII / Global Fund", "allocation_cr": 8},
         ],
         "pripo_investors": [
-            {"investor": "Vertex Ventures SE Asia & India (Temasek-backed)", "round": "Series A–C (2016–19)", "entry_val": "~$20–100M valuation", "pct_held": "Largest VC holder (~18%)", "return_at_ipo": ">5x at listing (sold shares in OFS; listing ₹190 vs WACA ~₹35–40/sh)", "return_at_cmp": "—"},
-            {"investor": "Ventureast (Finquest Fund / Tenedo Fund)", "round": "Series A–B (2016–18)", "entry_val": "Seed–Series A (~$20–50M valuation)", "pct_held": "~9% (two funds)", "return_at_ipo": "~4–6x at listing (WACA ~₹30–45/sh → listing ₹190)", "return_at_cmp": "—"},
-            {"investor": "Sistema Asia Fund",           "round": "Series B–C (2018–20)", "entry_val": "~$100–200M valuation", "pct_held": "~5.29%", "return_at_ipo": "~2–3x at listing (listing ₹190 vs WACA ~₹65–90/sh)", "return_at_cmp": "—"},
-            {"investor": "Endiya Partners (Endiya Seed Co-creation Fund)", "round": "Seed / Series A (2015–17)", "entry_val": "~$5–20M valuation; WACA ~₹13–23/sh", "pct_held": "~5.65%", "return_at_ipo": "~8–15x at listing (sold 5.35 lakh shares worth ₹9.15 cr in OFS at ₹190 listing)", "return_at_cmp": "—"},
-            {"investor": "AION Capital Partners (Apollo-ICICI JV)", "round": "Growth (2020–22)", "entry_val": "~$200–400M valuation", "pct_held": "~3–4%", "return_at_ipo": "~1.5–2.5x at listing", "return_at_cmp": "—"},
-            {"investor": "Founders: Ranvir Singh & Krishnan Vishwanathan", "round": "Founding (2015)", "entry_val": "Negligible (~₹1–2/sh)", "pct_held": "~30.9% combined", "return_at_ipo": ">50x at listing (did NOT sell in OFS; paper gain on listing)", "return_at_cmp": "—"},
+            # OFS sellers — RHP-certified WACAs (Manian & Rao, Apr 22 2025)
+            {"investor": "Caladium Investment Pte Ltd (GIC Singapore)", "round": "Growth (2019–21)", "entry_val": "~₹204/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹204.24 WACA; 60.03L shares, OFS ₹102.7 cr)", "return_at_cmp": "—"},
+            {"investor": "NIIF Strategic Opportunities Fund II",         "round": "Growth (2020–21)", "entry_val": "~₹184/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹183.71 WACA; 26.35L shares, OFS ₹45.0 cr)",  "return_at_cmp": "—"},
+            {"investor": "Internet Fund III Pte Ltd (Tiger Global)",     "round": "Series C (2018)",  "entry_val": "~₹38.58/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~4.4× at IPO (WACA ₹38.58 → ₹171; 4.00L OFS shares, ₹6.8 cr)",       "return_at_cmp": "—"},
+            {"investor": "IITMS Rural Technology & Business Incubator",  "round": "Founding (2015)",  "entry_val": "~₹8.31/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~20.6× at IPO (WACA ₹8.31 → ₹171; 4,191 shares, OFS ₹0.07 cr)",        "return_at_cmp": "—"},
+            {"investor": "Amit Bhatia",                                   "round": "Growth (2020)",    "entry_val": "~₹184.82/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹184.82 WACA; 18,531 shares, OFS ₹0.32 cr)", "return_at_cmp": "—"},
+            # Promoters
+            {"investor": "Tarun Sanjay Mehta (Co-founder & Promoter)",   "round": "Founding (2015)",  "entry_val": "~₹21.09/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~8.1× at IPO price (WACA ₹21.09 → ₹171; did not sell in OFS)",          "return_at_cmp": "—"},
+            {"investor": "Swapnil Babanlal Jain (Co-founder & Promoter)","round": "Founding (2015)",  "entry_val": "~₹21.09/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~8.1× at IPO price (WACA ₹21.09 → ₹171; did not sell in OFS)",          "return_at_cmp": "—"},
+            # Other financial investors (derived WACAs)
+            {"investor": "Vertex Ventures SE Asia & India",               "round": "Series A–C (2016–19)", "entry_val": "~$20–100M valuation", "pct_held": "~18%", "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
+            {"investor": "Ventureast (Finquest Fund / Tenedo Fund)",      "round": "Series A–B (2016–18)", "entry_val": "Seed–Series A",       "pct_held": "~9%",  "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
+            {"investor": "Sistema Asia Fund",                             "round": "Series B–C (2018–20)", "entry_val": "~$100–200M valuation","pct_held": "~5%",  "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
         ],
     },
     "Capillary Technologies": {
@@ -1621,7 +1637,7 @@ def _return_popup_md(inv: dict, ipo: dict) -> str:
             lines.append("")
             lines.append(
                 f"**✅ Realised Return = ₹{ipo_price} ÷ ₹{waca:.2f} = "
-                f"{realised:.2f}×  ({pct_s}){flag}**"
+                f"{realised:.2f}×{flag}**"
             )
         elif ofs_lakh and not waca:
             lines.append(f"**Shares Sold in OFS:** {ofs_lakh:.1f} lakh")
@@ -2885,7 +2901,7 @@ def render():
                     _col_r    = _moic_color(_realised)
                     _rc[3].markdown(
                         f"<div style='font-size:14px;color:{_col_r};font-weight:700'>"
-                        f"{_realised:.2f}×&nbsp;&nbsp;({_pct_s}){_flag}</div>",
+                        f"{_realised:.2f}×{_flag}</div>",
                         unsafe_allow_html=True)
 
                 elif _waca_display and _ipo_px:
