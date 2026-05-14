@@ -11,6 +11,7 @@ from z47_assistant import render_z47_assistant
 import time
 import re
 from ciq_data import CIQ_DATA, calc_tev_at_price, calc_multiples as _ciq_calc
+from utils_safe import sf, si, sdiv, sf_waca, sf_cr, sf_moic
 from ipo_investor_data import (
     get_investor_data,
     compute_returns,
@@ -3185,7 +3186,8 @@ def render():
                 # ── WACA column ───────────────────────────────────────────────
                 if _waca_display:
                     _rc[2].markdown(
-                        f"<div style='font-size:13px;font-weight:600'>₹{_waca_display:,.2f}</div>",
+                        f"<div style='font-size:13px;font-weight:600'>"
+                        f"{sf(_waca_display, prefix='₹')}</div>",
                         unsafe_allow_html=True)
                 else:
                     _rc[2].markdown(
@@ -3273,88 +3275,101 @@ def render():
                 # ── Details popover ───────────────────────────────────────────
                 with _rc[5]:
                     with st.popover("Details ↗", use_container_width=True):
-                        if _src == "v2" and _inv_data and _rtype != "error":
-                            # ── New v2 detailed popup ─────────────────────────
-                            _ca   = _inv_data.get("_ca_firm", "")
-                            _wsrc = _inv_data.get("waca_source", "")
-                            st.markdown(f"**{_inv_data.get('_matched_key', _inv_name)}**")
-                            if _ca:
-                                st.markdown(
-                                    f"<div style='font-size:12px;color:#6b7a8d'>"
-                                    f"✅ WACA certified by {_ca}</div>",
-                                    unsafe_allow_html=True)
-                            st.divider()
-
-                            if _rtype == "promoter":
-                                _os = _r.get("ofs_shares", 0) or 0
-                                st.markdown(
-                                    f"**Type:** Promoter / Founder  \n"
-                                    f"**OFS shares sold:** {_os:,}  \n"
-                                    f"**IPO price:** ₹{_ipo_px}  \n"
-                                    f"**OFS proceeds:** ₹{_r.get('ofs_proceeds_cr', 0):,.2f} cr  \n"
-                                    f"*Cost basis negligible — no return multiple shown.*"
-                                )
-                            else:
-                                _os   = _inv_data.get("ofs_shares")
-                                _pre  = _inv_data.get("pre_offer_shares")
-                                _w    = _inv_data.get("waca")
-                                st.markdown(f"**WACA:** ₹{_w:,.2f}/sh  \n*{_wsrc}*")
+                        try:
+                            if _src == "v2" and _inv_data and _rtype != "error":
+                                # ── New v2 detailed popup ─────────────────────────
+                                _ca   = _inv_data.get("_ca_firm", "") or ""
+                                _wsrc = _inv_data.get("waca_source", "") or ""
+                                st.markdown(f"**{_inv_data.get('_matched_key', _inv_name)}**")
+                                if _ca:
+                                    st.markdown(
+                                        f"<div style='font-size:12px;color:#6b7a8d'>"
+                                        f"✅ WACA certified by {_ca}</div>",
+                                        unsafe_allow_html=True)
                                 st.divider()
-                                _ofs_conf_d = _inv_data.get("ofs_confirmed", False)
-                                if _os:
-                                    if _pre:
-                                        st.markdown(f"**Pre-offer shares:** {_pre:,}")
+
+                                if _rtype == "promoter":
+                                    _os = _r.get("ofs_shares") or 0
                                     st.markdown(
-                                        f"**OFS shares sold:** {_os:,}  \n"
-                                        f"**OFS proceeds:** {_os:,} × ₹{_ipo_px} = "
-                                        f"₹{_r.get('ofs_proceeds_cr', 0):,.2f} cr  \n"
-                                        f"**Cost of OFS:** {_os:,} × ₹{_w:,.2f} = "
-                                        f"₹{_r.get('cost_of_ofs_cr', 0):,.2f} cr  \n"
-                                        f"**Realised MOIC:** ₹{_ipo_px} ÷ ₹{_w:,.2f} = "
-                                        f"**{_r.get('realised_moic', '—')}×**"
+                                        f"**Type:** Promoter / Founder  \n"
+                                        f"**OFS shares sold:** {si(_os)}  \n"
+                                        f"**IPO price:** ₹{_ipo_px}  \n"
+                                        f"**OFS proceeds:** {sf_cr(_r.get('ofs_proceeds_cr', 0))}  \n"
+                                        f"*Cost basis negligible — no return multiple shown.*"
                                     )
-                                    if _r.get("total_moic"):
-                                        _ret = (_pre or 0) - _os
-                                        st.markdown(
-                                            f"**Retained shares:** {_ret:,}  \n"
-                                            f"**Unrealised:** {_ret:,} × ₹{_list_px} = "
-                                            f"₹{_r.get('unrealised_cr', 0):,.2f} cr  \n"
-                                            f"**Total cost:** {_pre:,} × ₹{_w:,.2f} = "
-                                            f"₹{_r.get('total_cost_cr', 0):,.2f} cr  \n"
-                                            f"**Total MOIC:** ₹{_r.get('total_value_cr', 0):,.2f} cr ÷ "
-                                            f"₹{_r.get('total_cost_cr', 0):,.2f} cr = "
-                                            f"**{_r.get('total_moic', '—')}×**"
-                                        )
-                                elif _ofs_conf_d:
-                                    # OFS confirmed but [●] share count — show per-share MOIC
-                                    _moic_v = _r.get("realised_moic") or _r.get("moic_at_ipo")
-                                    _moic_l = _r.get("moic_at_listing")
-                                    st.markdown(
-                                        f"**✅ OFS confirmed** — sold in IPO OFS  \n"
-                                        f"*OFS share count was [●] (TBD at pricing) in DRHP.*  \n"
-                                        f"**Per-share MOIC at IPO:** "
-                                        f"₹{_ipo_px} ÷ ₹{_w:,.2f} = **{_moic_v:.2f}×**" if _moic_v else
-                                        f"**✅ OFS confirmed** — share count TBD [●]"
-                                    )
-                                    if _moic_l:
-                                        st.markdown(
-                                            f"**Per-share MOIC at listing:** "
-                                            f"₹{_list_px} ÷ ₹{_w:,.2f} = **{_moic_l:.2f}×**"
-                                        )
                                 else:
-                                    st.markdown(
-                                        f"No OFS shares sold.  \n"
-                                        f"**MOIC at IPO:** ₹{_ipo_px} ÷ ₹{_w:,.2f} = "
-                                        f"**{_r.get('moic_at_ipo', '—')}×**  \n"
-                                        f"**MOIC at listing:** ₹{_list_px} ÷ ₹{_w:,.2f} = "
-                                        f"**{_r.get('moic_at_listing', '—')}×**"
-                                    )
-                                if _r.get("warnings"):
-                                    for _w_msg in _r["warnings"]:
-                                        st.warning(_w_msg)
-                        else:
-                            # ── Legacy popup (unchanged) ──────────────────────
-                            st.markdown(_return_popup_md(_inv, ipo))
+                                    _os   = _inv_data.get("ofs_shares")
+                                    _pre  = _inv_data.get("pre_offer_shares")
+                                    _w    = _inv_data.get("waca")
+                                    # ── safe WACA display (crashes if _w is None without guard) ──
+                                    _w_disp = sf_waca(_w)   # "₹1,234.56/sh" or "N/A"
+                                    st.markdown(f"**WACA:** {_w_disp}  \n*{_wsrc}*")
+                                    st.divider()
+                                    _ofs_conf_d = _inv_data.get("ofs_confirmed", False)
+                                    if _os:
+                                        if _pre:
+                                            st.markdown(f"**Pre-offer shares:** {si(_pre)}")
+                                        # safe: all _w references go through _w_disp or sf()
+                                        st.markdown(
+                                            f"**OFS shares sold:** {si(_os)}  \n"
+                                            f"**OFS proceeds:** {si(_os)} × ₹{_ipo_px} = "
+                                            f"{sf_cr(_r.get('ofs_proceeds_cr', 0))}  \n"
+                                            f"**Cost of OFS:** {si(_os)} × {_w_disp} = "
+                                            f"{sf_cr(_r.get('cost_of_ofs_cr', 0))}  \n"
+                                            f"**Realised MOIC:** ₹{_ipo_px} ÷ {_w_disp} = "
+                                            f"**{sf_moic(_r.get('realised_moic'), na='—')}**"
+                                        )
+                                        if _r.get("total_moic"):
+                                            _ret = (_pre or 0) - (_os or 0)
+                                            st.markdown(
+                                                f"**Retained shares:** {si(_ret)}  \n"
+                                                f"**Unrealised:** {si(_ret)} × ₹{_list_px} = "
+                                                f"{sf_cr(_r.get('unrealised_cr', 0))}  \n"
+                                                f"**Total cost:** {si(_pre)} × {_w_disp} = "
+                                                f"{sf_cr(_r.get('total_cost_cr', 0))}  \n"
+                                                f"**Total MOIC:** {sf_cr(_r.get('total_value_cr', 0))} ÷ "
+                                                f"{sf_cr(_r.get('total_cost_cr', 0))} = "
+                                                f"**{sf_moic(_r.get('total_moic'), na='—')}**"
+                                            )
+                                    elif _ofs_conf_d:
+                                        # OFS confirmed but [●] share count
+                                        _moic_v = _r.get("realised_moic") or _r.get("moic_at_ipo")
+                                        _moic_l = _r.get("moic_at_listing")
+                                        if _moic_v:
+                                            st.markdown(
+                                                f"**✅ OFS confirmed** — sold in IPO OFS  \n"
+                                                f"*OFS share count was [●] (TBD at pricing) in DRHP.*  \n"
+                                                f"**Per-share MOIC at IPO:** "
+                                                f"₹{_ipo_px} ÷ {_w_disp} = **{sf_moic(_moic_v)}**"
+                                            )
+                                        else:
+                                            st.markdown("**✅ OFS confirmed** — share count TBD [●]")
+                                        if _moic_l:
+                                            st.markdown(
+                                                f"**Per-share MOIC at listing:** "
+                                                f"₹{_list_px} ÷ {_w_disp} = **{sf_moic(_moic_l)}**"
+                                            )
+                                    else:
+                                        st.markdown(
+                                            f"No OFS shares sold.  \n"
+                                            f"**MOIC at IPO:** ₹{_ipo_px} ÷ {_w_disp} = "
+                                            f"**{sf_moic(_r.get('moic_at_ipo'), na='—')}**  \n"
+                                            f"**MOIC at listing:** ₹{_list_px} ÷ {_w_disp} = "
+                                            f"**{sf_moic(_r.get('moic_at_listing'), na='—')}**"
+                                        )
+                                    if _r.get("warnings"):
+                                        for _w_msg in _r.get("warnings", []):
+                                            st.warning(_w_msg)
+                            else:
+                                # ── Legacy popup (unchanged) ──────────────────────
+                                st.markdown(_return_popup_md(_inv, ipo))
+                        except Exception as _pop_err:
+                            # Never let a popover crash the whole tab
+                            st.caption("Details temporarily unavailable.")
+                            import traceback as _tb
+                            print(f"[POPOVER ERROR] {_inv_name} / {_company}: "
+                                  f"{type(_pop_err).__name__}: {_pop_err}\n"
+                                  f"{_tb.format_exc()}")
 
             st.caption(
                 "**Realised Return** = OFS shares × IPO price ÷ cost basis.  "

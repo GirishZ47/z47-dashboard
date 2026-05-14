@@ -21,6 +21,45 @@ import page_block_deals
 import page_drhp
 from z47_assistant import render_z47_assistant
 
+# ── Startup health check ──────────────────────────────────────────────────────
+def _run_startup_health_check() -> None:
+    """
+    Validate critical data at import time and print warnings to console.
+    Never raises — problems are logged, not surfaced to users.
+    """
+    try:
+        from ipo_investor_data import VERIFIED_INVESTOR_DATA
+        _issues = []
+        for _company, _investors in VERIFIED_INVESTOR_DATA.items():
+            for _name, _data in _investors.items():
+                _waca = _data.get("waca")
+                if _waca is not None:
+                    try:
+                        float(_waca)
+                    except (TypeError, ValueError):
+                        _issues.append(
+                            f"  BAD WACA: {_company} / {_name} → {_waca!r}"
+                        )
+                _ofs = _data.get("ofs_shares")
+                if _ofs is not None:
+                    try:
+                        int(_ofs)
+                    except (TypeError, ValueError):
+                        _issues.append(
+                            f"  BAD OFS: {_company} / {_name} → {_ofs!r}"
+                        )
+        if _issues:
+            print("[HEALTH CHECK] ⚠️  Data issues found:")
+            for _i in _issues:
+                print(_i)
+        else:
+            print(f"[HEALTH CHECK] ✅  All VERIFIED_INVESTOR_DATA entries validated "
+                  f"({sum(len(v) for v in VERIFIED_INVESTOR_DATA.values())} investors).")
+    except Exception as _hc_err:
+        print(f"[HEALTH CHECK] Could not run: {_hc_err}")
+
+_run_startup_health_check()
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Z47 Index",
@@ -1561,16 +1600,31 @@ def main():
     # ── Route to sub-pages ────────────────────────────────────────────────────
     if page == "ipos":
         tab = st.session_state.get("ipo_tab", "recent")
-        if tab == "recent":
-            page_recent_ipos.render()
-        elif tab == "upcoming":
-            page_upcoming_ipos.render()
-        else:
-            page_drhp.render()
+        try:
+            if tab == "recent":
+                page_recent_ipos.render()
+            elif tab == "upcoming":
+                page_upcoming_ipos.render()
+            else:
+                page_drhp.render()
+        except Exception as _page_err:
+            import traceback as _tb
+            st.error(
+                "⚠️ This page encountered an error. Please refresh to try again.\n\n"
+                f"*Details logged to console.*"
+            )
+            print(f"[PAGE ERROR] ipos/{tab}: {type(_page_err).__name__}: {_page_err}\n"
+                  f"{_tb.format_exc()}")
         return
 
     if page == "block":
-        page_block_deals.render()
+        try:
+            page_block_deals.render()
+        except Exception as _page_err:
+            import traceback as _tb
+            st.error("⚠️ Block Deals page encountered an error. Please refresh.")
+            print(f"[PAGE ERROR] block: {type(_page_err).__name__}: {_page_err}\n"
+                  f"{_tb.format_exc()}")
         return
 
     # ── Z47 Index (default) ───────────────────────────────────────────────────
