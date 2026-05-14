@@ -20,7 +20,7 @@ import page_recent_ipos
 import page_upcoming_ipos
 import page_block_deals
 import page_drhp
-from z47_assistant import render_z47_assistant, ask_z47_with_search, SYSTEM_PROMPTS, _SEARCH_GUIDANCE
+from z47_assistant import render_z47_assistant, ask_z47_with_search, SYSTEM_PROMPTS
 
 # ── Startup health check ──────────────────────────────────────────────────────
 def _run_startup_health_check() -> None:
