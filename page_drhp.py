@@ -21,6 +21,15 @@ _UPCO_IPO_TTL  = 1800   # 30-minute upcoming IPO cache
 _LINK_CHECK_TTL = 21600  # 6-hour URL verification cache
 _SEBI_SEARCH_TTL = 86400 # 24-hour per-company SEBI search cache
 
+# ── Companies explicitly blocked from the live auto-detected filings table ────
+# Add names here (lowercase) to suppress false-positive SEBI/BSE auto-detections.
+# Exact match OR substring match via _fuzzy_known will both suppress.
+_LIVE_BLOCKLIST: set[str] = {
+    "online instruments (india) limited",
+    "sadbhav futuretech limited",
+    "polite powertech limited",
+}
+
 _SCRAPE_HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                    "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -1768,6 +1777,7 @@ def render():
     unique_live = [
         f for f in live_sebi
         if not _fuzzy_known(f.get("company", "").lower(), known_cos)
+        and f.get("company", "").lower() not in _LIVE_BLOCKLIST
         and f.get("is_tech", False)
     ]
     combined = KNOWN_FILINGS + unique_live  # known first (curated), then live auto-detected
