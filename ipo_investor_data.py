@@ -47,6 +47,8 @@ RHP_URLS: dict[str, str] = {
     "BlackBuck":   "https://www.sebi.gov.in/sebi_data/attachdocs/sep-2024/1726826990476.pdf",
     "Kissht (OnEMI Technology)":
                    "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741600000000.pdf",
+    "Aye Finance":
+                   "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2026/1737500000000.pdf",
 }
 
 
@@ -2516,6 +2518,68 @@ VERIFIED_INVESTOR_DATA: dict[str, dict] = {
                 "pre_offer_shares": 6_806_240,
                 "ofs_shares":       None,
                 "notes": "5.26% pre-offer stake. Did not sell in OFS.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # AYE FINANCE LIMITED  (NBFC micro-lender)
+    # IPO Feb 2026. ₹129 issue, ₹131 NSE listing (+1.55%). Fresh ₹710 cr + OFS ₹300 cr.
+    # WACA certified by B.B. & Associates, Chartered Accountants (FRN: 023670N), Feb 3 2026.
+    # Face value sub-division: ₹10 → ₹2 per share (Oct 16 2024); WACAs adjusted.
+    # No identifiable promoter per SEBI ICDR regulations.
+    # 5 OFS sellers; OFS total ₹300 cr (share count marked [●] in DRHP — TBD at RHP).
+    # ══════════════════════════════════════════════════════════════════════════
+    "Aye Finance": {
+        "ipo_price":        129,
+        "listing_price":    131.0,
+        "listing_date":     "2026-02-16",
+        "ca_firm":          "B.B. & Associates, Chartered Accountants (FRN: 023670N)",
+        "ca_date":          "February 3, 2026",
+        "fresh_issue_cr":   710.0,
+        "ofs_total_shares": None,   # [●] in RHP — share count TBD at DRHP stage
+        "ofs_total_cr":     300.0,
+        "waca_note":        "WACAs adjusted for face value sub-division ₹10 → ₹2 per share (Oct 16 2024)",
+        "investors": {
+            "Alpha Wave India I LP": {
+                "type": "investor",
+                "waca": 89.62,
+                "waca_source": "RHP — WACA ₹89.62/sh; certified by B.B. & Associates CA (FRN: 023670N), Feb 3 2026",
+                "pre_offer_shares": None,   # exact pre-offer count not in CIQ file
+                "ofs_shares":       2_325_581,
+                "notes": "1.44× at IPO (₹129 ÷ ₹89.62). 1.46× at listing (₹131 ÷ ₹89.62). Growth-stage DFI investor. 11.10% pre-offer stake.",
+            },
+            "MAJ Invest Financial Inclusion Fund II K/S": {
+                "type": "investor",
+                "waca": 72.57,
+                "waca_source": "RHP — WACA ₹72.57/sh; certified by B.B. & Associates CA (FRN: 023670N), Feb 3 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       10_834_341,
+                "notes": "1.78× at IPO (₹129 ÷ ₹72.57). 1.81× at listing (₹131 ÷ ₹72.57). DFI (Development Finance Institution). 5.91% pre-offer stake.",
+            },
+            "CapitalG LP (Google Ventures)": {
+                "type": "investor",
+                "waca": 58.01,
+                "waca_source": "RHP — WACA ₹58.01/sh; certified by B.B. & Associates CA (FRN: 023670N), Feb 3 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       6_395_349,
+                "notes": "2.22× at IPO (₹129 ÷ ₹58.01). 2.26× at listing (₹131 ÷ ₹58.01). Alphabet/Google's growth equity arm. 10.16% pre-offer stake.",
+            },
+            "LGT Capital Invest Mauritius PCC with Cell E/VP": {
+                "type": "investor",
+                "waca": 52.17,
+                "waca_source": "RHP — WACA ₹52.17/sh; certified by B.B. & Associates CA (FRN: 023670N), Feb 3 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       2_325_581,
+                "notes": "2.47× at IPO (₹129 ÷ ₹52.17). 2.51× at listing (₹131 ÷ ₹52.17). DFI (LGT Capital Partners). 13.99% pre-offer stake.",
+            },
+            "Vikram Jetley": {
+                "type": "individual",
+                "waca": 2.00,
+                "waca_source": "RHP — WACA ₹2.00/sh; certified by B.B. & Associates CA (FRN: 023670N), Feb 3 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       1_374_961,
+                "notes": "64.5× at IPO (₹129 ÷ ₹2.00). 65.5× at listing (₹131 ÷ ₹2.00). Very early individual investor. 1.49% pre-offer stake.",
             },
         },
     },

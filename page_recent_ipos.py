@@ -255,6 +255,16 @@ IPOS = [
         "qib_sub": "25.97x", "nii_sub": "6.91x", "rii_sub": "2.13x", "overall_sub": "9.96x",
         "known_listing_gain_pct": 11.1,
     },
+    {
+        "company": "Aye Finance", "sector": "Fintech / Financial Services", "ticker": "AYE.NS", "exchange": "NSE",
+        "listing_date": "2026-02-16", "price_band": "₹122–129", "issue_price": 129,
+        "listing_price": 131.0, "issue_size": "₹1,010 cr", "issue_size_cr": 1010,
+        "lot_size": 116, "fresh_issue": "₹710 cr", "ofs": "₹300 cr",
+        "use_of_funds": "Augmenting capital base of NBFC subsidiary Aye Finance Pvt Ltd for on-lending; general corporate purposes.",
+        "key_investors": "CapitalG (Google Ventures), LGT Capital, Alpha Wave India, MAJ Invest",
+        "qib_sub": "N/A", "nii_sub": "N/A", "rii_sub": "N/A", "overall_sub": "1.04x",
+        "known_listing_gain_pct": 1.55,
+    },
 ]
 
 
@@ -543,6 +553,19 @@ LOCK_IN_DATES: dict[str, dict] = {
         "pripo_1y":  "2027-05-08",   # listing May 8 + 12M  ← FIXED (was May 6)
         "promoter_18m": "2027-11-08",# listing May 8 + 18M  ← FIXED (was Nov 6)
         "promoter_3y":  "2029-05-08",# listing May 8 + 3Y   ← FIXED (was May 6)
+    },
+    "Aye Finance": {
+        # Allotment: 12 Feb 2026 (IPO close Feb 10; allotment basis Feb 12)
+        # Listing:   16 Feb 2026
+        # Pre-IPO 6M = listing + 6M = 16 Aug 2026
+        # Note: No identifiable promoter per SEBI ICDR regulations (founder-managed NBFC)
+        "allotment": "2026-02-12",
+        "anchor_t1": "2026-03-14",   # allotment + 30d
+        "anchor_t2": "2026-05-13",   # allotment + 90d
+        "pripo_6m":  "2026-08-16",   # listing Feb 16 + 6M
+        "pripo_1y":  "2027-02-16",   # listing Feb 16 + 12M
+        "promoter_18m": "2027-08-16",# listing Feb 16 + 18M (no identified promoter; shown for reference)
+        "promoter_3y":  "2029-02-16",# listing Feb 16 + 3Y
     },
 }
 
@@ -1095,6 +1118,46 @@ _ANCHOR_DATA = {
              "_waca": 8.28, "_ofs_shares": 1_247_351, "_type": "investor"},
         ],
     },
+    "Aye Finance": {
+        # Listed 16 Feb 2026 @ ₹131 (NSE). Fresh ₹710 cr + OFS ₹300 cr.
+        # WACA certified by B.B. & Associates, Chartered Accountants (FRN: 023670N), Feb 3 2026.
+        # No identifiable promoter per SEBI ICDR; no promoter anchor allocation.
+        "anchor_total_cr": None,   # anchor book breakdown not publicly disclosed
+        "anchors": [],
+        "pripo_investors": [
+            # OFS sellers — RHP-certified WACAs (B.B. & Associates CA, Feb 3 2026)
+            {"investor": "Alpha Wave India I LP",
+             "round": "Growth",
+             "entry_val": "WACA ₹89.62/sh (RHP certified)",
+             "pct_held": "11.10% pre-offer (2,325,581 OFS shares)",
+             "return_at_ipo": "1.44× at IPO (WACA ₹89.62 → ₹129) · 1.46× at listing (₹131)",
+             "return_at_cmp": "—"},
+            {"investor": "MAJ Invest Financial Inclusion Fund II K/S",
+             "round": "DFI",
+             "entry_val": "WACA ₹72.57/sh (RHP certified)",
+             "pct_held": "5.91% pre-offer (10,834,341 OFS shares)",
+             "return_at_ipo": "1.78× at IPO (WACA ₹72.57 → ₹129) · 1.81× at listing (₹131)",
+             "return_at_cmp": "—"},
+            {"investor": "CapitalG LP (Google Ventures)",
+             "round": "Growth",
+             "entry_val": "WACA ₹58.01/sh (RHP certified)",
+             "pct_held": "10.16% pre-offer (6,395,349 OFS shares)",
+             "return_at_ipo": "2.22× at IPO (WACA ₹58.01 → ₹129) · 2.26× at listing (₹131)",
+             "return_at_cmp": "—"},
+            {"investor": "LGT Capital Invest Mauritius PCC with Cell E/VP",
+             "round": "DFI",
+             "entry_val": "WACA ₹52.17/sh (RHP certified)",
+             "pct_held": "13.99% pre-offer (2,325,581 OFS shares)",
+             "return_at_ipo": "2.47× at IPO (WACA ₹52.17 → ₹129) · 2.51× at listing (₹131)",
+             "return_at_cmp": "—"},
+            {"investor": "Vikram Jetley (Individual — very early)",
+             "round": "Very early stage",
+             "entry_val": "WACA ₹2.00/sh (RHP certified)",
+             "pct_held": "1.49% pre-offer (1,374,961 OFS shares)",
+             "return_at_ipo": "64.5× at IPO (WACA ₹2.00 → ₹129) · 65.5× at listing (₹131)",
+             "return_at_cmp": "—"},
+        ],
+    },
 }
 
 # Inject anchor/pripo data into IPOS list at import time
@@ -1265,6 +1328,16 @@ _VALUATION_DATA = {
         "profitable": True, "ev_rev_at_listing": 5.3,      # debt-heavy NBFC; EV >> MCap
         "pat_cr": 161, "pe_at_listing": 20.0,
         "book_value_cr": 1850, "pb_at_listing": 1.7,       # NBFC — P/B most relevant
+    },
+    "Aye Finance": {
+        # Listed 16-Feb-2026 @ ₹131 (1.55% premium). MCap 244.5 mn sh × ₹131 = ₹3,203 cr.
+        # FY25A (RHP): Rev ₹1,459.73 cr, PAT ₹175.25 cr, EPS ₹9.34, NAV/sh ₹90.
+        # NBFC: P/E + P/B are primary multiples (EV/Revenue not standard).
+        # P/E at listing = ₹131 / ₹9.34 = 14.0x. P/B = ₹131 / ₹90 = 1.46x.
+        "listing_mcap_cr": 3203, "revenue_cr": 1460, "revenue_year": "FY25",
+        "profitable": True, "ev_rev_at_listing": None,     # NBFC — EV/Rev not applicable
+        "pat_cr": 175, "pe_at_listing": 14.0,
+        "book_value_cr": 2201, "pb_at_listing": 1.46,      # NBFC — P/B most relevant
     },
     "Meesho": {
         # Listed 10-Dec-2025 @ ₹162.50 NSE (+46.4%). IPO price ₹111 (band ₹105–111). Sub: 79×.
@@ -2536,6 +2609,11 @@ def render():
             if _in:
                 st.warning(_in)
 
+            # NBFC note
+            _nbn = _ciq.get("nbfc_note")
+            if _nbn:
+                st.info(_nbn)
+
             # Ind AS 116 warning (company-level)
             _116w = _ciq.get("ind_as_116_warning")
             if _116w:
@@ -2633,7 +2711,22 @@ def render():
                         st.warning(f"⚠️ {exc_note}")
                     if _mt == "insurance":
                         st.info("ℹ️ P/E is the primary valuation metric for insurance companies. EV/EBITDA is not standard for insurers.")
+                    elif _mt == "nbfc_pe_pb":
+                        st.info("ℹ️ P/E is a primary valuation metric for NBFCs. P/B (Price-to-Book) is shown separately below.")
                     st.caption("Source: EPS from S&P Capital IQ | Price from NSE via yfinance")
+
+            # helper: popover for P/B (NBFC companies only)
+            def _pop_pb(price_pt, fy, bvps, label):
+                pb = round(price_pt / bvps, 2) if (bvps and bvps > 0) else None
+                with st.popover("See Calculation"):
+                    st.markdown(f"**P/B at {label} ({fy})**")
+                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                    if bvps and bvps > 0:
+                        st.markdown(f"- Book Value/Share {fy}: **₹{bvps:.2f}/share** (from S&P Capital IQ / RHP)")
+                        st.markdown(f"- **P/B = ₹{price_pt:.2f} ÷ ₹{bvps:.2f} = {pb:.2f}x**")
+                    else:
+                        st.markdown(f"- Book Value/Share: not available for {fy}.")
+                    st.caption("Source: Book value per share from S&P Capital IQ / RHP | P/B = Price ÷ Book Value per Share")
 
             # ── per-fiscal-year rendering ────────────────────────────────────
             for _fy in _ciq["fiscal_years"]:
@@ -2736,6 +2829,17 @@ def render():
                     with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
                     with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
 
+                elif _mt == "nbfc_pe_pb":
+                    # NBFCs: EV/Revenue and EV/EBITDA are not meaningful
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1: st.markdown("**EV/Revenue**")
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1: st.markdown("**EV/EBITDA**")
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — NBFC</span>", unsafe_allow_html=True)
+
                 else:  # ev_ebitda
                     _ml_val  = _ml.get("ev_ebitda")
                     _mc_val  = _mc.get("ev_ebitda")
@@ -2772,6 +2876,25 @@ def render():
                     st.markdown(_val_html(_pe_c), unsafe_allow_html=True)
                     if price and _eps:
                         _pop_pe(price, _fy, _eps, f"CMP ₹{price:.2f}", exc_note=_exc)
+
+                # ── P/B row (NBFCs only) ──────────────────────────────────────
+                if _mt == "nbfc_pe_pb":
+                    _bvps    = _fyd.get("book_value_per_share")
+                    _pb_l    = _ml.get("pb")
+                    _pb_c    = _mc.get("pb")
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1: st.markdown("**P/B** (Price/Book)")
+                    with _c2:
+                        if _no_listing:
+                            st.markdown(_na_html, unsafe_allow_html=True)
+                        else:
+                            st.markdown(_val_html(_pb_l), unsafe_allow_html=True)
+                            if lp and _bvps:
+                                _pop_pb(lp, _fy, _bvps, f"Listing ₹{lp:.0f}")
+                    with _c3:
+                        st.markdown(_val_html(_pb_c), unsafe_allow_html=True)
+                        if price and _bvps:
+                            _pop_pb(price, _fy, _bvps, f"CMP ₹{price:.2f}")
 
             # source footer
             st.markdown(

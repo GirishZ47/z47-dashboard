@@ -29,16 +29,37 @@ def calc_tev_at_price(price: float, ciq: dict) -> tuple[float, float]:
 def calc_multiples(price: float, ciq: dict, fy_data: dict) -> dict:
     """
     Calculate valuation multiples at a given price for one fiscal year.
-    Returns dict with keys: mcap_cr, tev_cr, ev_rev, ev_ebitda, pe, mcap_mn, tev_mn
+    Returns dict with keys: mcap_cr, tev_cr, ev_rev, ev_ebitda, pe, pb, mcap_mn, tev_mn
+
+    For metric_type == "nbfc_pe_pb": returns P/E + P/B only (no TEV calculation).
     """
     if not price or price <= 0:
         return {}
+
+    metric_type = ciq.get("metric_type", "ev_ebitda")
+
+    # ── NBFC: P/E + P/B only — no TEV calculation ─────────────────────────────
+    if metric_type == "nbfc_pe_pb":
+        mcap_mn = price * ciq["shares_mn"]
+        eps     = fy_data.get("eps_diluted")
+        bvps    = fy_data.get("book_value_per_share")
+        pe      = round(price / eps, 1)  if (eps  and eps  > 0) else None
+        pb      = round(price / bvps, 2) if (bvps and bvps > 0) else None
+        return {
+            "mcap_mn":   mcap_mn,
+            "mcap_cr":   mcap_mn / 10,
+            "tev_mn":    None,
+            "tev_cr":    None,
+            "ev_rev":    None,
+            "ev_ebitda": None,
+            "pe":        pe,
+            "pb":        pb,
+        }
 
     mcap_mn, tev_mn = calc_tev_at_price(price, ciq)
     rev_mn = fy_data.get("revenue_mn") or 0
     ebitda_mn = fy_data.get("ebitda_mn")
     eps = fy_data.get("eps_diluted")
-    metric_type = ciq.get("metric_type", "ev_ebitda")
 
     # EV/Revenue (Group 1 companies)
     ev_rev = round(tev_mn / rev_mn, 1) if rev_mn > 0 else None
@@ -55,13 +76,14 @@ def calc_multiples(price: float, ciq: dict, fy_data: dict) -> dict:
     pe = round(price / eps, 1) if (eps and eps > 0) else None
 
     return {
-        "mcap_mn":  mcap_mn,
-        "tev_mn":   tev_mn,
-        "mcap_cr":  mcap_mn / 10,
-        "tev_cr":   tev_mn / 10,
-        "ev_rev":   ev_rev,
+        "mcap_mn":   mcap_mn,
+        "tev_mn":    tev_mn,
+        "mcap_cr":   mcap_mn / 10,
+        "tev_cr":    tev_mn / 10,
+        "ev_rev":    ev_rev,
         "ev_ebitda": ev_ebitda,
-        "pe":       pe,
+        "pe":        pe,
+        "pb":        None,   # only populated for NBFC (nbfc_pe_pb)
     }
 
 
@@ -718,5 +740,76 @@ CIQ_DATA: dict = {
         },
         "company_note": "✅ Insurance company. Growing profitably — net profit 2.3x YoY FY24→25. EPS from ₹2.05 to ₹4.62. Revenue includes gross written premiums and investment income.",
         "insurance_note": "⚠️ EV/EBITDA is not a standard valuation metric for insurance companies. P/E (Price/Earnings) is the primary multiple for insurers. Shown here for reference only.",
+    },
+
+    # ── NBFCs — P/E + P/B only (EV/EBITDA not applicable) ────────────────────
+
+    "Aye Finance": {
+        "metric_type":    "nbfc_pe_pb",
+        "shares_mn":      244.5,         # post-IPO (244,498,877 shares)
+        "cash_mn":        0,             # not used for TEV (NBFC)
+        "debt_mn":        0,             # not used for TEV (NBFC)
+        "minority_mn":    0,
+        "pref_equity_mn": 0,
+        "fiscal_years": ["FY25A", "FY26A"],
+        "financials": {
+            "FY25A": {
+                # Source: RHP / SEBI prospectus (pre-IPO, Mar 31 2025)
+                "revenue_mn":           14_597.3,   # ₹1,459.73 cr (RHP)
+                "ebitda_mn":            None,        # not applicable (NBFC)
+                "net_income_mn":        1_752.5,    # ₹175.25 cr (RHP)
+                "eps_diluted":          9.34,        # RHP diluted EPS (pre-IPO share count)
+                "book_value_per_share": 90.00,       # RHP NAV/share as of Mar 31 2025
+            },
+            "FY26A": {
+                # Source: yfinance — FY ended Mar 2026 (actual, post-IPO)
+                "revenue_mn":           16_409.7,   # ₹1,640.97 cr
+                "ebitda_mn":            None,
+                "net_income_mn":        1_936.3,    # ₹193.63 cr
+                "eps_diluted":          9.60,        # yfinance trailing EPS
+                "book_value_per_share": 114.68,      # yfinance book value/share (post-IPO)
+            },
+        },
+        "company_note": "✅ NBFC micro-lender. FY26 PAT ₹194 cr (+10.5% YoY). AUM growing steadily. P/E and P/B are primary multiples for NBFCs.",
+        "nbfc_note": "ℹ️ EV/Revenue and EV/EBITDA are not standard valuation metrics for NBFCs. P/E and P/B (Price-to-Book) are the primary multiples shown here.",
+    },
+
+    "Kissht (OnEMI Technology)": {
+        "metric_type":    "nbfc_pe_pb",
+        "shares_mn":      168.48,        # post-IPO (168,483,022 shares)
+        "cash_mn":        0,             # not used for TEV (NBFC)
+        "debt_mn":        0,             # not used for TEV (NBFC)
+        "minority_mn":    0,
+        "pref_equity_mn": 0,
+        "fiscal_years": ["FY24A", "FY25A", "FY26E"],
+        "financials": {
+            "FY24A": {
+                # Source: yfinance FY ended Mar 2024
+                "revenue_mn":           16_744.46,  # ₹1,674.45 cr
+                "ebitda_mn":            None,
+                "net_income_mn":        1_972.9,    # ₹197.29 cr
+                "eps_diluted":          11.71,       # 1972.9 / 168.48 (post-IPO shares basis)
+                "book_value_per_share": None,        # pre-IPO BV not in CIQ file
+            },
+            "FY25A": {
+                # Source: yfinance FY ended Mar 2025 + RHP
+                "revenue_mn":           13_374.65,  # ₹1,337.47 cr
+                "ebitda_mn":            None,
+                "net_income_mn":        1_606.21,   # ₹160.62 cr
+                "eps_diluted":          9.54,        # yfinance trailing EPS (post-IPO shares)
+                "book_value_per_share": 110.16,      # post-IPO: (₹1,006 cr equity + ₹850 cr fresh issue) / 168.48 mn shares
+            },
+            "FY26E": {
+                # Source: 9M (Apr–Dec 2025) annualised estimate (pro-rata method)
+                "revenue_mn":           15_350,     # ~₹1,535 cr (9M annualised)
+                "ebitda_mn":            None,
+                "net_income_mn":        1_850,      # ~₹185 cr
+                "eps_diluted":          10.98,       # 1850 / 168.48
+                "book_value_per_share": 121.15,      # FY25 BV + estimated FY26 retained earnings
+                "is_estimate":          True,
+            },
+        },
+        "company_note": "✅ NBFC (Si Creva Capital). FY25 PAT ₹161 cr. FY26E est: ₹185 cr (9M annualised). Revenue dip FY24→FY25 due to portfolio quality focus; recovering in FY26E.",
+        "nbfc_note": "ℹ️ EV/Revenue and EV/EBITDA are not standard valuation metrics for NBFCs. P/E and P/B shown. FY26E based on 9-month results annualised.",
     },
 }
