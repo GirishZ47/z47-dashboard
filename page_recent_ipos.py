@@ -10,6 +10,7 @@ from streamlit_autorefresh import st_autorefresh
 from z47_assistant import render_z47_assistant
 import time
 import re
+from ciq_data import CIQ_DATA, calc_tev_at_price, calc_multiples as _ciq_calc
 from ipo_investor_data import (
     get_investor_data,
     compute_returns,
@@ -2479,7 +2480,7 @@ def render():
         price, h52, l52 = _live_price(ipo["ticker"])
         ip, lp = ipo["issue_price"], ipo["listing_price"]
 
-        # Listing Day Gain — first item in Performance
+        # ── Listing Day Gain ─────────────────────────────────────────────────
         ldg_pct = ipo.get("known_listing_gain_pct")
         if ldg_pct is not None:
             ldg_color = "#16a34a" if ldg_pct >= 0 else "#dc2626"
@@ -2501,140 +2502,299 @@ def render():
             st.metric("52W High / Low", f"₹{h52:.0f} / ₹{l52:.0f}" if h52 and l52 else "N/A")
 
         st.markdown("---")
-        # ── Valuation multiples ──────────────────────────────────────────────
-        st.markdown(
-            f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-            padding:8px 14px;margin-bottom:8px'>
-            <b style='color:#1e40af;font-size:14px'>📊 Valuation Multiples</b>
-            <span style='color:#6b7a8d;font-size:12px;margin-left:10px'>
-            EV/Revenue, P/E and P/B at listing day vs current price</span></div>""",
-            unsafe_allow_html=True)
-        listing_mcap   = ipo.get("listing_mcap_cr")
-        rev_cr         = ipo.get("revenue_cr")
-        rev_yr         = ipo.get("revenue_year", "")
-        profitable     = ipo.get("profitable")
-        ev_rev_listing = ipo.get("ev_rev_at_listing")
-        pe_listing     = ipo.get("pe_at_listing")
-        pb_listing     = ipo.get("pb_at_listing")
-        pat_cr         = ipo.get("pat_cr")
-        bv_cr          = ipo.get("book_value_cr")
 
-        price_ratio    = (price / lp) if (price and lp and lp > 0) else None
-        ev_rev_now = round(ev_rev_listing * price_ratio, 1) if (ev_rev_listing and price_ratio) else None
-        pe_now     = round(pe_listing     * price_ratio, 1) if (pe_listing     and price_ratio) else None
-        pb_now     = round(pb_listing     * price_ratio, 1) if (pb_listing     and price_ratio) else None
+        # ── Capital IQ Valuation Multiples ───────────────────────────────────
+        company = ipo["company"]
+        _ciq = CIQ_DATA.get(company)
 
-        # Row 1 — MCap & financials context
-        v1, v2, v3, v4 = st.columns(4)
-        with v1:
-            st.metric("Listing MCap", f"₹{listing_mcap:,} cr" if listing_mcap else "N/A")
-        with v2:
-            st.metric(f"Revenue ({rev_yr})", f"₹{rev_cr:,} cr" if rev_cr else "N/A",
-                      help="Annual revenue used for EV/Revenue calculation")
-        with v3:
-            st.metric(f"PAT ({rev_yr})", f"₹{pat_cr:,} cr" if pat_cr else "N/A",
-                      help="Profit After Tax used for P/E calculation")
-        with v4:
-            st.metric(f"Book Value ({rev_yr})", f"₹{bv_cr:,} cr" if bv_cr else "N/A",
-                      help="Net Worth / Book Value — shown for financial services companies")
+        if _ciq:
+            # ── CIQ multi-year rendering ────────────────────────────────────
+            _no_listing = (lp is None)   # PhysicsWallah and others with no listing price yet
+            _mt    = _ciq.get("metric_type", "ev_ebitda")
+            _sh    = _ciq["shares_mn"]
+            _cash  = _ciq["cash_mn"]
+            _debt  = _ciq["debt_mn"]
+            _min   = _ciq.get("minority_mn", 0)
+            _pref  = _ciq.get("pref_equity_mn", 0)
 
-        # Row 2 — Multiples at Listing
-        is_insurer = "insurance" in ipo.get("sector", "").lower() or "digit" in ipo.get("company", "").lower()
-        ev_rev_label = "P/NEP (listing)" if is_insurer else "EV/Revenue (listing)"
-        ev_rev_help  = ("MCap ÷ Net Earned Premium at listing day (standard insurer metric)"
-                        if is_insurer else
-                        "EV ÷ Annual Revenue at listing day  |  EV = MCap + Debt − Cash")
-        st.markdown("<div style='font-size:12px;color:#6b7a8d;margin:8px 0 2px'>Multiples at Listing Day</div>",
-                    unsafe_allow_html=True)
-        p1, p2, p3, _gap = st.columns([1, 1, 1, 1])
-        with p1:
-            st.metric(ev_rev_label, f"{ev_rev_listing:.1f}x" if ev_rev_listing else "N/A",
-                      help=ev_rev_help)
-            if ev_rev_listing and listing_mcap and rev_cr:
-                with st.popover("See Calculation"):
-                    st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at Listing**")
-                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
-                    st.markdown(f"- Revenue ({rev_yr}): **₹{rev_cr:,} cr**")
-                    st.markdown(f"- EV ≈ MCap (debt/cash adjustment minimal)")
-                    st.markdown(f"- **{ev_rev_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{rev_cr:,}")
-        with p2:
-            pe_warn = " ⚠" if ipo.get("company") == "Urban Company" else ""
-            st.metric("P/E at Listing",
-                      (f"{pe_listing:.1f}x{pe_warn}" if pe_listing else
-                       ("Loss-making" if profitable is False else "N/A")),
-                      help=("Market Cap ÷ PAT at listing day (only for profitable companies). "
-                            "⚠ Urban Company PAT includes ₹211 cr one-time deferred tax credit; "
-                            "underlying PBT was ~₹29 cr." if pe_warn else
-                            "Market Cap ÷ PAT at listing day (only for profitable companies)"))
-            if pe_listing and listing_mcap and pat_cr:
-                with st.popover("See Calculation"):
-                    st.markdown("**P/E at Listing**")
-                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
-                    st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
-                    st.markdown(f"- **{pe_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{pat_cr:,}")
-                    if pe_warn:
-                        st.warning("⚠ Urban Company PAT includes ₹211 cr one-time deferred tax credit; underlying PBT ~₹29 cr.")
-        with p3:
-            st.metric("P/B at Listing",
-                      f"{pb_listing:.1f}x" if pb_listing else "N/A",
-                      help="Market Cap ÷ Book Value at listing day (financial services companies only)")
-            if pb_listing and listing_mcap and bv_cr:
-                with st.popover("See Calculation"):
-                    st.markdown("**P/B at Listing**")
-                    st.markdown(f"- Listing MCap: **₹{listing_mcap:,} cr**")
-                    st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
-                    st.markdown(f"- **{pb_listing:.1f}x** = ₹{listing_mcap:,} ÷ ₹{bv_cr:,}")
-
-        # Row 3 — Multiples at CMP
-        ev_rev_cmp_label = "P/NEP (CMP)" if is_insurer else "EV/Revenue (CMP)"
-        st.markdown("<div style='font-size:12px;color:#6b7a8d;margin:8px 0 2px'>Multiples at Current Price</div>",
-                    unsafe_allow_html=True)
-        q1, q2, q3, _gap2 = st.columns([1, 1, 1, 1])
-        with q1:
-            delta_evr = f"{(ev_rev_now - ev_rev_listing):+.1f}x" if (ev_rev_now and ev_rev_listing) else None
-            st.metric(ev_rev_cmp_label, f"{ev_rev_now:.1f}x" if ev_rev_now else "N/A", delta=delta_evr)
-            if ev_rev_now and price and lp and rev_cr:
-                cmp_mcap = round(listing_mcap * price / lp, 0) if (listing_mcap and lp and lp > 0) else None
-                with st.popover("See Calculation"):
-                    st.markdown(f"**{'P/NEP' if is_insurer else 'EV/Revenue'} at CMP**")
-                    st.markdown(f"- Current Price: **₹{price:.2f}**")
-                    st.markdown(f"- Listing Price: **₹{lp:.2f}**  →  Price ratio: **{price/lp:.3f}x**")
-                    if cmp_mcap:
-                        st.markdown(f"- CMP MCap ≈ **₹{int(cmp_mcap):,} cr** (listing MCap × ratio)")
-                    st.markdown(f"- Revenue ({rev_yr}): **₹{rev_cr:,} cr**")
-                    st.markdown(f"- **{ev_rev_now:.1f}x** = {ev_rev_listing:.1f}x (listing) × {price/lp:.3f}")
-        with q2:
-            delta_pe = f"{(pe_now - pe_listing):+.1f}x" if (pe_now and pe_listing) else None
-            st.metric("P/E at CMP",
-                      f"{pe_now:.1f}x" if pe_now else ("Loss-making" if profitable is False else "N/A"),
-                      delta=delta_pe)
-            if pe_now and pat_cr and price and lp:
-                with st.popover("See Calculation"):
-                    st.markdown("**P/E at CMP**")
-                    st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
-                    st.markdown(f"- PAT ({rev_yr}): **₹{pat_cr:,} cr**")
-                    st.markdown(f"- **{pe_now:.1f}x** = {pe_listing:.1f}x (listing) × {price/lp:.3f}")
-        with q3:
-            delta_pb = f"{(pb_now - pb_listing):+.1f}x" if (pb_now and pb_listing) else None
-            st.metric("P/B at CMP", f"{pb_now:.1f}x" if pb_now else "N/A", delta=delta_pb)
-            if pb_now and bv_cr and price and lp:
-                with st.popover("See Calculation"):
-                    st.markdown("**P/B at CMP**")
-                    st.markdown(f"- Price ratio CMP/Listing: **{price/lp:.3f}x**")
-                    st.markdown(f"- Book Value ({rev_yr}): **₹{bv_cr:,} cr**")
-                    st.markdown(f"- **{pb_now:.1f}x** = {pb_listing:.1f}x (listing) × {price/lp:.3f}")
-
-        if profitable is not None:
-            badge_col, badge_txt = ("#d1fae5", "✅ Profitable at listing") if profitable else ("#fee2e2", "❌ Loss-making at listing")
+            # header card
             st.markdown(
-                f"<div style='display:inline-block;background:{badge_col};border-radius:6px;"
-                f"padding:4px 12px;font-size:12px;margin-top:4px'>{badge_txt}</div>",
+                f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:8px 14px;margin-bottom:6px'>
+                <b style='color:#1e40af;font-size:14px'>📊 Valuation Multiples</b>
+                <span style='color:#6b7a8d;font-size:12px;margin-left:10px'>
+                Source: S&amp;P Capital IQ &nbsp;|&nbsp; Figures in ₹ Cr</span></div>""",
                 unsafe_allow_html=True)
+
+            # company note
+            _cn = _ciq.get("company_note")
+            if _cn:
+                st.info(_cn)
+
+            # insurance note
+            _in = _ciq.get("insurance_note")
+            if _in:
+                st.warning(_in)
+
+            # Ind AS 116 warning (company-level)
+            _116w = _ciq.get("ind_as_116_warning")
+            if _116w:
+                st.warning(_116w)
+
+            # column-header helper
+            def _col_hdr(label, colour="#6b7a8d"):
+                st.markdown(
+                    f"<div style='font-size:11px;color:{colour};font-weight:600;"
+                    f"padding-bottom:2px'>{label}</div>",
+                    unsafe_allow_html=True)
+
+            # value helper — green positive, red loss
+            def _val_html(val, suffix="x", loss_label="📉 N/M", is_cr=False):
+                if val is None:
+                    return f"<span style='color:#dc2626;font-size:13px'>{loss_label}</span>"
+                elif val == "insurance_na":
+                    return "<span style='color:#6b7a8d;font-size:12px'>N/A (Insurance)</span>"
+                else:
+                    num = f"₹{val:,.0f}" if is_cr else f"{val:.1f}{suffix}"
+                    colour = "#16a34a" if (not is_cr and val > 0) or is_cr else "#dc2626"
+                    return f"<span style='color:{colour};font-size:13px;font-weight:600'>{num}</span>"
+
+            def _ni_html(val_cr):
+                if val_cr is None:
+                    return "<span style='color:#6b7a8d'>N/A</span>"
+                col = "#16a34a" if val_cr >= 0 else "#dc2626"
+                sign = "+" if val_cr >= 0 else ""
+                return f"<span style='color:{col};font-size:13px'>₹{val_cr:,.0f} cr</span>"
+
+            def _eps_html(eps):
+                if eps is None:
+                    return "<span style='color:#6b7a8d'>N/A</span>"
+                col = "#16a34a" if eps >= 0 else "#dc2626"
+                pfx = "+" if eps >= 0 else ""
+                return f"<span style='color:{col};font-size:13px'>₹{eps:.2f}</span>"
+
+            # helper: popover for EV/Revenue
+            def _pop_ev_rev(price_pt, fy, rev_mn, label):
+                mcap_mn = price_pt * _sh
+                tev_mn  = mcap_mn - _cash + _debt + _min + _pref
+                ev_rev  = round(tev_mn / rev_mn, 1) if rev_mn > 0 else None
+                with st.popover("See Calculation"):
+                    st.markdown(f"**EV/Revenue at {label} ({fy})**")
+                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                    st.markdown(f"- Shares: **{_sh:,.2f} mn**")
+                    st.markdown(f"- MCap: ₹{price_pt:.2f} × {_sh:.2f}mn = **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
+                    tev_formula = f"{mcap_mn:,.0f} − {_cash:,.0f} + {_debt:,.0f}"
+                    if _min: tev_formula += f" + {_min:,.0f} (minority)"
+                    if _pref: tev_formula += f" + {_pref:,.0f} (pref equity)"
+                    st.markdown(f"- TEV = {tev_formula} = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
+                    st.markdown(f"- Revenue {fy}: **₹{rev_mn:,.0f} mn (₹{rev_mn/10:,.0f} cr)**")
+                    if ev_rev:
+                        st.markdown(f"- **EV/Revenue = {tev_mn:,.0f} ÷ {rev_mn:,.0f} = {ev_rev:.1f}x**")
+                    st.caption("Source: Financials from S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+
+            # helper: popover for EV/EBITDA
+            def _pop_ev_ebitda(price_pt, fy, ebitda_mn, label, ind116=False):
+                mcap_mn = price_pt * _sh
+                tev_mn  = mcap_mn - _cash + _debt + _min + _pref
+                ev_ebitda = round(tev_mn / ebitda_mn, 1) if (ebitda_mn and ebitda_mn > 0) else None
+                with st.popover("See Calculation"):
+                    st.markdown(f"**EV/EBITDA at {label} ({fy})**")
+                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                    st.markdown(f"- Shares: **{_sh:,.2f} mn**")
+                    st.markdown(f"- MCap: **₹{mcap_mn:,.0f} mn (₹{mcap_mn/10:,.0f} cr)**")
+                    st.markdown(f"- Cash: ₹{_cash:,.0f} mn | Debt: ₹{_debt:,.0f} mn" +
+                                (f" | Minority: ₹{_min:,.0f} mn" if _min else "") +
+                                (f" | Pref Equity: ₹{_pref:,.0f} mn" if _pref else ""))
+                    st.markdown(f"- TEV = **₹{tev_mn:,.0f} mn (₹{tev_mn/10:,.0f} cr)**")
+                    if ebitda_mn is not None and ebitda_mn > 0:
+                        st.markdown(f"- EBITDA {fy}: **₹{ebitda_mn:,.0f} mn (₹{ebitda_mn/10:,.0f} cr)**")
+                        st.markdown(f"- **EV/EBITDA = {tev_mn:,.0f} ÷ {ebitda_mn:,.0f} = {ev_ebitda:.1f}x**")
+                    else:
+                        emn = ebitda_mn or 0
+                        st.markdown(f"- EBITDA {fy}: **₹{emn:,.0f} mn** (negative — N/M)")
+                        st.markdown("- EV/EBITDA is not meaningful when EBITDA is negative.")
+                    if ind116:
+                        st.warning("⚠️ EBITDA elevated by Ind AS 116 lease accounting. Lease costs sit below the EBITDA line. Pre-Ind AS 116 EBITDA would be materially lower.")
+                    st.caption("Source: S&P Capital IQ | TEV = MCap − Cash + Debt + Minority + Pref Equity")
+
+            # helper: popover for P/E
+            def _pop_pe(price_pt, fy, eps, label, exc_note=None):
+                pe = round(price_pt / eps, 1) if (eps and eps > 0) else None
+                with st.popover("See Calculation"):
+                    st.markdown(f"**P/E at {label} ({fy})**")
+                    st.markdown(f"- Price: **₹{price_pt:.2f}/share**")
+                    if eps and eps > 0:
+                        st.markdown(f"- EPS {fy}: **₹{eps:.4f}/share** (diluted, from S&P CIQ)")
+                        st.markdown(f"- **P/E = ₹{price_pt:.2f} ÷ ₹{eps:.4f} = {pe:.1f}x**")
+                    else:
+                        st.markdown(f"- EPS {fy}: **₹{eps:.4f}** (negative — loss-making)")
+                        st.markdown("- P/E is not meaningful when earnings are negative.")
+                    if exc_note:
+                        st.warning(f"⚠️ {exc_note}")
+                    if _mt == "insurance":
+                        st.info("ℹ️ P/E is the primary valuation metric for insurance companies. EV/EBITDA is not standard for insurers.")
+                    st.caption("Source: EPS from S&P Capital IQ | Price from NSE via yfinance")
+
+            # ── per-fiscal-year rendering ────────────────────────────────────
+            for _fy in _ciq["fiscal_years"]:
+                _fyd    = _ciq["financials"][_fy]
+                _is_est = _fyd.get("is_estimate", False)
+                _is_ctx = _fyd.get("show_as_context", False)
+                _ind116 = _fyd.get("ind_as_116", False)
+                _exc    = _fyd.get("exceptional_note")
+
+                _fy_tag_col = "#f97316" if _is_est else "#3b82f6"
+                _fy_tag_txt = "Analyst Estimate" if _is_est else "Reported"
+                _ctx_sfx    = " · Context only" if _is_ctx else ""
+                st.markdown(
+                    f"<div style='border-top:1px solid {BORDER};padding:6px 0 2px'>"
+                    f"<b style='font-size:13px'>{_fy}</b>&nbsp;"
+                    f"<span style='font-size:11px;background:#f1f5f9;color:{_fy_tag_col};"
+                    f"border-radius:4px;padding:1px 6px'>{_fy_tag_txt}{_ctx_sfx}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True)
+
+                _rev_mn  = _fyd.get("revenue_mn") or 0
+                _ebi_mn  = _fyd.get("ebitda_mn")
+                _ni_mn   = _fyd.get("net_income_mn")
+                _eps     = _fyd.get("eps_diluted")
+
+                # compute multiples at listing and CMP
+                _ml = _ciq_calc(lp, _ciq, _fyd) if lp else {}
+                _mc = _ciq_calc(price, _ciq, _fyd) if price else {}
+
+                # column headers
+                _ch1, _ch2, _ch3 = st.columns([2, 1.5, 1.5])
+                with _ch1:
+                    _col_hdr("Metric")
+                with _ch2:
+                    _col_hdr(f"At Listing (₹{lp:.0f})" if lp else "At Listing")
+                with _ch3:
+                    _col_hdr(f"At CMP (₹{price:.2f} 🔴)" if price else "At CMP")
+
+                # Revenue row
+                _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                with _c1: st.markdown("**Revenue** (₹ cr)")
+                with _c2: st.markdown(f"₹{_rev_mn/10:,.0f}")
+                with _c3: st.markdown(f"₹{_rev_mn/10:,.0f}")   # financials don't change with price
+
+                # EBITDA row (always show, even if N/A)
+                _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                with _c1:
+                    _ebi_lbl = "**EBITDA** (₹ cr)"
+                    if _ind116:
+                        _ebi_lbl += " ⚠️"
+                    st.markdown(_ebi_lbl)
+                with _c2:
+                    if _ebi_mn is None:
+                        st.markdown("<span style='color:#6b7a8d'>N/A</span>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(_ni_html(_ebi_mn / 10), unsafe_allow_html=True)
+                with _c3:
+                    if _ebi_mn is None:
+                        st.markdown("<span style='color:#6b7a8d'>N/A</span>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(_ni_html(_ebi_mn / 10), unsafe_allow_html=True)
+
+                # Net Income row
+                _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                with _c1: st.markdown("**Net Income** (₹ cr)")
+                with _c2: st.markdown(_ni_html(_ni_mn / 10 if _ni_mn is not None else None), unsafe_allow_html=True)
+                with _c3: st.markdown(_ni_html(_ni_mn / 10 if _ni_mn is not None else None), unsafe_allow_html=True)
+
+                # EPS row
+                _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                with _c1: st.markdown("**EPS** (₹/share)")
+                with _c2: st.markdown(_eps_html(_eps), unsafe_allow_html=True)
+                with _c3: st.markdown(_eps_html(_eps), unsafe_allow_html=True)
+
+                # helper: show "—" placeholder when listing price not available
+                _na_html = "<span style='color:#9ca3af;font-size:13px'>—</span>"
+
+                # ── EV/Revenue or EV/EBITDA row ──────────────────────────────
+                if _mt == "ev_rev":
+                    _mul_lbl = "**EV/Revenue**"
+                    _ml_val  = _ml.get("ev_rev")
+                    _mc_val  = _mc.get("ev_rev")
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1: st.markdown(_mul_lbl)
+                    with _c2:
+                        if _no_listing:
+                            st.markdown(_na_html, unsafe_allow_html=True)
+                        else:
+                            st.markdown(_val_html(_ml_val), unsafe_allow_html=True)
+                            if lp and _rev_mn > 0:
+                                _pop_ev_rev(lp, _fy, _rev_mn, f"Listing ₹{lp:.0f}")
+                    with _c3:
+                        st.markdown(_val_html(_mc_val), unsafe_allow_html=True)
+                        if price and _rev_mn > 0:
+                            _pop_ev_rev(price, _fy, _rev_mn, f"CMP ₹{price:.2f}")
+
+                elif _mt == "insurance":
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1: st.markdown("**EV/EBITDA**")
+                    with _c2: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
+                    with _c3: st.markdown("<span style='color:#6b7a8d;font-size:12px'>N/A — Insurance</span>", unsafe_allow_html=True)
+
+                else:  # ev_ebitda
+                    _ml_val  = _ml.get("ev_ebitda")
+                    _mc_val  = _mc.get("ev_ebitda")
+                    _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                    with _c1:
+                        _ebi_row_lbl = "**EV/EBITDA**"
+                        if _ind116: _ebi_row_lbl += " ⚠️"
+                        st.markdown(_ebi_row_lbl)
+                    with _c2:
+                        if _no_listing:
+                            st.markdown(_na_html, unsafe_allow_html=True)
+                        else:
+                            st.markdown(_val_html(_ml_val), unsafe_allow_html=True)
+                            if lp:
+                                _pop_ev_ebitda(lp, _fy, _ebi_mn, f"Listing ₹{lp:.0f}", ind116=_ind116)
+                    with _c3:
+                        st.markdown(_val_html(_mc_val), unsafe_allow_html=True)
+                        if price:
+                            _pop_ev_ebitda(price, _fy, _ebi_mn, f"CMP ₹{price:.2f}", ind116=_ind116)
+
+                # ── P/E row ──────────────────────────────────────────────────
+                _pe_l = _ml.get("pe")
+                _pe_c = _mc.get("pe")
+                _c1, _c2, _c3 = st.columns([2, 1.5, 1.5])
+                with _c1: st.markdown("**P/E**")
+                with _c2:
+                    if _no_listing:
+                        st.markdown(_na_html, unsafe_allow_html=True)
+                    else:
+                        st.markdown(_val_html(_pe_l), unsafe_allow_html=True)
+                        if lp and _eps:
+                            _pop_pe(lp, _fy, _eps, f"Listing ₹{lp:.0f}", exc_note=_exc)
+                with _c3:
+                    st.markdown(_val_html(_pe_c), unsafe_allow_html=True)
+                    if price and _eps:
+                        _pop_pe(price, _fy, _eps, f"CMP ₹{price:.2f}", exc_note=_exc)
+
+            # source footer
+            st.markdown(
+                f"<div style='color:#6b7a8d;font-size:11px;text-align:right;"
+                f"margin-top:10px;border-top:1px solid {BORDER};padding-top:4px'>"
+                f"Source: S&amp;P Capital IQ &nbsp;|&nbsp; Last updated: {_now_ist()}</div>",
+                unsafe_allow_html=True)
+
+        else:
+            # ── Fallback: no CIQ data (e.g. Kissht) — show N/A ────────────
+            st.markdown(
+                f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:8px 14px;margin-bottom:8px'>
+                <b style='color:#1e40af;font-size:14px'>📊 Valuation Multiples</b>
+                <span style='color:#6b7a8d;font-size:12px;margin-left:10px'>
+                Capital IQ data not yet available for this company</span></div>""",
+                unsafe_allow_html=True)
+            st.info("Detailed valuation multiples from S&P Capital IQ will be added for this company in a future update.")
+            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
+                        unsafe_allow_html=True)
 
         if not price:
             _warn(f"Live price unavailable for {ipo['ticker']}.")
-        st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Last updated: {_now_ist()}</div>',
-                    unsafe_allow_html=True)
 
     with t4:
         st.markdown("**Final Subscription Data**")
