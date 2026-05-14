@@ -1609,138 +1609,145 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # KISSHT (OnEMI Technology Solutions)
-    # IPO May 2026. ₹171 issue, ₹190 listing.
-    # OFS sellers per RHP Share Capital History (Manian & Rao, CA, Apr 22 2025):
-    #   Caladium Investment (GIC) 60.03L, NIIF II 26.35L, Internet Fund III 4.00L,
-    #   IITMS Rural Technology 0.04L, Amit Bhatia 0.19L. Total ~90.6L OFS shares.
-    # Promoters: Tarun Sanjay Mehta & Swapnil Babanlal Jain (WACA ₹21.09).
-    # WACA certified by: Manian & Rao, Chartered Accountants, April 22 2025.
+    # KISSHT (OnEMI Technology Solutions Limited)
+    # IPO May 2026. ₹171 issue, ₹190 listing NSE (+11.1%) / ₹191 BSE (+11.7%).
+    # Fresh ₹850 cr + OFS ₹75.92 cr (10 OFS sellers, 44,39,788 shares total).
+    # WACA certified by: Chokshi & Chokshi LLP, CA, April 25, 2026.
+    # Promoters: Ranvir Singh (24,291,232 sh, 18.78%) & Krishnan Vishwanathan
+    #            (17,493,894 sh, 13.52%) — did NOT sell in OFS.
+    # Non-OFS: Sistema Asia Fund (6,806,240 sh, 5.26%), Abhijit Bhandari (1,572,901 sh).
+    # NOTE: Previous data was WRONG (Caladium/NIIF/Tiger from a different RHP).
+    #       Authoritative data now in VERIFIED_INVESTOR_DATA (v2 — exact shares).
     # ══════════════════════════════════════════════════════════════════════════
     "Kissht (OnEMI Technology)": {
         "ipo_price":         171,
         "listing_price":     190.0,
         "fresh_issue_cr":    850.0,
-        "ofs_total_cr":      154.94,   # 90,60,696 shares × ₹171 (RHP-certified sellers only)
-        "waca_certified_by": "Manian & Rao, Chartered Accountants, April 22 2025",
+        "ofs_total_cr":      75.92,    # 44,39,788 shares × ₹171 ÷ 1e7 (Chokshi & Chokshi, Apr 25 2026)
+        "waca_certified_by": "Chokshi & Chokshi LLP, Chartered Accountants, April 25, 2026",
         "investors": {
-            # ── OFS Sellers (RHP-certified WACAs) ──────────────────────────
-            "Caladium Investment Pte Ltd (GIC Singapore)": {
-                "waca":            204.24,
+            # ── OFS Sellers — RHP-certified WACAs (Chokshi & Chokshi LLP, Apr 25 2026) ──
+            "Ammar Sdn Bhd": {
+                "waca":            124.44,
                 "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹204.24/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
+                "waca_source":     "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 60.03,
-                "ofs_source":      "RHP Selling Shareholders — 60,03,460 shares at ₹171",
+                "ofs_shares_lakhs": 11.56,   # 1,156,317 shares
+                "first_year":      2021,
+                "notes":           "~1.37× at IPO (₹171 ÷ ₹124.44). ~1.53× at listing (₹190 ÷ ₹124.44).",
+            },
+            "Vertex Ventures SEA Fund III Pte Ltd": {
+                "waca":            79.51,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹79.51/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 7.92,    # 792,308 shares
                 "first_year":      2019,
-                "notes":           "GIC Singapore's vehicle. WACA ₹204.24 — selling below WACA "
-                                   "(₹171 IPO < ₹204.24 cost). OFS proceeds ₹102.7 cr.",
+                "notes":           "~2.15× at IPO (₹171 ÷ ₹79.51). ~2.39× at listing (₹190 ÷ ₹79.51).",
             },
-            "NIIF Strategic Opportunities Fund II": {
-                "waca":            183.71,
+            "Vertex Growth Fund Pte Ltd": {
+                "waca":            124.44,
                 "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹183.71/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
+                "waca_source":     "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 26.35,
-                "ofs_source":      "RHP Selling Shareholders — 26,34,514 shares at ₹171",
-                "first_year":      2020,
-                "notes":           "NIIF II — WACA ₹183.71, selling below cost at ₹171 IPO price. "
-                                   "OFS proceeds ₹45.0 cr.",
+                "ofs_shares_lakhs": 4.57,    # 456,831 shares
+                "first_year":      2021,
+                "notes":           "~1.37× at IPO. ~1.53× at listing.",
             },
-            "Internet Fund III Pte Ltd (Tiger Global)": {
-                "waca":            38.58,
+            "Vertex Growth Fund II Pte Ltd": {
+                "waca":            124.44,
                 "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹38.58/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
+                "waca_source":     "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
                 "total_shares_cr": None,
-                "ofs_shares_lakhs": 4.00,
-                "ofs_source":      "RHP Selling Shareholders — 4,00,000 shares at ₹171",
-                "first_year":      2018,
-                "notes":           "Tiger Global vehicle. WACA ₹38.58 → ~4.4× at IPO. "
-                                   "OFS proceeds ₹6.8 cr.",
+                "ofs_shares_lakhs": 4.57,    # 456,831 shares
+                "first_year":      2021,
+                "notes":           "~1.37× at IPO. ~1.53× at listing.",
             },
-            "IITM Incubation Cell (IIT Madras)": {
+            "Ventureast Proactive Fund II": {
+                "waca":            53.87,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹53.87/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 5.90,    # 589,519 shares
+                "first_year":      2017,
+                "notes":           "~3.17× at IPO (₹171 ÷ ₹53.87). ~3.53× at listing (₹190 ÷ ₹53.87).",
+            },
+            "Endiya Seed Co-creation Fund (Endiya Partners)": {
+                "waca":            36.23,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹36.23/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 5.35,    # 535,367 shares
+                "first_year":      2015,
+                "notes":           "~4.72× at IPO (₹171 ÷ ₹36.23). ~5.24× at listing (₹190 ÷ ₹36.23). "
+                                   "Early backer.",
+            },
+            "VenturEast Proactive Fund LLC": {
+                "waca":            15.73,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹15.73/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 2.65,    # 264,522 shares
+                "first_year":      2016,
+                "notes":           "~10.87× at IPO (₹171 ÷ ₹15.73). ~12.08× at listing (₹190 ÷ ₹15.73).",
+            },
+            "AION Advisory Services LLP": {
+                "waca":            124.44,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 1.39,    # 138,758 shares
+                "first_year":      2021,
+                "notes":           "~1.37× at IPO. ~1.53× at listing.",
+            },
+            "Ventureast Proactive Fund": {
+                "waca":            15.73,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹15.73/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 0.48,    # 48,108 shares
+                "first_year":      2016,
+                "notes":           "~10.87× at IPO. ~12.08× at listing.",
+            },
+            "VenturEast SEDCO Proactive Fund LLC": {
+                "waca":            15.75,
+                "waca_type":       "RHP",
+                "waca_source":     "RHP — WACA ₹15.75/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "total_shares_cr": None,
+                "ofs_shares_lakhs": 0.01,    # 1,227 shares
+                "first_year":      2016,
+                "notes":           "~10.86× at IPO. ~12.06× at listing.",
+            },
+            # ── Promoters (did NOT sell in OFS) ────────────────────────────
+            "Ranvir Singh (Co-founder & CEO, Promoter)": {
                 "waca":            None,
                 "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — WACA listed as Nil "
-                                   "(Manian & Rao, Apr 22 2025). Equity granted at nominal/nil cost.",
+                "waca_source":     "RHP — 24,291,232 shares pre-offer (18.78%). WACA not separately "
+                                   "certified (founding equity). Did not sell in OFS.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year":      2015,
-                "notes":           "IIT Madras incubation — nominal/nil cost. Did not sell in OFS per RHP.",
+                "notes":           "Promoter. 18.78% pre-offer stake. Did not sell in OFS.",
             },
-            "IITMS Rural Technology & Business Incubator": {
-                "waca":            8.31,
+            "Krishnan Vishwanathan (Co-founder & MD, Promoter)": {
+                "waca":            None,
                 "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹8.31/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": 0.04,
-                "ofs_source":      "RHP Selling Shareholders — 4,191 shares at ₹171",
-                "first_year":      2015,
-                "notes":           "IITM Rural Technology arm. WACA ₹8.31 → ~20.6× at IPO.",
-            },
-            "Amit Bhatia": {
-                "waca":            184.82,
-                "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹184.82/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": 0.19,
-                "ofs_source":      "RHP Selling Shareholders — 18,531 shares at ₹171",
-                "first_year":      2020,
-                "notes":           "Individual selling shareholder. WACA ₹184.82 — selling below cost.",
-            },
-            # ── Promoters ──────────────────────────────────────────────────
-            "Tarun Sanjay Mehta (Promoter)": {
-                "waca":            21.09,
-                "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹21.09/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
+                "waca_source":     "RHP — 17,493,894 shares pre-offer (13.52%). WACA not separately "
+                                   "certified. Did not sell in OFS.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year":      2015,
-                "notes":           "Co-founder & promoter. WACA ₹21.09 → ~8.1× at IPO price.",
+                "notes":           "Promoter. 13.52% pre-offer stake. Did not sell in OFS.",
             },
-            "Swapnil Babanlal Jain (Promoter)": {
-                "waca":            21.09,
-                "waca_type":       "RHP",
-                "waca_source":     "RHP Share Capital History — CA certified WACA ₹21.09/sh "
-                                   "(Manian & Rao, Apr 22 2025).",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year":      2015,
-                "notes":           "Co-founder & promoter. WACA ₹21.09 → ~8.1× at IPO price.",
-            },
-            # ── Other financial investors (derived WACAs) ───────────────────
-            "Vertex Ventures SE Asia & India": {
-                "waca":            15.5,
+            # ── Non-OFS institutional holders ──────────────────────────────
+            "Sistema Asia Fund Pte Ltd": {
+                "waca":            None,
                 "waca_type":       "derived",
-                "waca_source":     "Derived estimate — blended Series A–C 2016–19 at $20–100M val.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year":      2016,
-                "notes":           "Largest VC holder. Did not sell in OFS per RHP.",
-            },
-            "Ventureast (Finquest Fund / Tenedo Fund)": {
-                "waca":            12.5,
-                "waca_type":       "derived",
-                "waca_source":     "Derived estimate — blended seed–Series B entry.",
-                "total_shares_cr": None,
-                "ofs_shares_lakhs": None,
-                "first_year":      2016,
-                "notes":           "Early backer. Did not sell in OFS per RHP.",
-            },
-            "Sistema Asia Fund": {
-                "waca":            35.0,
-                "waca_type":       "derived",
-                "waca_source":     "Derived estimate — Series B–C 2018–20.",
+                "waca_source":     "Derived estimate — Series B–C 2018–20. Did not sell in OFS.",
                 "total_shares_cr": None,
                 "ofs_shares_lakhs": None,
                 "first_year":      2018,
-                "notes":           "Did not sell in OFS per RHP.",
+                "notes":           "6,806,240 shares (5.26% pre-offer). Retained stake — no OFS.",
             },
         },
     },
@@ -2381,6 +2388,134 @@ VERIFIED_INVESTOR_DATA: dict[str, dict] = {
                 "ofs_shares":       2_579_740,
                 "notes": "~4.82× at IPO (₹517 ÷ ₹107.25). ~4.76× at listing (₹510 ÷ ₹107.25). "
                          "Listed below IPO price but still profitable vs WACA.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # KISSHT (OnEMI Technology Solutions Limited)
+    # IPO May 2026. ₹171 issue, ₹190 NSE listing / ₹191 BSE (+11.1% / +11.7%).
+    # Fresh ₹850 cr + OFS 44,39,788 shares (₹75.92 cr at ₹171).
+    # 10 OFS sellers; WACA certified by Chokshi & Chokshi LLP, CA, Apr 25 2026.
+    # Promoters: Ranvir Singh (24,291,232 sh, 18.78%) &
+    #            Krishnan Vishwanathan (17,493,894 sh, 13.52%) — no OFS.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Kissht (OnEMI Technology)": {
+        "ipo_price":        171,
+        "listing_price":    190.0,
+        "listing_date":     "2026-05-08",
+        "ca_firm":          "Chokshi & Chokshi LLP, Chartered Accountants",
+        "ca_date":          "April 25, 2026",
+        "fresh_issue_cr":   850.0,
+        "ofs_total_shares": 4_439_788,   # exact sum of all 10 OFS sellers
+        "ofs_total_cr":     75.92,       # 4,439,788 × ₹171 / 1e7
+        "investors": {
+            # ── OFS Sellers (exact share counts, RHP-certified WACAs) ──────
+            "Ammar Sdn Bhd": {
+                "type": "investor",
+                "waca": 124.44,
+                "waca_source": "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 15_688_260,
+                "ofs_shares":        1_156_317,
+                "notes": "~1.37× at IPO (₹171 ÷ ₹124.44). ~1.53× at listing (₹190 ÷ ₹124.44).",
+            },
+            "Vertex Ventures SEA Fund III Pte Ltd": {
+                "type": "investor",
+                "waca": 79.51,
+                "waca_source": "RHP — WACA ₹79.51/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 10_500_809,
+                "ofs_shares":          792_308,
+                "notes": "~2.15× at IPO (₹171 ÷ ₹79.51). ~2.39× at listing (₹190 ÷ ₹79.51).",
+            },
+            "Vertex Growth Fund Pte Ltd": {
+                "type": "investor",
+                "waca": 124.44,
+                "waca_source": "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 9_412_960,
+                "ofs_shares":         456_831,
+                "notes": "~1.37× at IPO. ~1.53× at listing.",
+            },
+            "Vertex Growth Fund II Pte Ltd": {
+                "type": "investor",
+                "waca": 124.44,
+                "waca_source": "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 9_412_960,
+                "ofs_shares":         456_831,
+                "notes": "~1.37× at IPO. ~1.53× at listing.",
+            },
+            "Ventureast Proactive Fund II": {
+                "type": "investor",
+                "waca": 53.87,
+                "waca_source": "RHP — WACA ₹53.87/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 7_998_270,
+                "ofs_shares":         589_519,
+                "notes": "~3.17× at IPO (₹171 ÷ ₹53.87). ~3.53× at listing (₹190 ÷ ₹53.87).",
+            },
+            "Endiya Seed Co-creation Fund (Endiya Partners)": {
+                "type": "investor",
+                "waca": 36.23,
+                "waca_source": "RHP — WACA ₹36.23/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 7_263_560,
+                "ofs_shares":         535_367,
+                "notes": "~4.72× at IPO (₹171 ÷ ₹36.23). ~5.24× at listing (₹190 ÷ ₹36.23).",
+            },
+            "VenturEast Proactive Fund LLC": {
+                "type": "investor",
+                "waca": 15.73,
+                "waca_source": "RHP — WACA ₹15.73/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 3_588_890,
+                "ofs_shares":         264_522,
+                "notes": "~10.87× at IPO (₹171 ÷ ₹15.73). ~12.08× at listing (₹190 ÷ ₹15.73).",
+            },
+            "AION Advisory Services LLP": {
+                "type": "investor",
+                "waca": 124.44,
+                "waca_source": "RHP — WACA ₹124.44/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": 860_227,
+                "ofs_shares":       138_758,
+                "notes": "~1.37× at IPO. ~1.53× at listing.",
+            },
+            "Ventureast Proactive Fund": {
+                "type": "investor",
+                "waca": 15.73,
+                "waca_source": "RHP — WACA ₹15.73/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       48_108,
+                "notes": "~10.87× at IPO. ~12.08× at listing.",
+            },
+            "VenturEast SEDCO Proactive Fund LLC": {
+                "type": "investor",
+                "waca": 15.75,
+                "waca_source": "RHP — WACA ₹15.75/sh; Chokshi & Chokshi LLP CA, Apr 25 2026",
+                "pre_offer_shares": None,
+                "ofs_shares":       1_227,
+                "notes": "~10.86× at IPO. ~12.06× at listing.",
+            },
+            # ── Promoters (did NOT sell in OFS) ────────────────────────────
+            "Ranvir Singh (Co-founder & CEO, Promoter)": {
+                "type": "promoter",
+                "waca": None,   # founding equity — nominal
+                "waca_source": "RHP — founding equity (24,291,232 sh, 18.78% pre-offer). No OFS.",
+                "pre_offer_shares": 24_291_232,
+                "ofs_shares":       None,
+                "notes": "Promoter. Did not sell in OFS.",
+            },
+            "Krishnan Vishwanathan (Co-founder & MD, Promoter)": {
+                "type": "promoter",
+                "waca": None,
+                "waca_source": "RHP — founding equity (17,493,894 sh, 13.52% pre-offer). No OFS.",
+                "pre_offer_shares": 17_493_894,
+                "ofs_shares":       None,
+                "notes": "Promoter. Did not sell in OFS.",
+            },
+            # ── Non-OFS institutional holders ──────────────────────────────
+            "Sistema Asia Fund Pte Ltd": {
+                "type": "investor",
+                "waca": None,
+                "waca_source": "Derived — Series B–C 2018–20. WACA not in RHP WACA cert.",
+                "pre_offer_shares": 6_806_240,
+                "ofs_shares":       None,
+                "notes": "5.26% pre-offer stake. Did not sell in OFS.",
             },
         },
     },

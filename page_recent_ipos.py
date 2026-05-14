@@ -250,7 +250,7 @@ IPOS = [
         "listing_price": 190.0, "issue_size": "₹926 cr", "issue_size_cr": 926,
         "lot_size": 87, "fresh_issue": "₹850 cr", "ofs": "₹76 cr",
         "use_of_funds": "Augmenting capital base of NBFC subsidiary Si Creva for lending; general corporate purposes.",
-        "key_investors": "Temasek (Vertex), Ventureast, Sistema Asia Fund",
+        "key_investors": "Vertex Ventures, Ventureast, AION, Ammar Sdn Bhd, Endiya Partners",
         "qib_sub": "25.97x", "nii_sub": "6.91x", "rii_sub": "2.13x", "overall_sub": "9.96x",
         "known_listing_gain_pct": 11.1,
     },
@@ -840,19 +840,22 @@ _ANCHOR_DATA = {
             {"investor": "ACM Global Fund",              "category": "FII / Global Fund", "allocation_cr": 8},
         ],
         "pripo_investors": [
-            # OFS sellers — RHP-certified WACAs (Manian & Rao, Apr 22 2025)
-            {"investor": "Caladium Investment Pte Ltd (GIC Singapore)", "round": "Growth (2019–21)", "entry_val": "~₹204/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹204.24 WACA; 60.03L shares, OFS ₹102.7 cr)", "return_at_cmp": "—"},
-            {"investor": "NIIF Strategic Opportunities Fund II",         "round": "Growth (2020–21)", "entry_val": "~₹184/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹183.71 WACA; 26.35L shares, OFS ₹45.0 cr)",  "return_at_cmp": "—"},
-            {"investor": "Internet Fund III Pte Ltd (Tiger Global)",     "round": "Series C (2018)",  "entry_val": "~₹38.58/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~4.4× at IPO (WACA ₹38.58 → ₹171; 4.00L OFS shares, ₹6.8 cr)",       "return_at_cmp": "—"},
-            {"investor": "IITMS Rural Technology & Business Incubator",  "round": "Founding (2015)",  "entry_val": "~₹8.31/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~20.6× at IPO (WACA ₹8.31 → ₹171; 4,191 shares, OFS ₹0.07 cr)",        "return_at_cmp": "—"},
-            {"investor": "Amit Bhatia",                                   "round": "Growth (2020)",    "entry_val": "~₹184.82/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "Sold below WACA (₹171 IPO < ₹184.82 WACA; 18,531 shares, OFS ₹0.32 cr)", "return_at_cmp": "—"},
-            # Promoters
-            {"investor": "Tarun Sanjay Mehta (Co-founder & Promoter)",   "round": "Founding (2015)",  "entry_val": "~₹21.09/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~8.1× at IPO price (WACA ₹21.09 → ₹171; did not sell in OFS)",          "return_at_cmp": "—"},
-            {"investor": "Swapnil Babanlal Jain (Co-founder & Promoter)","round": "Founding (2015)",  "entry_val": "~₹21.09/sh WACA (RHP certified)", "pct_held": "—", "return_at_ipo": "~8.1× at IPO price (WACA ₹21.09 → ₹171; did not sell in OFS)",          "return_at_cmp": "—"},
-            # Other financial investors (derived WACAs)
-            {"investor": "Vertex Ventures SE Asia & India",               "round": "Series A–C (2016–19)", "entry_val": "~$20–100M valuation", "pct_held": "~18%", "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
-            {"investor": "Ventureast (Finquest Fund / Tenedo Fund)",      "round": "Series A–B (2016–18)", "entry_val": "Seed–Series A",       "pct_held": "~9%",  "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
-            {"investor": "Sistema Asia Fund",                             "round": "Series B–C (2018–20)", "entry_val": "~$100–200M valuation","pct_held": "~5%",  "return_at_ipo": "Did not sell in OFS (per RHP). Paper gain at listing.",                 "return_at_cmp": "—"},
+            # OFS sellers — RHP-certified WACAs (Chokshi & Chokshi LLP CA, Apr 25 2026)
+            {"investor": "Ammar Sdn Bhd",                         "round": "Growth (2021)",         "entry_val": "WACA ₹124.44/sh (RHP certified)", "pct_held": "15,688,260 sh pre-offer", "return_at_ipo": "~1.37× at IPO (WACA ₹124.44 → ₹171; 11.56L OFS shares, ₹19.8 cr)", "return_at_cmp": "—"},
+            {"investor": "Vertex Ventures SEA Fund III Pte Ltd",   "round": "Series C–D (2019)",    "entry_val": "WACA ₹79.51/sh (RHP certified)",  "pct_held": "10,500,809 sh pre-offer", "return_at_ipo": "~2.15× at IPO (WACA ₹79.51 → ₹171; 7.92L OFS shares, ₹13.5 cr)",  "return_at_cmp": "—"},
+            {"investor": "Vertex Growth Fund Pte Ltd",             "round": "Growth (2021)",         "entry_val": "WACA ₹124.44/sh (RHP certified)", "pct_held": "9,412,960 sh pre-offer",  "return_at_ipo": "~1.37× at IPO (WACA ₹124.44 → ₹171; 4.57L OFS shares, ₹7.8 cr)",  "return_at_cmp": "—"},
+            {"investor": "Vertex Growth Fund II Pte Ltd",          "round": "Growth (2021)",         "entry_val": "WACA ₹124.44/sh (RHP certified)", "pct_held": "9,412,960 sh pre-offer",  "return_at_ipo": "~1.37× at IPO (WACA ₹124.44 → ₹171; 4.57L OFS shares, ₹7.8 cr)",  "return_at_cmp": "—"},
+            {"investor": "Ventureast Proactive Fund II",           "round": "Series B (2017)",       "entry_val": "WACA ₹53.87/sh (RHP certified)",  "pct_held": "7,998,270 sh pre-offer",  "return_at_ipo": "~3.17× at IPO (WACA ₹53.87 → ₹171; 5.90L OFS shares, ₹10.1 cr)",  "return_at_cmp": "—"},
+            {"investor": "Endiya Partners (Endiya Seed Co-creation Fund)", "round": "Seed / Series A (2015)", "entry_val": "WACA ₹36.23/sh (RHP certified)", "pct_held": "7,263,560 sh pre-offer", "return_at_ipo": "~4.72× at IPO (WACA ₹36.23 → ₹171; 5.35L OFS shares, ₹9.2 cr)", "return_at_cmp": "—"},
+            {"investor": "VenturEast Proactive Fund LLC",          "round": "Series A (2016)",       "entry_val": "WACA ₹15.73/sh (RHP certified)",  "pct_held": "3,588,890 sh pre-offer",  "return_at_ipo": "~10.87× at IPO (WACA ₹15.73 → ₹171; 2.65L OFS shares, ₹4.5 cr)", "return_at_cmp": "—"},
+            {"investor": "AION Advisory Services LLP",             "round": "Growth (2021)",         "entry_val": "WACA ₹124.44/sh (RHP certified)", "pct_held": "860,227 sh pre-offer",    "return_at_ipo": "~1.37× at IPO (WACA ₹124.44 → ₹171; 1.39L OFS shares, ₹2.4 cr)",  "return_at_cmp": "—"},
+            {"investor": "Ventureast Proactive Fund",              "round": "Series A (2016)",       "entry_val": "WACA ₹15.73/sh (RHP certified)",  "pct_held": "—",                       "return_at_ipo": "~10.87× at IPO (WACA ₹15.73 → ₹171; 0.48L OFS shares, ₹0.82 cr)", "return_at_cmp": "—"},
+            {"investor": "VenturEast SEDCO Proactive Fund LLC",   "round": "Series A (2016)",       "entry_val": "WACA ₹15.75/sh (RHP certified)",  "pct_held": "—",                       "return_at_ipo": "~10.86× at IPO (WACA ₹15.75 → ₹171; 1,227 OFS shares, ₹0.02 cr)", "return_at_cmp": "—"},
+            # Promoters (did NOT sell in OFS)
+            {"investor": "Ranvir Singh (Co-founder & CEO, Promoter)",       "round": "Founding (2015)", "entry_val": "Founding equity", "pct_held": "24,291,232 sh (18.78%)", "return_at_ipo": "Did not sell in OFS. ~11.1% paper gain at listing (₹190/₹171)", "return_at_cmp": "—"},
+            {"investor": "Krishnan Vishwanathan (Co-founder & MD, Promoter)", "round": "Founding (2015)", "entry_val": "Founding equity", "pct_held": "17,493,894 sh (13.52%)", "return_at_ipo": "Did not sell in OFS. ~11.1% paper gain at listing (₹190/₹171)", "return_at_cmp": "—"},
+            # Non-OFS institutional holders
+            {"investor": "Sistema Asia Fund Pte Ltd",              "round": "Series B–C (2018–20)", "entry_val": "~$100–200M valuation",           "pct_held": "6,806,240 sh (5.26%)",   "return_at_ipo": "Did not sell in OFS. Paper gain at listing.",                     "return_at_cmp": "—"},
         ],
     },
     "Capillary Technologies": {
