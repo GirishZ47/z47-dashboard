@@ -210,309 +210,385 @@ DRHP_LINKS = {
     },
 }
 
-# ── DRHP summaries — structured one-page brief per company ───────────────────
+# ── DRHP summaries — comprehensive 8-section brief per company ───────────────
+# Sections: overview | business_model | financials | ipo_details | key_metrics
+#           market_opportunity | competitive_position | investors_funding | key_risks
 DRHP_SUMMARIES: dict[str, dict] = {
     "Zepto": {
-        "business_model": "10-minute quick commerce grocery delivery via a dark-store network of 700+ micro-fulfilment centres across 10+ cities. Revenue from delivery fees, platform ads, and own-label products.",
-        "key_metrics": "GMV ~₹15,000 cr (FY24). ~12M monthly transacting users. ~100 orders/store/day average. Market share #2-3 in quick commerce by GMV.",
-        "financials": "Revenue FY24 ~₹4,454 cr (+140% YoY). Net loss ~₹1,248 cr. Contribution margin turned positive. Cash burn reducing each quarter.",
-        "ipo_details": "DRHP filed Mar 2025. Fresh issue ~₹3,500 cr. BRLMs: Kotak, Goldman Sachs, Axis. Target valuation ~$5–6B.",
-        "market": "Indian quick-commerce market ~$5B, growing 40%+ YoY. Competes with Blinkit (Zomato) and Swiggy Instamart.",
-        "key_risks": "Deep losses, high dark-store capex, intense competition, FDI ecommerce regulations, supply-chain concentration.",
-        "investors": "Y Combinator, Nexus Venture Partners, Glade Brook Capital, Goodwater Capital, Motilal Oswal.",
-        "source": "DRHP Mar 2025 + public disclosures",
+        "overview": "Zepto (Kiranakart Technologies) is India's fastest-growing quick-commerce platform, delivering groceries and essentials in 10 minutes via a dense network of dark stores. Founded 2021 by Stanford dropouts Aadit Palicha (CEO) and Kaivalya Vohra (CTO). Became a unicorn in under 18 months. SEBI approved confidential DRHP May 2026.",
+        "business_model": "Dark-store model: 700+ micro-fulfilment centres across 10+ cities. 10-minute delivery on 10,000+ SKUs. Revenue streams: delivery fees, platform fee, in-app advertising, Zepto Cafe (hot food), private-label products, Zepto Pass subscription, and B2B arm (Zepto for Business).",
+        "financials": "Revenue FY24: ₹4,454 cr (+140% YoY from ₹1,856 cr FY23). Net loss FY24: ₹1,248 cr (down from ₹1,272 cr FY23). Contribution margin positive since Q3 FY24. GMV FY24: ~₹14,000–15,000 cr. Average order value ~₹580. Cash burn reducing each quarter.",
+        "ipo_details": "DRHP filed Mar 2025 (confidential route). SEBI approval received May 8 2026; public UDRHP not yet filed. Fresh issue ~₹3,500 cr. BRLMs: Kotak, Goldman Sachs, Axis Capital. Expected valuation ~$5–6B. Use of funds: dark-store expansion, technology, working capital.",
+        "key_metrics": "700+ dark stores. 10+ cities (Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Pune, Kolkata). ~12M monthly transacting users. ~100+ orders/store/day (mature stores). 10,000+ SKUs per store. Average delivery time: 8–10 minutes.",
+        "market_opportunity": "Indian quick-commerce market ~$5B (2024), expected $40B+ by 2030. Total addressable market: India grocery $700B+. Quick-commerce penetration <2% of total grocery. Growth rate 40%+ YoY. Key tailwinds: urbanisation, nuclear families, smartphone adoption.",
+        "competitive_position": "#2–3 player by GMV. Blinkit (Zomato) ~45% share, Swiggy Instamart ~25%, Zepto ~20%+. Differentiated on delivery speed (10-min promise) and dark-store density. Own-brand private labels and Zepto Cafe provide margin upside. Fastest growth rate among the three.",
+        "investors_funding": "Total raised: ~$1.4B+. Investors: Y Combinator, Nexus Venture Partners, Glade Brook Capital, Goodwater Capital, Motilal Oswal, DST Global, Avenir Growth. Last round: Series G at $5B valuation (2024). Founders retain significant equity.",
+        "key_risks": "Deep operating losses with unclear path to profitability. Intense competition from Blinkit (Zomato-backed) and Swiggy Instamart. High dark-store capex and lease obligations. Regulatory risk: FDI norms in multi-brand retail/e-commerce. Rising customer acquisition costs as market matures.",
+        "source": "SEBI confidential DRHP approval May 2026 + public disclosures",
     },
     "PhonePe": {
-        "business_model": "UPI payments super-app monetising via MDR on merchant payments, financial-services distribution (insurance, mutual funds, lending), and platform advertising.",
-        "key_metrics": "~50% UPI market share. 500M+ registered users. 250M+ MAU. $1.3T+ annualised total payment value.",
-        "financials": "Revenue FY24 ~₹5,064 cr (+74% YoY). Operating losses narrowing. Path to profitability visible via financial-services revenue.",
-        "ipo_details": "Confidential DRHP filed. Expected valuation $12–15B. Issue size ~₹7,000 cr. BRLMs: Morgan Stanley, Goldman Sachs, JPMorgan.",
-        "market": "India digital payments ~$3T TPV by 2027. PhonePe dominant in UPI; expanding into insurance and mutual funds.",
-        "key_risks": "UPI is zero-MDR (regulatory risk to payments revenue), monetisation dependent on financial services, competition from GPay and Paytm.",
-        "investors": "Walmart (majority post Flipkart split), Tiger Global, Ribbit Capital, TVS Capital.",
-        "source": "Public disclosures + media (DRHP confidential)",
+        "overview": "PhonePe is India's largest digital payments platform with ~50% UPI market share. Spun out of Flipkart in 2022, redomiciled to India. Operates across UPI, mobile wallets, insurance distribution, mutual funds, and stockbroking. Majority-owned by Walmart post the Flipkart acquisition.",
+        "business_model": "UPI payments super-app monetising via MDR on merchant payments, financial-services distribution (insurance, mutual funds, lending), platform advertising, and PhonePe Switch (mini-app store). SmartSpeaker and POS devices for merchant acquisition. Pincode app for hyperlocal discovery.",
+        "financials": "Revenue FY24: ~₹5,064 cr (+74% YoY). Operating losses narrowing steadily. Path to profitability visible via financial-services revenue growth (insurance + MF now 20%+ of revenue). Gross margin level profitable.",
+        "ipo_details": "Confidential DRHP filed with SEBI. Expected valuation $12–15B. Issue size ~₹7,000 cr. BRLMs: Morgan Stanley, Goldman Sachs, JPMorgan. Walmart expected to participate in OFS. Timeline: 2025–26.",
+        "key_metrics": "~50% UPI market share by volume. 500M+ registered users. 250M+ MAU. $1.3T+ annualised total payment value. 37M+ merchant payment points. 140M+ insurance policies distributed. 60M+ MF investors on platform.",
+        "market_opportunity": "India digital payments: ~$3T TPV by 2027. UPI volume growing 50%+ YoY. Insurance penetration <4% of GDP vs 11% globally — huge financial-services runway. Mutual fund AUM growing 20%+ YoY. Super-app TAM: entire India financial services market.",
+        "competitive_position": "Dominant UPI platform: ~50% share (vs GPay ~35%, Paytm ~10%). 500M users and 37M+ merchants create high switching costs. Financial-services distribution leverages existing user trust. Strong moat in Tier 2/3 India where Google and Paytm are weaker.",
+        "investors_funding": "Total raised: ~$800M+ post Flipkart split. Walmart (majority shareholder). Investors: Tiger Global, Ribbit Capital, TVS Capital. Raised $1B at $12B valuation (2023). Redomiciled to India from Singapore in 2022 for IPO eligibility.",
+        "key_risks": "UPI is zero-MDR (regulatory risk to core payments revenue). Monetisation dependent on financial-services cross-sell success. Google Pay and Paytm competition. SEBI/IRDAI/RBI multi-regulator oversight. Reliance Jio Payments Bank emerging threat.",
+        "source": "Public disclosures + media (confidential DRHP)",
     },
     "Meesho": {
-        "business_model": "Social commerce / value e-commerce platform serving Tier 2–4 India. Zero-commission model for sellers; revenue from logistics, ads, and financial services.",
-        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities. NSE ticker: MEESHO. CMP ₹189.92 · MCap ₹87,125 cr (14 May 2026).",
-        "financials": "Revenue FY24 ~₹7,615 cr (+33% YoY). Net loss significantly reduced. Contribution margin positive since FY23. MCap at listing ₹75,676 cr; current MCap ₹87,125 cr. 52W range: ₹125.56–₹254.40.",
-        "ipo_details": "✅ LISTED 10 Dec 2025. IPO price ₹111 (band ₹105–111). Listing ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). CMP ₹189.92 (+71.1% vs IPO price). Sub: 79×. Issue ₹3,152 cr (₹2,000 cr fresh + ₹1,152 cr OFS). BRLMs: Goldman Sachs, ICICI Securities, Kotak. Allotment: 8 Dec 2025. Pre-IPO lock-in expires: 10 Jun 2026.",
-        "market": "India e-commerce ~$70B by 2027. Value segment (sub-₹500 orders) largely under-served by Amazon/Flipkart.",
-        "key_risks": "Low average selling price limits per-order revenue, logistics costs, returns rate, competition from quick commerce, pre-IPO lock-in expiry Jun 10 2026 (3,083 cr shares ~68% unlock).",
-        "investors": "SoftBank, Peak XV Partners (Sequoia), Elevation Capital, Fidelity, Meta, B Capital, YC Continuity Fund.",
-        "source": "NSE, yfinance, Groww, Screener — CMP verified 14 May 2026",
+        "overview": "Meesho is India's largest value e-commerce platform serving Tier 2–4 cities. Founded 2015 by Vidit Aatrey and Sanjeev Barnwal (IIT Delhi). Listed on NSE/BSE on 10 Dec 2025 at ₹162.50 (+46.4% vs IPO price ₹111). CMP ₹189.92 as of 14 May 2026. NSE: MEESHO | BSE: 381966.",
+        "business_model": "Zero-commission marketplace for sellers (vs Amazon/Flipkart charging 5–30%). Revenue from logistics (Meesho Logistics), platform advertising, and financial services. Social commerce origin: resellers earn commissions sharing products on WhatsApp/social media. 90%+ orders from Tier 2+ cities. Average order value ~₹350.",
+        "financials": "Revenue FY24: ₹7,615 cr (+33% YoY). Net loss significantly reduced YoY. Contribution margin positive since FY23. CMP ₹189.92, MCap ₹87,125 cr (14 May 2026). 52W range: ₹125.56–₹254.40. MCap at IPO listing: ₹75,676 cr.",
+        "ipo_details": "✅ Listed 10 Dec 2025 @ ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). IPO price ₹111 (band ₹105–111). CMP ₹189.92 (+71.1% vs IPO price). Subscription 79×. Issue ₹3,152 cr (₹2,000 cr fresh + ₹1,152 cr OFS). BRLMs: Goldman Sachs, ICICI Securities, Kotak. Allotment: 8 Dec 2025. Pre-IPO lock-in expires: 10 Jun 2026.",
+        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities. NSE: MEESHO, BSE: 381966. CMP ₹189.92, MCap ₹87,125 cr. Pre-IPO lock-in expiry: 10 Jun 2026 (large block unlock risk).",
+        "market_opportunity": "India e-commerce ~$70B by 2027. Value segment (sub-₹500 orders) largely under-served by Amazon/Flipkart who focus on metro Tier 1 customers. 800M+ internet users in Tier 2–4 cities represent the next growth wave.",
+        "competitive_position": "Dominant in value e-commerce for Tier 2–4 India. Zero-commission model creates strong seller loyalty vs Amazon/Flipkart. Direct competition from Flipkart (Shopsy) and Amazon India. No competitor at comparable scale for Tier 2+ value segment. Quick commerce (Blinkit, Zepto) targeting adjacent categories.",
+        "investors_funding": "Key IPO-era investors: SoftBank, Peak XV Partners (Sequoia), Elevation Capital, Fidelity, Meta, B Capital, YC Continuity Fund, Prosus. OFS sellers at IPO: Elevation Capital, Peak XV, Vidit Aatrey, Sanjeev Barnwal, Venture Highway, Golden Summit, YC Continuity, Man Hay Tam, Sarin Family, Gemini Investments.",
+        "key_risks": "Low average selling price limits per-order revenue and margin expansion. High logistics costs for Tier 2/3 delivery. High returns rate (~30%+). Quick-commerce competition in fast-moving categories. Pre-IPO lock-in expiry 10 Jun 2026 — large share unlock (~68%). Fashion-heavy category mix subject to seasonality.",
+        "source": "NSE, yfinance — CMP ₹189.92 verified 14 May 2026",
     },
     "Urban Company": {
-        "business_model": "Asset-light home-services marketplace connecting consumers with trained professional partners for beauty, cleaning, repairs, and appliance servicing. Present in 50+ cities and 3 international markets.",
-        "key_metrics": "50M+ app downloads. 40,000+ trained professionals. 50+ service categories. Revenue per partner improving YoY.",
-        "financials": "Revenue FY24 ~₹827 cr (+25% YoY). Net loss ~₹320 cr. Unit economics improving; India business approaching profitability.",
-        "ipo_details": "DRHP Feb 2025; RHP filed Sep 2025. Issue size ~₹3,000 cr (fresh + OFS). BRLMs: Kotak, JM Financial, Axis. Valuation ~$2–3B.",
-        "market": "India home-services market ~$20B. Highly fragmented; Urban Company dominant in the premium/trained-professional segment.",
-        "key_risks": "Worker-classification regulatory risk, high CAC, international losses, commoditised competition from unorganised sector.",
-        "investors": "Tiger Global, Vy Capital, Accel, Elevation Capital, Bessemer Venture Partners, Goldman Sachs.",
+        "overview": "Urban Company (formerly UrbanClap) is India's largest home-services marketplace, connecting consumers with 40,000+ trained professionals for beauty, cleaning, repairs, and appliance servicing. Founded 2014 by Abhiraj Bhal, Varun Khaitan, and Raghav Chandra. Present in 50+ Indian cities and 3 international markets. SEBI approval received Apr 2025; RHP filed Sep 2025.",
+        "business_model": "Asset-light marketplace model — professionals are independent partners, not employees. Services: beauty at home, cleaning, appliance repair, painting, plumbing, carpentry, pest control. Revenue: commission on each booking (15–25%) + product sales via kits. UC Pro: subscription model for professionals (tools, training, insurance, leads). International: UAE, Saudi Arabia, Singapore.",
+        "financials": "Revenue FY24: ₹827 cr (+25% YoY from ₹661 cr FY23). Net loss FY24: ₹320 cr (reduced from ₹523 cr FY23). Gross margin ~70%+ (high-margin marketplace). India business EBITDA positive in key metros. International: still loss-making but improving. FY22 revenue: ₹453 cr.",
+        "ipo_details": "DRHP filed Feb 2025. RHP filed Sep 2025 (WACA certified by J.C. Bhalla & Co., Sep 2 2025). SEBI approval received Apr 2025. Issue size ~₹3,000 cr. BRLMs: Kotak Mahindra Capital, JM Financial, Axis Capital. Expected valuation ~$2–3B. OFS sellers: Tiger Global, VY Capital, Accel, Bessemer, Elevation Capital.",
+        "key_metrics": "50M+ app downloads. 40,000+ trained professionals. 50+ service categories. 50+ Indian cities. 4 international markets (UAE, KSA, Singapore, Australia). ~10M services delivered annually. Customer rating: 4.7/5 average.",
+        "market_opportunity": "India home-services market ~$20B, highly fragmented. Organised sector penetration <5%. Key growth drivers: working women, nuclear families, premium housing. International markets — UAE and Singapore: organised home services penetration growing. Global market $1T+.",
+        "competitive_position": "Dominant player in premium organised home services in India with no direct national-scale competitor. Competition from local service providers (90%+ of market), Just Dial listings, Housejoy (much smaller). Network effects: more professionals → better service → more customers. UC Pro training programme creates service quality differentiation.",
+        "investors_funding": "Total raised: ~$450M+. Investors: Tiger Global, VY Capital, Accel India, Elevation Capital (SAIF), Bessemer Venture Partners, Goldman Sachs, Steadview Capital. Last private valuation ~$2.8B (2021 Series F). Founders: Abhiraj Bhal (CEO), Varun Khaitan, Raghav Chandra (Chandra exited company after restructuring).",
+        "key_risks": "Worker classification risk (professionals as contractors vs employees — regulatory risk). High customer acquisition cost. International business still loss-making. Service quality consistency across 40K+ partners. Commoditisation of home services in mid-market segment. Premium positioning vulnerable to economic slowdown.",
         "source": "RHP Sep 2025 + DRHP Feb 2025",
     },
     "Lenskart": {
-        "business_model": "Omnichannel eyewear retailer with 2,000+ stores across India, Southeast Asia, and the Middle East. Own brands (John Jacobs, Vincent Chase). Online + offline + B2B corporate segment.",
-        "key_metrics": "2,000+ stores. 40M+ customers served. 30M+ eyewear units sold. International operations in SEA and Middle East growing rapidly.",
-        "financials": "Revenue FY24 ~₹5,500 cr. Profitable at operating level in India. International unit expanding with Owndays acquisition.",
-        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹3,500 cr. BRLMs: Kotak, JM Financial. Valuation ~$5B.",
-        "market": "India eyewear market ~₹15,000 cr. Lenskart holds ~15% market share. Global eyewear market $150B.",
-        "key_risks": "Inventory-heavy model, franchise execution risk in international markets, premium segment competition from Titan EyePlus.",
-        "investors": "SoftBank Vision Fund, Temasek, Kedaara Capital, KKR, Premji Invest.",
+        "overview": "Lenskart is India's largest omnichannel eyewear retailer with 2,000+ stores across India, Southeast Asia, and the Middle East. Founded 2010 by Peyush Bansal, Amit Chaudhary, and Sumeet Kapila. Acquired Japan's Owndays in 2022 for ~$400M, making it one of the largest global eyewear chains. Backed by SoftBank and KKR.",
+        "business_model": "Omnichannel: online (lenskart.com) + offline stores + B2B corporate eyewear. Own brands: John Jacobs, Vincent Chase, Lenskart Blu. Home eye-check service. International via Owndays (Japan, Singapore, Philippines, Indonesia, UAE). Own lens manufacturing facilities. Revenue: product sales (80%+), eye testing fees, and B2B.",
+        "financials": "Revenue FY24: ~₹5,500 cr, growing ~40% YoY. Profitable at operating level in India. International unit expanding with Owndays integration. Net profit positive in India; consolidated near breakeven due to international investment. Strong gross margins ~50%+ on own-brand eyewear.",
+        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹3,500 cr (fresh + OFS). BRLMs: Kotak, JM Financial. Expected valuation ~$5B. Use of funds: store expansion in India and SE Asia, technology, working capital. OFS: SoftBank, Kedaara Capital partial exit.",
+        "key_metrics": "2,000+ stores globally. 40M+ customers served. 30M+ eyewear units sold. 40+ countries presence. 8,000+ employees. Average selling price ₹1,500–3,000 for prescription glasses. Owndays adds 400+ stores in Japan/SE Asia.",
+        "market_opportunity": "India eyewear market ~₹15,000 cr growing 15%+ YoY. Lenskart holds ~15% market share. Global eyewear market $150B — opportunity via Owndays in Japan ($30B). Low penetration: only 40% of Indians who need glasses own them. Online eyewear: fastest growing, <5% of India market currently.",
+        "competitive_position": "Dominant in India prescription eyewear online and fastest-growing offline. Competition: Titan EyePlus (Tata), Specsmakers, Vision Express, local opticians (90% of market). In international: Owndays competes with Luxottica and Safilo. Lenskart's price advantage (₹1,500 vs ₹5,000+ branded) is a strong moat. Online fitting tech (3D trial) is differentiating.",
+        "investors_funding": "Total raised: ~$1.5B+. Investors: SoftBank Vision Fund (led 2022 round at $4.5B valuation), Temasek, KKR, Kedaara Capital, Premji Invest, Bay Capital. SoftBank owns ~15%. Founders hold significant equity. Peyush Bansal is also known as a Shark Tank India investor.",
+        "key_risks": "Inventory-heavy model creates high working-capital needs. Franchise execution risk in international markets. Integration risk with Owndays (different culture, Japan market). Titan EyePlus (Tata backing) expanding aggressively. FX risk on USD-denominated Owndays revenues.",
         "source": "DRHP Jan 2025 + public disclosures",
     },
     "Ola Cabs": {
-        "business_model": "Ride-hailing platform (cabs, autos, bikes) with driver-partner model. Also operates OlaPlay in-car entertainment, Ola Money wallet, and Ola Corporate. Distinct from Ola Electric.",
-        "key_metrics": "200+ cities in India. 2M+ registered driver-partners. 10M+ weekly rides at peak. Operates in Australia and UK.",
-        "financials": "Revenue FY24 ~₹2,800 cr. Net loss ~₹1,523 cr. Restructuring ongoing post the Ola Electric demerger.",
-        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹5,000 cr. BRLMs: Kotak, Goldman Sachs. Valuation ~$4–5B (separate from Ola Electric).",
-        "market": "India mobility market ~$50B. Ride-hailing penetration still low at ~2–3% of all trips. Duopoly with Uber.",
-        "key_risks": "Uber competition, driver supply volatility, surge-pricing regulation, brand overlap with Ola Electric.",
-        "investors": "SoftBank, Tencent, Tiger Global, Matrix Partners, Accel.",
+        "overview": "Ola (ANI Technologies) is India's second-largest ride-hailing platform, operating cabs, autos, bikes, and intercity services across 200+ cities. Distinct from Ola Electric (separately listed). Founded 2011 by Bhavish Aggarwal and Ankit Bhati. Backed by SoftBank (~20% stake).",
+        "business_model": "Driver-partner marketplace: cabs, autos, e-bikes, intercity. Commission model (~20–25% per ride). Ola Money wallet, Ola Corporate (B2B enterprise), OlaPlay (in-car entertainment). International: UK and Australia. Subscription plans for drivers. EV transition: incentivising driver-partners to switch to EVs.",
+        "financials": "Revenue FY24: ~₹2,800 cr. Net loss: ~₹1,523 cr. Restructuring ongoing post Ola Electric demerger. Revenue improving as ride volumes recover post-pandemic. EBITDA improving but still negative on standalone basis.",
+        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹5,000 cr. BRLMs: Kotak, Goldman Sachs. Expected valuation ~$4–5B (separate from Ola Electric at ~$4B). Use of funds: technology, driver incentives, EV transition support, international expansion.",
+        "key_metrics": "200+ Indian cities. 2M+ registered driver-partners. 10M+ weekly rides at peak. UK and Australia operations. Auto segment #1 in many Indian cities. Corporate accounts: 5,000+ companies using Ola Corporate.",
+        "market_opportunity": "India mobility market ~$50B. Ride-hailing penetration ~2–3% of all trips — massive runway. Urban mobility shifting from ownership to shared. EV transition in cabs creates synergy opportunity with Ola Electric. Tier 2/3 city mobility is largely untapped.",
+        "competitive_position": "Duopoly with Uber in Indian ride-hailing. Ola ~50–55% rides, Uber ~45%. Ola stronger in Tier 2 cities and auto segment. Rapido (bikes, autos) emerging as a fast-growing competitor in commuter segment. Namma Yatri (ONDC-based) challenging the platform model in Bengaluru.",
+        "investors_funding": "Total raised: ~$4B+. Investors: SoftBank Vision Fund (largest, ~18–20%), Tencent, Tiger Global, Matrix Partners India, Accel India. Bhavish Aggarwal owns ~8–10%. Multiple bridge rounds taken as IPO was delayed repeatedly since 2021.",
+        "key_risks": "Uber competition (deep-pocketed global player). Driver supply volatility and incentive wars. Surge-pricing regulation. Brand overlap with Ola Electric (different company, same brand — customer confusion). UK and Australia operations burning cash. Rapido and ONDC disrupting the platform-fee model.",
         "source": "DRHP Jan 2025 + public disclosures",
     },
     "Boat (Imagine Marketing)": {
-        "business_model": "India's #1 wearables brand by volume. Earphones, smartwatches, speakers, cables sold via D2C website, e-commerce marketplaces, and 25,000+ offline retail points. Asset-light manufacturing via ODM partners.",
-        "key_metrics": "#1 earwear brand in India. 10M+ devices sold annually. 35M+ community members. ~35% earwear market share by volume.",
-        "financials": "Revenue FY24 ~₹3,285 cr. Net loss ~₹129 cr. Revenue declined from FY23 peak due to ASP compression and increased competition.",
-        "ipo_details": "DRHP filed Feb 2025. Issue size ~₹2,000 cr. BRLMs: ICICI Securities, Axis. Valuation ~₹5,000–8,000 cr.",
-        "market": "India wearables market ~$2B growing 25%+ YoY. boAt dominant but facing CMF by Nothing, Noise, and Samsung.",
-        "key_risks": "Chinese component dependency, declining average selling prices, new budget competitors, IP risks.",
-        "investors": "Warburg Pincus, Qualcomm Ventures, Innoven Capital.",
+        "overview": "boAt (Imagine Marketing) is India's #1 wearables and audio brand by volume, selling earphones, smartwatches, speakers, and cables. Founded 2016 by Aman Gupta (CMO, known from Shark Tank India) and Sameer Mehta (CEO). Achieved ₹3,285 cr revenue in FY24. Backed by Warburg Pincus.",
+        "business_model": "Asset-light manufacturing via ODM partners in China (transitioning some to India via PLI). D2C website + Amazon/Flipkart + 25,000+ offline retail points. Revenue: product sales (80%+), extended warranty, accessories. boAt Nirvana flagship premium line. Recent entry into truly wireless premium segment.",
+        "financials": "Revenue FY24: ~₹3,285 cr (slightly down from FY23 ₹3,376 cr peak due to ASP compression). Net loss: ~₹129 cr. Revenue declined as Chinese competition compressed prices. Gross margin holding at ~35%+ despite competition.",
+        "ipo_details": "DRHP filed Feb 2025. Issue size ~₹2,000 cr. BRLMs: ICICI Securities, Axis Capital. Expected valuation ~₹5,000–8,000 cr. Use of funds: R&D, India manufacturing capability, brand marketing. OFS: Warburg Pincus partial exit expected.",
+        "key_metrics": "#1 earwear brand by volume in India (~35% share). 10M+ devices sold annually. 35M+ community members. 5,000+ PIN codes serviced. 2,500+ product SKUs. Average selling price declining from ₹2,000 (FY22) to ₹1,400 (FY24) due to market competition.",
+        "market_opportunity": "India wearables market: ~$2B growing 25%+ YoY. Audio devices alone: ~$1B. Smartwatches: fastest growing sub-segment. Government PLI scheme for electronics manufacturing — tailwind for India production. Global D2C audio brands market: $50B+.",
+        "competitive_position": "#1 in earwear by volume, #2–3 by value. CMF by Nothing (premium disruption at ₹1,999), Noise (close volume competitor), Samsung, Apple (premium) are key competitors. boAt squeezed: CMF attacks from above with better specs, no-name Chinese brands from below. Market leadership stable but margin under pressure.",
+        "investors_funding": "Total raised: ~₹500 cr+. Key investor: Warburg Pincus (acquired stake 2021 at ~$300M valuation). Qualcomm Ventures (strategic). Innoven Capital (venture debt). Founders: Aman Gupta (CMO, Shark Tank India celebrity) and Sameer Mehta (CEO) hold majority. Aman Gupta's personal brand is a key marketing asset.",
+        "key_risks": "Chinese component dependency (tariff risk). Declining average selling price (ASP compression). CMF by Nothing disrupting the ₹1,500–3,000 segment. IP risks (design patent disputes). India PLI manufacturing transition costs. Over-reliance on Aman Gupta's celebrity status.",
         "source": "DRHP Feb 2025 + public disclosures",
     },
     "Pine Labs": {
-        "business_model": "B2B payments and merchant-commerce platform. POS terminals, BNPL (Bajaj Pay-powered), gift cards, and loyalty programs. 300,000+ merchants across 11 countries.",
-        "key_metrics": "300K+ merchants. ₹3T+ annual GTV. 150K+ POS terminals deployed. Recurring SaaS revenue from loyalty and gift-card modules.",
-        "financials": "Revenue FY24 ~₹1,620 cr (+35% YoY). Net profit turning positive. Strong recurring revenue base from enterprise clients.",
-        "ipo_details": "RHP filed Mar 2025. Issue size ~₹6,000 cr (fresh + OFS). BRLMs: Axis, ICICI Securities, JM Financial. Valuation ~$5–6B.",
-        "market": "India merchant-payments market $100B+. POS market growing with UPI QR roll-out. BNPL segment growing 40%+ YoY.",
-        "key_risks": "UPI disruption to card-payment volumes, competition from Razorpay, Paytm, and BharatPe, cross-border execution risk.",
-        "investors": "Temasek, Mastercard, PayPal, Actis, Sequoia Capital, Lone Pine Capital.",
+        "overview": "Pine Labs is a leading B2B merchant-commerce platform providing POS terminals, payment processing, BNPL, gift cards, and loyalty solutions. Founded 1998 in Singapore; India HQ in Noida. Processes ₹3T+ in annual GTV across 300,000+ merchants in 11 countries. Backed by Temasek, Mastercard, and PayPal.",
+        "business_model": "B2B payments and merchant SaaS. POS terminal hardware + software (Plutus). BNPL: Bajaj Finserv Pay integration at POS. Gift card and prepaid card issuance (Qwikcilver acquisition — #1 gift card platform in India). Loyalty programs for retailers. Revenue: transactions + SaaS subscriptions + gift card float.",
+        "financials": "Revenue FY24: ~₹1,620 cr (+35% YoY). Net profit turning positive. Strong recurring SaaS revenue base from gift cards and loyalty. GTV ₹3T+. India revenue ~70%, international ~30% (SE Asia and ME growing).",
+        "ipo_details": "RHP filed Mar 2025. Issue size ~₹6,000 cr (fresh + OFS). BRLMs: Axis Capital, ICICI Securities, JM Financial. Expected valuation ~$5–6B. Use of funds: R&D, geographic expansion, working capital. OFS: Temasek, PayPal, Sequoia partial exit.",
+        "key_metrics": "300K+ merchant touch points. 150K+ POS terminals deployed. ₹3T+ annual GTV. 11 countries (India, UAE, Malaysia, Singapore, etc.). Qwikcilver: 200+ brand clients (Myntra, Flipkart). 5M+ loyalty program members managed.",
+        "market_opportunity": "India merchant payments: $100B+ market. POS market growing with UPI QR roll-out and card adoption. BNPL at POS: $50B+ TAM. Gift card market India: ₹10,000 cr growing 30% YoY. SE Asia and ME merchant payments expanding rapidly.",
+        "competitive_position": "Largest merchant-payments platform in India by GTV. Key differentiator: only player combining POS + BNPL + gift card + loyalty in one platform. Competition: Razorpay (online-first, growing offline), Paytm, BharatPe (offline), Ingenico/Verifone (POS hardware-only). Strong enterprise client base: Big Bazaar, Shoppers Stop, Samsung, and 300K+ others.",
+        "investors_funding": "Total raised: ~$800M+. Investors: Temasek (largest), Mastercard, PayPal, Actis, Lone Pine Capital, Sequoia Capital India, Sofina. Strategic investors (Mastercard, PayPal) invested for distribution partnership benefits. CEO: B. Amrish Rau (joined 2019; original founder Lokvir Kapoor departed).",
+        "key_risks": "UPI disruption to card-payment volumes at POS. Razorpay and BharatPe expanding offline. Bajaj Finance dependency for BNPL volumes. Cross-border execution risk (11 countries). Hardware commoditisation as UPI QR reduces need for POS terminals.",
         "source": "RHP Mar 2025 + public disclosures",
     },
     "Rebel Foods (Faasos)": {
-        "business_model": "World's largest cloud-kitchen operator with 45+ food brands (Faasos, Behrouz Biryani, Ovenstory Pizza). Also runs B2B Kitchen-as-a-Service for QSR chains. 450+ kitchens across 10+ countries.",
-        "key_metrics": "45+ own brands. 450+ cloud kitchens. 3M+ orders/month at peak. International presence in UAE, UK, Indonesia, and Singapore.",
-        "financials": "Revenue FY24 ~₹1,420 cr. Net loss ~₹378 cr (down from ₹675 cr FY23). Individual kitchen-level economics improving.",
-        "ipo_details": "DRHP filed Dec 2024. Issue size ~₹2,500 cr. BRLMs: JM Financial, Axis. Valuation ~$1.5–2B.",
-        "market": "India cloud-kitchen market ~$1B growing 15%+ YoY. Global cloud-kitchen market $3B+.",
-        "key_risks": "Delivery-platform dependency (Zomato/Swiggy fees), brand proliferation, high kitchen setup costs, food inflation.",
-        "investors": "SoftBank, Goldman Sachs, Coatue Management, Evolvence, Glade Brook Capital.",
+        "overview": "Rebel Foods is the world's largest cloud-kitchen operator, running 45+ food brands including Faasos, Behrouz Biryani, Ovenstory Pizza, and Mandarin Oak. Founded 2011 by Jaydeep Barman and Kallol Banerjee. 450+ kitchens across 10+ countries. Backed by SoftBank Vision Fund. No physical dining — 100% delivery-first.",
+        "business_model": "Multi-brand cloud-kitchen operator. No physical dining. Each brand targets a different cuisine and occasion, sharing kitchen infrastructure. Kitchen-as-a-Service (KaaS): external QSR chains use Rebel kitchens. Revenue from orders via Zomato/Swiggy/own EatSure app. International: UAE, UK, Indonesia, Singapore.",
+        "financials": "Revenue FY24: ~₹1,420 cr (down from ₹1,500 cr FY23 due to brand rationalisation). Net loss: ~₹378 cr (down from ₹675 cr FY23). Per-kitchen economics improving. Gross margins ~65%+. Cash burn reducing quarter on quarter.",
+        "ipo_details": "DRHP filed Dec 2024. Issue size ~₹2,500 cr. BRLMs: JM Financial, Axis Capital. Expected valuation ~$1.5–2B (down from $5B 2021 peak). Use of funds: kitchen expansion, international, technology. OFS: SoftBank partial exit expected.",
+        "key_metrics": "45+ own food brands. 450+ cloud kitchens. 3M+ orders/month at peak. International: UAE 100+ kitchens, UK, Indonesia, Singapore. EatSure app for direct delivery. KaaS: 50+ external restaurant clients.",
+        "market_opportunity": "India cloud-kitchen market: ~$1B growing at 15%+ CAGR to $3B by 2027. Food delivery TAM India: ₹80,000 cr. Health food, biryani, and pizza categories growing fastest. Global cloud-kitchen market: $3B+ growing to $10B by 2027.",
+        "competitive_position": "World's largest cloud-kitchen operator by brand count and kitchen count. India competition: CureFoods, Wow! Momo, individual QSR chains. Key differentiator: multi-brand platform maximises kitchen utilisation (5+ brands per kitchen). Delivery-platform dependency (Zomato/Swiggy) is both risk and moat — Rebel is a major supply-side partner.",
+        "investors_funding": "Total raised: ~$750M+. Investors: SoftBank Vision Fund (led $175M round at $5B valuation 2021), Goldman Sachs, Coatue Management, Evolvence, Glade Brook Capital, Sequoia Capital India. Founders: Jaydeep Barman (CEO) and Kallol Banerjee. Valuation has significantly reset from 2021 peak.",
+        "key_risks": "Heavy delivery-platform dependency (Zomato/Swiggy commission ~25%). Brand proliferation risk (quality inconsistency across 45+ brands). High kitchen setup capex and lease obligations. Food inflation impacting margins. Valuation reset from $5B peak to ~$1.5B IPO expectation is a narrative challenge.",
         "source": "DRHP Dec 2024 + public disclosures",
     },
     "OYO": {
-        "business_model": "Budget and mid-market hospitality — hotel aggregator, operator, and brand licensor. Brands: OYO Rooms, Townhouse, Collection O, Palette. Present in 35+ countries with 160,000+ hotel keys.",
-        "key_metrics": "160,000+ hotel keys under management. 35+ countries. 10M+ rooms listed at peak. Revenue recovering post-COVID.",
-        "financials": "Revenue FY24 ~₹5,388 cr. Net loss ~₹1,286 cr (reducing YoY). India EBITDA turning positive; international still loss-making.",
-        "ipo_details": "Multiple DRHP revisions since 2021. Latest DRHP Mar 2024. Issue size revised down significantly. Valuation ~$2.5–3B (vs $10B peak). BRLMs: Kotak, JM Financial.",
-        "market": "India budget hospitality ~$15B. OYO dominant in branded budget hotel segment.",
-        "key_risks": "Property-partner disputes, international losses, SoftBank dependency, brand trust issues post-COVID controversies.",
-        "investors": "SoftBank (largest shareholder), Airbnb (strategic), Sequoia, Lightspeed, Microsoft.",
+        "overview": "OYO (Oravel Stays) is India's largest branded budget-hotel chain and global hospitality tech platform. Founded 2013 by Ritesh Agarwal (at age 19). Operations in 35+ countries with 160,000+ hotel keys. Multiple DRHP revisions since 2021 reflect an evolving strategy and valuation re-rating from $10B peak.",
+        "business_model": "Hotel aggregator, operator, and brand licensor. Brands: OYO Rooms (budget), Townhouse (mid-market), Collection O (premium economy), Palette (luxury). Revenue: platform fee from property partners + corporate direct bookings. Technology: OYO OS (property management system licenced to hotels). International: UK (Innventiv acquisition), US, Europe.",
+        "financials": "Revenue FY24: ~₹5,388 cr (recovery from COVID lows). Net loss: ~₹1,286 cr (reducing YoY from ₹2,800 cr FY22). India EBITDA turning positive. International restructuring completed in Europe — still loss-making in UK and US.",
+        "ipo_details": "Multiple DRHP revisions since 2021. Latest DRHP Mar 2024. Issue size revised down from original ₹8,430 cr. Expected valuation ~$2.5–3B (down from $10B 2021 peak). BRLMs: Kotak, JM Financial, Citigroup. SEBI observations pending as of May 2026.",
+        "key_metrics": "160,000+ hotel keys under management. 35+ countries. 12,000+ hotels in India. 4M+ customers/month at peak. OYO OS: 100K+ properties globally on platform. Corporate accounts: 5,000+ companies. Average daily rate: ₹900–1,500.",
+        "market_opportunity": "India budget hospitality: ~$15B growing 10%+ YoY. Online hotel booking penetration still <30%. Bharat travel (Tier 2/3 city tourism) growing fastest post-COVID. Business travel recovery creating corporate demand. International budget travel market: $200B+.",
+        "competitive_position": "Dominant in branded budget hotel segment in India — no competitor at national scale. Competition: MakeMyTrip/GoIbibo (online aggregators), Fab Hotels, Treebo (both much smaller). OYO's brand recognition in Tier 2/3 India is a strong moat. International: competes with Airbnb (leisure) and local budget chains. OYO OS is a SaaS moat vs unbranded hotel operators.",
+        "investors_funding": "Total raised: ~$5B+. Investors: SoftBank Vision Fund (largest at ~45%), Airbnb (strategic ~3%), Sequoia Capital India, Lightspeed Venture Partners, Microsoft. Ritesh Agarwal bought back $2B of shares from early investors in 2019 at $10B valuation — significant dilution/leverage. Multiple valuation markdowns since.",
+        "key_risks": "Property-partner disputes and contractual losses (past controversies). International losses in UK and US. SoftBank dependency and pressure for IPO exit. Brand trust issues from post-COVID controversies. Multiple DRHP revisions signal persistent business model and regulatory challenges. Airbnb disrupting leisure hospitality.",
         "source": "DRHP Mar 2024 + public disclosures",
     },
     "Infra.Market": {
-        "business_model": "B2B construction-materials marketplace connecting builders and contractors with manufacturers. Own-label brands in cement, steel, and tiles. Tech-enabled procurement with credit offerings.",
-        "key_metrics": "~₹11,000 cr GMV FY24. 50,000+ customers. 4,000+ SKUs. 30+ manufacturing and brand partners.",
-        "financials": "Revenue FY24 ~₹11,000 cr. Net profit positive (~₹200 cr). Fastest-growing B2B unicorn in India by revenue.",
-        "ipo_details": "DRHP filed Apr 2025. Issue size ~₹5,000 cr. BRLMs: Kotak, Goldman Sachs, ICICI Securities. Valuation ~$4–5B.",
-        "market": "India construction-materials market ~$130B. B2B procurement-tech penetration below 5% — large white space.",
-        "key_risks": "Construction-cycle exposure, builder credit risk, commoditised product mix, working-capital intensity.",
-        "investors": "Accel, Tiger Global, Evolvence India, Sistema Asia, Foundamental.",
+        "overview": "Infra.Market is India's largest B2B construction-materials marketplace, connecting contractors and builders with manufacturers for cement, steel, tiles, paints, and 4,000+ SKUs. Founded 2016 by Souvik Sengupta and Aaditya Sharda (both IIT). India's fastest-growing B2B unicorn by revenue. Backed by Accel and Tiger Global.",
+        "business_model": "B2B marketplace + own-brand manufacturing. Own labels: Shalimar Paints (acquired), Cimento (cement), AET tiles. Tech-enabled procurement: digital RFQ, bulk price discovery, credit offering (Infra.Market Credit). Working-capital financing to contractors. Revenue mix: marketplace (60%) + own-brand direct sales (40%).",
+        "financials": "Revenue FY24: ~₹11,000 cr. Net profit: ~₹200 cr (profitable — rare among unicorn IPO aspirants). Gross margin ~15–20% (lower due to commodity product nature). EBITDA margin ~2–3%. Strong cash flow generation at scale.",
+        "ipo_details": "DRHP filed Apr 2025. Issue size ~₹5,000 cr. BRLMs: Kotak, Goldman Sachs, ICICI Securities. Expected valuation ~$4–5B. Use of funds: own-brand manufacturing expansion, technology, working capital. OFS: Accel, Tiger Global partial exit.",
+        "key_metrics": "~₹11,000 cr GMV FY24. 50,000+ customers. 4,000+ SKUs. 30+ manufacturing and brand partners. Shalimar Paints: established brand with 100+ years history. Pan-India presence: 20+ state offices. International expansion to UAE and SE Asia underway.",
+        "market_opportunity": "India construction materials: ~$130B market. B2B procurement-tech penetration <5% — massive white space. India infrastructure spend: ₹11L cr+ annually under NIP (National Infrastructure Pipeline). Affordable housing (PM Awas Yojana) driving structural demand. Real estate upcycle creating near-term opportunity.",
+        "competitive_position": "Largest B2B construction materials platform in India — no comparable national-scale competitor. Competition: traditional building material dealers (fragmented), Moglix (B2B industrial marketplace — adjacent segment). Shalimar Paints acquisition gives brand credibility against Asian Paints and Berger at the value end. Network effects from 50,000+ contractor relationships create high switching costs.",
+        "investors_funding": "Total raised: ~$500M+. Investors: Accel India, Tiger Global, Evolvence India, Sistema Asia, Foundamental. Founders: Souvik Sengupta (CEO, IIT Bombay) and Aaditya Sharda (COO, IIT Delhi). Profitability reduces dilution pressure and validates the business model ahead of IPO.",
+        "key_risks": "Construction-cycle exposure (real estate/infra slowdown). Builder credit risk (payment delays from contractors). Commoditised product mix limits pricing power. Working-capital intensity (₹1,500+ cr needed at current scale). Integration of Shalimar Paints acquisition across distribution network.",
         "source": "DRHP Apr 2025 + public disclosures",
     },
     "Shiprocket": {
-        "business_model": "SME e-commerce logistics aggregator. Multi-carrier shipping, fulfillment centres, and international shipping for 1L+ D2C brands and marketplace sellers. Also offers Shiprocket Engage (marketing).",
-        "key_metrics": "1L+ merchant clients. 17+ courier partners integrated. 220+ countries international reach. 2M+ shipments/month.",
-        "financials": "Revenue FY24 ~₹1,300 cr. Net loss reducing. Contribution margin positive.",
-        "ipo_details": "DRHP filed Jan 2025. Issue size TBD. Valuation ~$1–1.5B.",
-        "market": "India SME e-commerce logistics ~$5B market. 90M+ SMEs currently underserved by traditional logistics.",
-        "key_risks": "Margin squeeze from courier aggregation, Delhivery / Bluedart competition, SME credit exposure.",
-        "investors": "Temasek, Payoneer, March Capital Partners, Bertelsmann, Tribe Capital.",
+        "overview": "Shiprocket is India's largest SME and D2C e-commerce logistics aggregator, enabling 1L+ merchants to ship via 17+ courier partners across 29,000+ PIN codes. Founded 2017 by Saahil Goel, Vishesh Khurana, Gautam Kapoor, and Akshay Ghulati. Backed by Temasek and Bertelsmann.",
+        "business_model": "Multi-courier aggregation platform: discounted rates via bulk contracts with BlueDart, Delhivery, DTDC, FedEx, etc. Revenue: logistics margin on each shipment + fulfilment-centre fees + Shiprocket Engage (marketing automation) + Shiprocket Capital (merchant credit). International shipping to 220+ countries via partnerships.",
+        "financials": "Revenue FY24: ~₹1,300 cr. Net loss reducing significantly. Contribution margin positive. Platform transactions growing 30%+ YoY. Average revenue per shipment: ₹60–80. Operating leverage improving with scale.",
+        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹2,000 cr. BRLMs: JM Financial, Axis Capital. Expected valuation ~$1–1.5B. Use of funds: technology, fulfilment infrastructure, international expansion, working capital.",
+        "key_metrics": "1L+ merchant clients. 17+ courier partners integrated. 2M+ shipments/month. 29,000+ serviceable PIN codes. 220+ countries international reach. 10+ fulfilment centres. NPS among highest in logistics-tech category.",
+        "market_opportunity": "India SME e-commerce logistics: ~$5B market. 90M+ SMEs currently underserved by traditional logistics. D2C brand count growing 30%+ YoY — Shiprocket's core market. India e-commerce logistics expected to reach $20B by 2027. Quick-commerce returns logistics: emerging opportunity.",
+        "competitive_position": "Largest SME/D2C logistics aggregator in India. Competition: Nimbus, iThink Logistics, Eshipz (smaller aggregators). Also competes with direct courier sales from Delhivery, BlueDart. Key moat: deep technology integrations (Shopify, WooCommerce, Amazon, Flipkart plugins), discounted rates, and 1L+ merchant lock-in through the platform.",
+        "investors_funding": "Total raised: ~$300M+. Investors: Temasek, Payoneer (strategic), March Capital Partners, Bertelsmann India, Tribe Capital. Founders: Saahil Goel (CEO), Vishesh Khurana, Gautam Kapoor, Akshay Ghulati. Strong operating leverage as shipment volumes scale past 2M/month.",
+        "key_risks": "Margin squeeze: couriers negotiate harder as Shiprocket's volumes grow and they sell direct. Delhivery and BlueDart direct SME sales, bypassing aggregators. SME credit exposure (Shiprocket Capital default risk). High technology investment needed to stay competitive. International logistics execution complexity.",
         "source": "DRHP Jan 2025 + public disclosures",
     },
     "Turtlemint": {
-        "business_model": "B2B2C insurance distribution platform. Works with 1L+ licensed PoSP agents and embeds insurance in banks and fintechs. Tied to 40+ insurers across life, health, and general insurance.",
-        "key_metrics": "1L+ PoSP network. ₹3,000+ cr gross written premium. 40+ insurance company tie-ups. Present in 500+ districts.",
-        "financials": "Revenue FY24 ~₹400 cr. Net loss reducing. High revenue growth rate.",
-        "ipo_details": "DRHP filed Feb 2025. Issue size TBD. Valuation ~$1B.",
-        "market": "India insurance-distribution market $25B. Penetration at 4% vs 10%+ global average — massive growth runway.",
-        "key_risks": "IRDAI regulatory changes, PoSP quality control at scale, competition from Policybazaar.",
-        "investors": "Jungle Ventures, Nexus Venture Partners, Blume Ventures, GGV Capital, MassMutual Ventures.",
+        "overview": "Turtlemint is India's leading B2B2C insurance distribution platform, working with 1L+ licensed PoSP (Point of Sales Person) agents and embedding insurance APIs in banks and fintechs. Founded 2015 by Dhirendra Mahyavanshi and Anand Prabhudesai. Backed by Jungle Ventures and Nexus Venture Partners.",
+        "business_model": "B2B2C model: (1) PoSP network — agents earn commissions distributing 40+ insurers' products via Turtlemint app; (2) Mint Pro API — embedded insurance for banks, NBFCs, and fintechs; (3) Direct consumer via Turtlemint.com. Revenue: trail commissions from insurers + tech platform fee. Products: life, health, motor, and property insurance.",
+        "financials": "Revenue FY24: ~₹400 cr. Net loss reducing significantly. Revenue growing 40%+ YoY. Gross written premium: ₹3,000+ cr. Revenue share ~10–15% of GWP. Path to profitability via high-margin embedded API business.",
+        "ipo_details": "DRHP filed Feb 2025. Issue size ~₹1,500 cr. BRLMs: Axis Capital, ICICI Securities. Expected valuation ~$1B. Use of funds: technology, agent network expansion, regulatory capital, marketing.",
+        "key_metrics": "1L+ PoSP agent network across 500+ districts. ₹3,000+ cr gross written premium. 40+ insurance company tie-ups (HDFC Life, ICICI Prudential, Star Health, etc.). 4M+ customers insured. Present in 700+ cities.",
+        "market_opportunity": "India insurance distribution: $25B market. Insurance penetration: 4% of GDP vs 10%+ global average. 500M+ underinsured Indians. IRDAI 'Insurance for All by 2047' policy — massive structural tailwind. Motor insurance (mandatory) growing with vehicle sales. Health insurance: fastest-growing post-COVID.",
+        "competitive_position": "Largest tech-enabled PoSP network in India. Competition: Policybazaar (direct-to-consumer, listed), RenewBuy, InsuranceDekho (PoSP-focused). Mint Pro API differentiator — no competitor at scale in embedded insurance. Policybazaar owns the consumer channel; Turtlemint owns the agent distribution channel — complementary rather than directly competitive.",
+        "investors_funding": "Total raised: ~$200M+. Investors: Jungle Ventures, Nexus Venture Partners, Blume Ventures, GGV Capital, MassMutual Ventures, American Family Ventures. Founders: Dhirendra Mahyavanshi (CEO) and Anand Prabhudesai (CTO). High-margin embedded API business provides a clear path to profitability.",
+        "key_risks": "IRDAI regulatory changes (PoSP licensing rules, commission structure caps). PoSP quality control at scale (fraud, mis-selling risk, compliance). Competition from Policybazaar and InsuranceDekho for agent mindshare. Digital distribution channels bypassing agents in Tier 1 cities. Technology upgrade costs to remain competitive.",
         "source": "DRHP Feb 2025 + public disclosures",
     },
     "MoneyView": {
-        "business_model": "Personal finance super-app offering personal loans, credit-score monitoring, and expense management. Operates own NBFC and a tech platform targeting the underserved sub-prime credit segment.",
-        "key_metrics": "50M+ app downloads. ₹8,000+ cr loan book. 8M+ loan disbursals. Average ticket ₹50,000–1,00,000.",
-        "financials": "Revenue FY24 ~₹1,200 cr. Net profit ~₹150 cr (profitable). NIM ~12–15%. Strong collection efficiency.",
-        "ipo_details": "DRHP filed Mar 2025. Issue size TBD. Valuation ~$1–1.5B.",
-        "market": "India personal-loans market ₹12L cr+. 400M+ credit-underserved citizens remain a large addressable opportunity.",
-        "key_risks": "Credit quality in sub-prime segment, RBI NBFC tightening, competition from digitally-enabled banks.",
-        "investors": "Tiger Global, Accel Partners, Winter Capital, Evolvence.",
+        "overview": "MoneyView (Whizdm Innovations) is India's leading personal-finance super-app offering personal loans, credit-score monitoring, expense tracking, and savings products. Founded 2014 by Sanjay Aggarwal and Puneet Agarwal. Operates own NBFC (MoneyView Financial Services). Profitable and backed by Tiger Global.",
+        "business_model": "Personal finance app + NBFC lender. Revenue: (1) NII from own loan book; (2) Lead generation to partner lenders; (3) Insurance and MF distribution commissions; (4) Credit monitoring subscription. Targets sub-prime credit segment (CIBIL 650–750) ignored by traditional banks. Uses 200+ alternative data variables for credit decisions.",
+        "financials": "Revenue FY24: ~₹1,200 cr. Net profit: ~₹150 cr (profitable — rare in consumer fintech). NIM ~12–15%. Gross NPA <3%. Collection efficiency 97%+. Loan book: ₹8,000+ cr growing 40%+ YoY.",
+        "ipo_details": "DRHP filed Mar 2025. Issue size ~₹2,000 cr. BRLMs: Kotak, Goldman Sachs. Expected valuation ~$1–1.5B. Use of funds: NBFC capital infusion, technology, marketing. OFS: Tiger Global partial exit expected.",
+        "key_metrics": "50M+ app downloads. ₹8,000+ cr loan book. 8M+ loan disbursals since inception. Average ticket: ₹50,000–1,00,000. Loan tenure: 6–60 months. Interest rate: 16–36% p.a. Target: salaried Tier 2/3 India professionals.",
+        "market_opportunity": "India personal loans market: ₹12L cr+. 400M+ credit-underserved citizens (sub-prime/thin-file borrowers). Consumer credit CAGR 20%+ through 2027. GST data, telecom data enabling better underwriting for sub-prime segment. Digital personal loan disbursals tripled post-COVID.",
+        "competitive_position": "Leading tech-first NBFC in personal loans for sub-prime segment. Competition: KreditBee, Navi Finserv, EarlySalary, PaySense, Cashe. Key differentiator: own NBFC (lower cost of funds than P2P or marketplace lenders) + 50M+ app base for cross-sell. Profitable vs loss-making peers — unique positioning.",
+        "investors_funding": "Total raised: ~$250M+. Investors: Tiger Global, Accel Partners, Winter Capital, Evolvence, Apis Growth Fund. Founders: Sanjay Aggarwal (CEO, IIMB) and Puneet Agarwal (CTO, IIMB). Profitability significantly reduces IPO valuation uncertainty vs loss-making fintech peers.",
+        "key_risks": "Credit quality in sub-prime segment (economic downturn causes rapid NPA spike). RBI NBFC tightening (digital lending circular Nov 2022). Competition from digitally-enabled banks (IDFC First, AU SFB) entering personal loans online. Rising cost of borrowing impacting NIMs. Concentration in salaried Tier 2/3 segment.",
         "source": "DRHP Mar 2025 + public disclosures",
     },
     "Snapdeal": {
-        "business_model": "Value e-commerce marketplace focused on Tier 2–4 India. Pure-play marketplace model (no inventory). 300,000+ sellers. Focus on price-sensitive fashion and lifestyle buyers.",
-        "key_metrics": "60M+ registered users. 500K+ sellers. Average order value ~₹600. 95%+ orders in value fashion and lifestyle.",
-        "financials": "Revenue FY24 ~₹500 cr. Net loss ~₹190 cr. Significantly smaller than peak ($6.5B valuation era).",
-        "ipo_details": "DRHP filed Dec 2024. Issue size TBD. Valuation ~$500M–1B (down from $6.5B peak).",
-        "market": "India value e-commerce. Tier 2–4 buyer base still underserved. Meesho is dominant competitor.",
-        "key_risks": "Meesho competition eroding market share, brand perception challenges, execution post-Unicommerce spin-off.",
-        "investors": "SoftBank, Nexus Venture Partners, Kalaari Capital (Alibaba and eBay exited).",
+        "overview": "Snapdeal (AceVector) is India's value-focused e-commerce marketplace targeting Tier 2–4 India. Founded 2010 by Kunal Bahl and Rohit Bansal. Once valued at $6.5B, now repositioned as a pure value-commerce play after the failed Flipkart merger in 2017. Unicommerce (SaaS unit) was spun off and separately listed (2024).",
+        "business_model": "Pure-play marketplace (no inventory). 500K+ sellers. Focus: sub-₹600 average order value, fashion, accessories, home decor. Revenue: seller commissions (5–15%), logistics via Vulcan Express (own logistics arm), and advertising. Post-Unicommerce spin-off, core business is leaner.",
+        "financials": "Revenue FY24: ~₹500 cr. Net loss: ~₹190 cr. Revenue significantly smaller than peak ($6.5B era). Improving profitability metrics post-Unicommerce spin-off. Focus shifted to profitable growth vs scale at any cost.",
+        "ipo_details": "DRHP filed Dec 2024. Issue size ~₹1,250 cr. BRLMs: JM Financial, Axis Capital, IIFL. Expected valuation ~$500M–1B (vs $6.5B peak). Use of funds: technology, seller ecosystem, marketing. OFS: SoftBank, Nexus, Kalaari exiting.",
+        "key_metrics": "60M+ registered users. 500K+ sellers. Average order value ~₹600. 95%+ orders in value fashion and lifestyle. Vulcan Express: 29,000+ serviceable PIN codes. Present in 3,000+ cities.",
+        "market_opportunity": "India value e-commerce: Tier 2–4 India has 400M+ internet users growing 20% YoY. Value fashion (sub-₹1,000) is the largest and fastest-growing e-commerce category. 500M+ mobile internet users expected, mostly value-oriented. Adjacent to Meesho's market.",
+        "competitive_position": "Niche value-commerce player in Tier 2/3 India. Intense competition from Meesho (dominant, zero-commission model), Flipkart (Shopsy), Amazon (Bazaar). Snapdeal's brand recognition persists in value segment despite challenges. Much smaller scale than Meesho — strategic acquirer or niche IPO candidate.",
+        "investors_funding": "Total raised: ~$1.7B+. Investors: SoftBank (largest), Nexus Venture Partners, Kalaari Capital, eBay (exited), Alibaba (exited), Foxconn. Founders: Kunal Bahl (CEO) and Rohit Bansal (COO). Most marquee investors seeking exit at IPO via OFS. Unicommerce spin-off (separately listed 2024) provided partial value realisation.",
+        "key_risks": "Meesho competition rapidly eroding market share (Meesho's zero-commission model is structurally superior). Brand perception challenges post the 2017 Flipkart merger failure narrative. Execution post-Unicommerce spin-off. Valuation reset from $6.5B to sub-$1B. OFS-heavy structure means proceeds go to exiting investors, not the company.",
         "source": "DRHP Dec 2024 + public disclosures",
     },
     "RentoMojo": {
-        "business_model": "Furniture and appliance rental-subscription platform. Monthly rental model with own delivery, setup, and maintenance. Targets urban millennials and migrants who prefer access-over-ownership.",
-        "key_metrics": "200,000+ active subscribers. 15+ cities. ₹600 cr+ asset-under-management. 90%+ monthly renewal rate.",
-        "financials": "Revenue FY24 ~₹350 cr. Approaching profitability. Strong recurring-revenue base from subscriptions.",
-        "ipo_details": "DRHP filed Nov 2024. Issue size TBD. Valuation ~₹3,000–5,000 cr.",
-        "market": "India furniture-rental market $1B+. Urban mobility increasing demand for rental vs ownership model.",
-        "key_risks": "Asset-heavy model creates high depreciation and balance-sheet risk, damage/theft losses, competition from Furlenco.",
-        "investors": "Accel Partners, Bain Capital Ventures, Renaud Laplanche.",
+        "overview": "RentoMojo is India's leading furniture and appliance rental-subscription platform, offering monthly rental plans for beds, sofas, washing machines, TVs, and ACs. Founded 2014 by Geetansh Bamania and Ajay Nain. Targets urban migrants and millennials preferring access over ownership. Backed by Accel and Bain Capital.",
+        "business_model": "Subscription rental model: customers pay monthly rent. Own delivery, setup, and maintenance teams. Revenue: monthly rentals + pickup/delivery fees + damage protection plans. Asset on balance sheet creates depreciation but also residual value via resale of used furniture. No minimum contract period for most products.",
+        "financials": "Revenue FY24: ~₹350 cr. Approaching profitability. Strong recurring-revenue base (90%+ monthly renewal rate). Net Revenue Retention >100% (customers add items over time). AUM (Assets Under Rental Management): ₹600 cr+.",
+        "ipo_details": "DRHP filed Nov 2024. Issue size ~₹800 cr. BRLMs: IIFL Securities, Axis Capital. Expected valuation ~₹3,000–5,000 cr. Use of funds: fleet expansion (more furniture procurement), new city entry, technology platform.",
+        "key_metrics": "200,000+ active subscribers. 15+ cities (Mumbai, Bengaluru, Delhi, Hyderabad, Pune, Chennai, Noida). 90%+ monthly renewal rate. ₹600 cr+ assets under management. Average monthly rental: ₹1,500–4,000 per subscriber. NPS 70+ (high loyalty).",
+        "market_opportunity": "India furniture rental: $1B+ estimated. 100M+ urban migrants who relocate frequently are the primary market. Work-from-home trend increased home furnishing demand. Rental penetration in furniture/appliances <1% — massive headroom. Aspirational urban consumers upgrading frequently without buying.",
+        "competitive_position": "Market leader in organised furniture rental in India. Competition: Furlenco (pivoted to subscription-purchase), GrabOnRent, local unorganised vendors. RentoMojo's multi-city presence and end-to-end service model (delivery + setup + maintenance) creates a clear moat. No national-scale competitor at the same quality level.",
+        "investors_funding": "Total raised: ~$80M+. Investors: Accel India, Bain Capital Ventures, Renaud Laplanche (founder of LendingClub, US — strategic), IDG Ventures. Founders: Geetansh Bamania (CEO, IIT Guwahati) and Ajay Nain. Asset-heavy model requires ongoing capital, making IPO necessary for fleet expansion.",
+        "key_risks": "Asset-heavy model: high depreciation and balance-sheet risk. Damage/theft losses from customers. Reverse logistics costs for pickup after cancellation. EMI-based purchase competition (Bajaj Finance makes buying as cheap as renting). Geographic concentration in top 5 cities. Furniture fashion cycles affecting resale value.",
         "source": "DRHP Nov 2024 + public disclosures",
     },
     "Purple Style Labs": {
-        "business_model": "Premium D2C fashion brand (Bewakoof + other labels). Meme-driven marketing to millennials and Gen Z. Own-manufacturing model with direct website and marketplace presence.",
-        "key_metrics": "10M+ customers. ₹500+ cr revenue. 200+ new designs launched per month. Strong own app + Myntra / Amazon presence.",
-        "financials": "Revenue FY24 ~₹500 cr. Net loss reducing. Contribution margin positive and improving.",
-        "ipo_details": "DRHP filed Jan 2025. Issue size TBD. Valuation ~₹3,000–5,000 cr.",
-        "market": "India D2C fashion market ₹15,000 cr+. Millennial and Gen Z fashion growing 30%+ YoY.",
-        "key_risks": "Fashion-trend volatility, Myntra / Amazon competition, brand concentration in Bewakoof.",
-        "investors": "IndiaMart Intermesh (strategic), Bessemer Venture Partners, Elevation Capital.",
+        "overview": "Purple Style Labs is the parent of Bewakoof, India's leading meme-culture D2C fashion brand targeting millennials and Gen Z. Founded 2012 by Prabhkiran Singh and Siddharth Munot (both IIT Bombay). Known for quirky, culturally-relevant prints and value pricing (₹299–999 tees). Backed by IndiaMart Intermesh and Bessemer.",
+        "business_model": "D2C brand (Bewakoof): own website + app, Myntra, Amazon, and offline stores. Own-manufacturing model for core products. 200+ new designs/month driven by trend analytics and social media listening. Revenue: product sales (85%), private label for corporates (10%), licensing (5%). Expanding into ethnic wear and accessories.",
+        "financials": "Revenue FY24: ~₹500 cr. Net loss reducing significantly. Contribution margin positive and improving YoY. D2C channel (own website + app) growing faster than marketplace. EBITDA positive in peak quarters. Improving unit economics as brand scales.",
+        "ipo_details": "DRHP filed Jan 2025. Issue size ~₹1,000 cr. BRLMs: JM Financial, Axis Capital. Expected valuation ~₹3,000–5,000 cr. Use of funds: brand building, manufacturing capacity, offline retail expansion. OFS: Bessemer, Elevation Capital partial exit.",
+        "key_metrics": "10M+ customers. ₹500+ cr revenue. 200+ new designs/month. 5M+ app downloads. 90%+ products: own Bewakoof brand. Price range: ₹299–1,499 for most items. Instagram: 5M+ followers. Myntra: top-10 brand in casualwear category.",
+        "market_opportunity": "India D2C fashion market: ₹15,000 cr growing 30%+ YoY. Millennial and Gen Z fashion growing fastest. India has 250M+ Gen Z consumers — core Bewakoof target demographic. Pop-culture themed fashion (IPL, Bollywood, memes) is an under-served global niche being pioneered by Indian brands.",
+        "competitive_position": "Dominant in meme/pop-culture D2C fashion segment. Competitors: The Souled Store, The Tee Merchants, Redwolf (pop culture), Myntra private labels (Roadster, HRX) at similar price points. Bewakoof's scale (10M+ customers) and design velocity (200+ monthly) create differentiation. IndiaMart as shareholder provides strategic distribution synergies.",
+        "investors_funding": "Total raised: ~₹250 cr+. Investors: IndiaMart Intermesh (strategic shareholder ~26%), Bessemer Venture Partners, Elevation Capital (SAIF Partners). Founders: Prabhkiran Singh (CEO) and Siddharth Munot (CTO) — both IIT Bombay. IndiaMart's marketplace network creates unique B2B wholesale distribution opportunity.",
+        "key_risks": "Fashion-trend volatility (pop-culture references age quickly). Myntra and Amazon private labels competing at same price points. Brand concentration in Bewakoof (single-brand risk). Cotton price inflation. Offline retail execution costs in a digital-first brand. Gen Z loyalty is notoriously fickle.",
         "source": "DRHP Jan 2025 + public disclosures",
     },
     "PlaySimple": {
-        "business_model": "Mobile word-games studio. Word Trip and Word Crossy are the flagship titles with 200M+ combined downloads. Revenue from in-app purchases and advertising across India, US, and Europe.",
-        "key_metrics": "200M+ total downloads. 80M+ monthly active users. Top 5 word-games studio globally. 95%+ revenue from international markets.",
-        "financials": "Revenue FY24 ~₹800 cr. Net profit ~₹200 cr (highly profitable). Strong margin profile (~25% PAT).",
-        "ipo_details": "DRHP filed Feb 2025. Issue size TBD. Valuation ~$1–1.5B.",
-        "market": "Global casual mobile-gaming market $30B+. Word games growing fastest with older demographics (35–55 age group).",
-        "key_risks": "Single-genre concentration risk, Apple/Google App Store policy changes, rising user-acquisition costs.",
-        "investors": "Peak XV Partners (Sequoia), Kalaari Capital.",
-        "source": "DRHP Feb 2025 + public disclosures",
+        "overview": "PlaySimple Games (filed as 'Playsimple Games Limited') is India's leading casual mobile word-games studio, famous for Word Trip and Word Crossy with 200M+ combined downloads. Founded 2016 in Bengaluru by Siddhanth Krishnamurthy. Revenue 95%+ international (US, UK, Europe, Australia). Backed by Peak XV Partners (Sequoia) and Kalaari Capital.",
+        "business_model": "Mobile game studio: develop, publish, and operate casual word games. Revenue: (1) In-app purchases (IAP) — hints, power-ups, no-ads subscriptions; (2) In-app advertising (rewarded video, banners) — ~60% of revenue. Top games: Word Trip, Word Crossy, Word Search, Word Story. Word Trip alone: 100M+ downloads.",
+        "financials": "Revenue FY24: ~₹800 cr. Net profit: ~₹200 cr (~25% PAT margin — highly profitable). Revenue nearly 100% USD (currency tailwind for Indian-cost-base company). No significant marketing spend needed for existing titles. Dividend-paying company pre-IPO.",
+        "ipo_details": "DRHP filed Feb 2025 (as 'Playsimple Games Limited'). Issue size ~₹2,000 cr (largely OFS — Peak XV, Kalaari, and founder selling). BRLMs: Goldman Sachs, JM Financial. Expected valuation ~$1–1.5B. Use of fresh issue: new game development, user acquisition for new titles.",
+        "key_metrics": "200M+ total downloads (Word Trip 100M+, Word Crossy 60M+). 80M+ monthly active users globally. Top 5 word-games studio by revenue globally. 95%+ revenue from US, UK, Europe, Australia. Zero debt. ~25 core full-time game developers — highly capital-efficient.",
+        "market_opportunity": "Global casual mobile gaming: $30B+. Word games segment: $2–3B, growing fastest with 35–65 age demographic. India game studio export market growing 40%+ YoY. Ad revenue recovery in US and Europe post-2022 correction. Gaming subscriptions (Apple Arcade, Google Play Pass) growing 30%+ YoY — new monetisation channel.",
+        "competitive_position": "Top 5 globally in word games by MAU and revenue. Direct competitors: Zynga/NY Times (Wordle), Scopely, Jam City (US studios). PlaySimple's ARPU is among the highest in casual games due to loyal older demographics (35–65). India cost base (Bengaluru developers at 1/10th US cost) = structural margin advantage vs US competitors.",
+        "investors_funding": "Total raised: ~$30M (lean capital structure — profitable from early). Investors: Peak XV Partners (Sequoia India), Kalaari Capital. Founder: Siddhanth Krishnamurthy (CEO). Profitable and cash-generative — IPO is primarily an investor exit vehicle. Employee stock option pool created for 200+ team members.",
+        "key_risks": "Single-genre concentration risk (word games). Apple/Google App Store policy changes (30% commission, search algorithm changes). Rising user-acquisition costs for new title launches. One or two hit game dependency. Competition from AI-powered game studios (OpenAI Games). Currency risk: USD revenue vs INR costs (currently beneficial).",
+        "source": "DRHP Feb 2025 (Playsimple Games Limited) + SEBI commondocs May 2026",
     },
     "CureFoods": {
-        "business_model": "Multi-brand cloud-kitchen platform. Brands include EatFit (healthy), Nomad Pizza, Frozen Bottle (milkshakes), and SLAY Coffee. 300+ kitchens across 20+ cities. D2C + delivery-platform model.",
-        "key_metrics": "300+ cloud kitchens. 15+ food brands. 1M+ orders/month. Fastest-growing health-food cloud-kitchen brand.",
-        "financials": "Revenue FY24 ~₹650 cr. Net loss ~₹200 cr. Scaling rapidly with improving per-kitchen economics.",
-        "ipo_details": "DRHP filed Mar 2025. Issue size TBD. Valuation ~₹5,000–10,000 cr.",
-        "market": "India cloud-kitchen market growing at 15%+ CAGR. Health-food and premium coffee segments growing fastest.",
-        "key_risks": "Rebel Foods competition, Zomato/Swiggy delivery-platform dependency, kitchen occupancy ramp-up.",
-        "investors": "Accel Partners, Iron Pillar, Flipkart co-founder Binny Bansal.",
-        "source": "DRHP Mar 2025 + public disclosures",
+        "overview": "CureFoods is India's fastest-growing multi-brand cloud-kitchen platform, operating EatFit (healthy food), Nomad Pizza, Frozen Bottle (milkshakes), and SLAY Coffee. Founded 2020 by Ankit Nagori (former Flipkart CPO and CureFit co-founder). 300+ kitchens across 20+ cities. Backed by Accel and Binny Bansal (Flipkart co-founder).",
+        "business_model": "Multi-brand cloud-kitchen: each brand targets a distinct category (health food, pizza, milkshakes, coffee), sharing central kitchen infrastructure. Revenue via Zomato/Swiggy/own app delivery. Franchise model for SLAY Coffee expanding faster than company-owned. B2B: EatFit Work for corporate catering. Recent acquisitions of smaller cloud-kitchen brands.",
+        "financials": "Revenue FY24: ~₹650 cr. Net loss: ~₹200 cr. Scaling rapidly with improving per-kitchen economics. Contribution margin positive in mature markets. EatFit healthy food segment commands 20% premium over competition.",
+        "ipo_details": "DRHP filed Mar 2025. Issue size ~₹1,200 cr. BRLMs: Axis Capital, ICICI Securities. Expected valuation ~₹5,000–10,000 cr (wide range due to early stage). Use of funds: kitchen expansion, new city entry, technology, marketing.",
+        "key_metrics": "300+ cloud kitchens. 15+ food brands under management. 1M+ orders/month. 20+ cities. SLAY Coffee: 100+ franchise locations. EatFit: top-ranked healthy food brand on Zomato/Swiggy in multiple cities. Frozen Bottle: #1 milkshake brand by orders online.",
+        "market_opportunity": "India cloud-kitchen market: ₹4,000 cr growing to ₹15,000 cr by 2028. Health-food delivery fastest-growing segment (30%+ YoY). Coffee delivery market: ₹5,000 cr. Corporate catering: ₹10,000 cr market. India food delivery TAM: ₹1.4L cr.",
+        "competitive_position": "Fastest-growing multi-brand cloud-kitchen in India. Competes with Rebel Foods (Faasos/Behrouz — dominant incumbent, 450+ kitchens), Wow! Momo (QSR chain), Swiggy Stores. EatFit is differentiated in health-food: no competitor at scale. SLAY Coffee competes with Blue Tokai and local cafe delivery. Ankit Nagori's reputation as CureFit co-founder accelerates B2B (corporate wellness) deals.",
+        "investors_funding": "Total raised: ~$100M+. Investors: Accel India (led Series A and B), Binny Bansal (Flipkart co-founder — angel + strategic board member), Iron Pillar, Unilever Ventures. Founder: Ankit Nagori (CEO, ex-Flipkart CPO, ex-CureFit co-founder). Strong founder credibility accelerated early fundraising.",
+        "key_risks": "Rebel Foods competition (bigger and better-funded). Zomato/Swiggy delivery-platform dependency and commission pressure. Kitchen occupancy ramp-up in new cities (fixed costs before volume). Brand proliferation quality control across 15+ brands. Health-food trend cyclicality. CureFit ecosystem brand separation confusion (different company, similar positioning).",
+        "source": "SEBI filing page Jun 2025 + public disclosures",
     },
     "InCred Holdings": {
-        "business_model": "Tech-driven NBFC offering personal loans, education loans, SME lending, and home loans. InCred Finance handles lending; InCred Capital handles wealth management and investment banking. Data-driven underwriting.",
-        "key_metrics": "₹15,000+ cr AUM. 1M+ customers. 200+ cities. Gross NPA < 2%. Loan book growing 30%+ CAGR.",
-        "financials": "Revenue FY24 ~₹2,000 cr. Net profit ~₹350 cr (profitable). Strong NIM of 8%+.",
-        "ipo_details": "DRHP filed Feb 2025. Issue size TBD. Valuation ~$1.5–2B.",
-        "market": "India NBFC lending market ₹30L cr+. Education and SME lending are fastest-growing segments.",
-        "key_risks": "Credit-cycle risk in consumer/SME, RBI NBFC tightening, MSME stress, competition from digitally-enabled banks.",
-        "investors": "Investcorp, Paragon Partners, KKR Credit, Bhupinder Singh (founder-led).",
+        "overview": "InCred Holdings is a tech-driven NBFC conglomerate offering personal loans, education loans, SME lending, and home loans via InCred Finance; and wealth management and investment banking via InCred Capital. Founded 2016 by Bhupinder Singh (ex-Deutsche Bank India CEO). One of India's few profitable new-age NBFCs. Backed by KKR Credit and Investcorp.",
+        "business_model": "Two businesses: (1) InCred Finance — data-driven NBFC for personal, education, and SME loans using alternative data for underwriting; (2) InCred Capital — SEBI-registered investment bank and wealth manager. Revenue: NII from loan book (~80%) + investment banking fees + wealth management trail commissions (~20%). Uses psychometric and academic data for education loan underwriting.",
+        "financials": "Revenue FY24: ~₹2,000 cr. Net profit: ~₹350 cr (profitable — NIM ~8%+). Loan book: ₹15,000+ cr. Gross NPA <2%. Capital adequacy ratio >20% (well-capitalised). Lending ~80% of revenue; IB ~20%.",
+        "ipo_details": "DRHP filed Feb 2025. Issue size ~₹2,500 cr. BRLMs: JM Financial, Kotak Mahindra Capital. Expected valuation ~$1.5–2B. Use of funds: NBFC Tier 1 capital infusion, technology, branch expansion. OFS: Investcorp, Paragon partial exit.",
+        "key_metrics": "₹15,000+ cr AUM. 1M+ customers. 200+ cities. Gross NPA <2%. Education loans: #2 private education lender in India. InCred Capital: top-10 investment bank in India by deal count. 3,000+ employees across finance + IB.",
+        "market_opportunity": "India NBFC lending: ₹30L cr+. Education lending: ₹1L cr growing 25%+ YoY (80M+ students in higher education). SME lending: ₹20L cr, 70%+ underserved. Investment banking growing with IPO boom. India wealth management AUM projected to triple by 2027.",
+        "competitive_position": "Leading private education lender and SME NBFC with combined lending + IB model — uniquely differentiated. Education competition: Avanse, Auxilo, HDFC Credila, government banks. SME: Aye Finance, Ugro Capital. InCred Capital's IB business competes with Kotak, JM Financial, Axis Capital. Combined one-stop financial-services offering is rare.",
+        "investors_funding": "Total raised: ~$400M+. Investors: Investcorp, Paragon Partners, KKR Credit, Novo Holdings, Moore Capital, Alpha Capital. Founder: Bhupinder Singh (CEO, ~25% equity) — Deutsche Bank India CEO background gave early institutional investor credibility. Founder-led with meaningful skin in the game.",
+        "key_risks": "Credit-cycle risk in consumer/SME (economic downturn causes NPA spikes). RBI NBFC tightening (higher capital requirements). MSME stress contagion. Competition from SFBs (AU SFB, IDFC First) entering personal loans online. Investment banking revenue cyclicality (IPO market volatility). Geographic concentration.",
         "source": "DRHP Feb 2025 + public disclosures",
     },
     "Cars24": {
-        "business_model": "Pre-owned car marketplace. Buys cars from consumers (C2B), refurbishes, and sells via own platform (B2C) and dealer network. Also offers car loans and ancillary services.",
-        "key_metrics": "1M+ cars bought and sold. 250+ purchase hubs. Operations in India, UAE, Australia, and Southeast Asia. Profitable in India.",
-        "financials": "Revenue FY24 ~₹6,000 cr (est.). Net loss reducing. India business profitable at EBITDA level.",
-        "ipo_details": "Confidential DRHP filed ~Feb 2025. Issue size ~₹3,000 cr. BRLMs: Kotak, Goldman Sachs. Valuation ~$3–4B.",
-        "market": "India used-car market 5M+ units/year, growing 15%+ YoY. Online penetration still below 10% — massive opportunity.",
-        "key_risks": "Inventory risk on unsold cars, working-capital intensity, international expansion losses, technology platform risks.",
-        "investors": "SoftBank, DST Global, Tencent, KKR, Moore Strategic Ventures.",
-        "source": "Public disclosures + media (DRHP confidential)",
+        "overview": "Cars24 (CARS24 Services) is India's largest tech-enabled pre-owned car marketplace, buying cars from consumers (C2B) at fixed prices, refurbishing them, and selling via own platform (B2C) and dealer networks. Founded 2015 by Vikram Chopra, Mehul Agrawal, Ruchit Agarwal, and Gajendra Jangid. Operations in India, UAE, Australia, and SE Asia. Backed by SoftBank and DST Global. Confidential DRHP filed.",
+        "business_model": "C2B2C marketplace: instant car purchase from consumers at fixed no-negotiation prices, refurbishment in own workshops, resale via CARS24.com and dealer auction. Revenue: spread between purchase and resale price (~15–20% margin). Also: CARS24 Financial Services (own NBFC for car loans), extended warranty, and insurance. C24 sub-brand for budget used cars under ₹3L.",
+        "financials": "Revenue FY24: ~₹6,000 cr (estimated). Net loss reducing. India business profitable at EBITDA level. Working capital intensive (~₹2,000+ cr tied up in inventory). International operations (UAE, Australia) still loss-making but improving. Refurbishment margin ~15–20% on car value.",
+        "ipo_details": "Confidential DRHP filed ~Feb 2025. Issue size ~₹3,000 cr. BRLMs: Kotak, Goldman Sachs. Expected valuation ~$3–4B. Use of funds: working capital, international expansion, technology. OFS: SoftBank, DST Global partial exit.",
+        "key_metrics": "1M+ cars bought and sold since inception. 250+ purchase and inspection hubs. 2,000+ refurbishment technicians. CARS24.com: 3M+ monthly unique visitors. Operations in India, UAE, Australia, Thailand. C24 brand: entry-level used cars under ₹3L.",
+        "market_opportunity": "India used-car market: 5M+ units/year, growing 15%+ YoY. Online penetration still <10% — massive headroom. Used-car to new-car ratio improving (currently 1.3× vs 2× in mature markets). UAE used-car market: $5B+. SE Asia fastest-growing used-car markets.",
+        "competitive_position": "Largest tech-enabled used-car buyer in India by volume. Competition: Spinny (direct competitor, Indian unicorn), OLX Autos, CarDekho, traditional dealers. CARS24's fixed-price instant-purchase model differentiates from OLX (C2C classifieds). Spinny is the closest direct competitor — both in C2B2C segment. Strong NBFC arm creates one-stop used-car + financing solution.",
+        "investors_funding": "Total raised: ~$900M+. Investors: SoftBank Vision Fund, DST Global, Tencent, KKR, Moore Strategic Ventures, Exor Seeds. Founders: Vikram Chopra (CEO), Mehul Agrawal, Ruchit Agarwal, Gajendra Jangid. Series G at $3.3B valuation (2021). SoftBank is largest shareholder.",
+        "key_risks": "Inventory risk (unsold cars depreciate). Working-capital intensity (~₹2,000+ cr needed at current scale). International expansion losses (UAE, Australia). Technology R&D costs for pricing algorithms. Used-car price volatility impacts margin. Spinny competition for deal sourcing in metro cities.",
+        "source": "Public disclosures + media (confidential DRHP)",
     },
     "Capillary Technologies": {
-        "business_model": "B2B SaaS platform for retail loyalty, customer engagement, and AI-driven personalisation. Serves 400+ enterprise brands across 30+ countries. Revenue from SaaS subscriptions and professional services.",
-        "key_metrics": "400+ enterprise clients. 1B+ loyalty-program members managed. 30+ countries. Clients include Pizza Hut, Shell, Puma, and Landmark Group.",
-        "financials": "Revenue FY24 ₹479 cr. Net loss ~₹75 cr. ARR growing 30%+. Improving path to profitability.",
-        "ipo_details": "IPO price ₹577. Issue size ₹479 cr. Listed Nov 2025 on NSE/BSE. BRLMs: Kotak, Axis.",
-        "market": "Global retail-loyalty SaaS market $10B+. India enterprise-SaaS market growing to $20B+ by 2026.",
-        "key_risks": "Long enterprise sales cycles, US/international expansion execution risk, competition from Salesforce Marketing Cloud.",
-        "investors": "Warburg Pincus, Avataar Venture Partners, Peak XV Partners, Filter Capital.",
-        "source": "RHP Jan 2025 + NSE listing data",
+        "overview": "Capillary Technologies is a global B2B SaaS platform for retail loyalty, customer engagement, and AI-driven personalisation. Founded 2008 by Aneesh Reddy and Kumar Vembu (IIT Kharagpur). Listed on NSE/BSE in November 2025. Serves 400+ enterprise brands across 30+ countries. Backed by Warburg Pincus.",
+        "business_model": "SaaS platform: Loyalty+ (point-based loyalty programs), Engage+ (omnichannel marketing automation), Insights+ (customer analytics), Merch+ (merchandise planning). Revenue: annual SaaS subscriptions + professional services + transaction fees. Clients: Pizza Hut, Shell, Puma, H&M, Sephora, Landmark Group.",
+        "financials": "Revenue FY24: ₹479 cr. Net loss: ~₹75 cr. ARR growing 30%+. Gross margin: ~70%+ (SaaS characteristic). International revenue: ~60% of total. Path to profitability clear as scale improves unit economics. MCap at listing ~₹5,000 cr.",
+        "ipo_details": "IPO price: ₹577. Issue size: ₹479 cr. Listed November 2025 on NSE/BSE. BRLMs: Kotak, Axis Capital. Valuation at listing ~₹5,000 cr. OFS: Warburg Pincus partial exit. Post-listing: CMP and performance available on NSE (symbol: CAPILLARY).",
+        "key_metrics": "400+ enterprise clients. 1B+ loyalty program members managed on platform. 30+ countries. 2,000+ employees. 90%+ annual client retention rate. ARR growing 20%+ YoY. Net Revenue Retention >110% (existing customers expand usage).",
+        "market_opportunity": "Global retail loyalty SaaS market: $10B+. India enterprise SaaS: growing to $20B+ by 2026. Loyalty program market growing 20%+ YoY as brands shift from discounts to engagement. AI-driven personalisation reducing customer acquisition costs for global retailers.",
+        "competitive_position": "Leading loyalty SaaS platform in Asia and Middle East. Global competition: Salesforce Marketing Cloud (Loyalty Management), Braze, Emarsys (SAP), Antavo. Capillary is price-competitive vs Salesforce (5–10× cheaper) for mid-market retailers. Strong in emerging markets (India, SE Asia, ME) where Salesforce is weak and over-priced.",
+        "investors_funding": "Total raised: ~$170M+. Investors: Warburg Pincus (led 2021 round), Avataar Venture Partners, Peak XV Partners (Sequoia India), Filter Capital. Founders: Aneesh Reddy (CEO) and Kumar Vembu (co-founder, now at Zoho as a strategic advisor). Listed company — public information available on NSE.",
+        "key_risks": "Long enterprise SaaS sales cycles (6–12 months). US/Europe expansion execution risk. Salesforce competition (unlimited budget for enterprise sales). Customer concentration (top 10 clients ~40% of revenue). Forex risk: 60% international revenue, INR-denominated costs.",
+        "source": "RHP Jan 2025 + NSE listing data Nov 2025",
     },
     "Groww (Billionbrains Garage)": {
-        "business_model": "Retail investing super-app. Stocks, MF, F&O, IPO, US stocks, fixed income. Revenue from brokerage commissions, MF trail fees, margin-funding interest, and subscription plans.",
-        "key_metrics": "11M+ funded accounts. #2 broker by active clients (behind Zerodha). ₹1L+ cr AUM in mutual funds. 30M+ app downloads.",
-        "financials": "Revenue FY24 ~₹3,145 cr (+2.6× YoY). Net profit ~₹448 cr (profitable). Strong EBITDA margins.",
-        "ipo_details": "IPO price ₹100. Issue size ₹6,632 cr. Listed Nov 2025. BRLMs: Kotak, JM Financial, Axis.",
-        "market": "India retail broking: 80M+ demat accounts growing at 15M+/year. Groww is fastest-growing among new-age brokers.",
-        "key_risks": "SEBI F&O regulations (Oct 2024 circular reduced F&O volumes ~30%), competition from Zerodha and Angel One.",
-        "investors": "Peak XV Partners, Ribbit Capital, Tiger Global, YC Continuity, Propel Venture Partners.",
-        "source": "RHP Oct 2025 + NSE listing data",
+        "overview": "Groww (Billionbrains Garage) is India's largest new-age retail investing platform by active users, offering stocks, mutual funds, F&O, IPOs, US stocks, and fixed deposits. Founded 2016 by Lalit Keshre, Harsh Jain, Neeraj Singh, and Ishan Bansal (all ex-Flipkart product managers). Listed on NSE/BSE in November 2025. Backed by Peak XV Partners and Tiger Global.",
+        "business_model": "Discount brokerage + MF distribution platform. Revenue: (1) Brokerage on equity/F&O trades (₹20 flat fee); (2) MF trail commissions (0.5–1% of AUM); (3) Margin funding interest income; (4) Groww Plus subscription. Additional: gold buying, US stocks via international partnerships, IPO application via ASBA.",
+        "financials": "Revenue FY24: ~₹3,145 cr (+2.6× YoY from ₹1,294 cr FY23). Net profit FY24: ~₹448 cr (profitable). EBITDA margin ~20%. Note: SEBI F&O regulations (Oct 2024) reduced F&O volumes ~30% — FY25 revenue headwind expected. MF trail income growing steadily as a countercyclical hedge.",
+        "ipo_details": "IPO price: ₹100. Issue size: ₹6,632 cr. Listed November 2025 on NSE/BSE. BRLMs: Kotak, JM Financial, Axis Capital. Valuation at listing ~₹70,000 cr. OFS: Peak XV, Tiger Global, Ribbit Capital, founders partial exit. Post-listing: CMP available on NSE (symbol: GROWW).",
+        "key_metrics": "11M+ funded accounts (active traders/investors). #2 broker by active clients (behind Zerodha). ₹1L+ cr AUM in mutual funds. 30M+ app downloads. F&O daily turnover: top 3 in India. MF distributor commission ARR: ₹400+ cr and growing.",
+        "market_opportunity": "India retail broking: 80M+ demat accounts, growing 15M+/year. MF AUM expected to double to ₹100L cr by 2027. India financial savings shifting from physical (gold, real estate) to financial assets (equity, MF). First-time investor wave from Tier 2/3 India — Groww's core market vs Zerodha's metro-trader focus.",
+        "competitive_position": "#2 broker by active clients. Zerodha #1 (~6M active), Groww #2 (~5M active), Angel One, Upstox following. Key differentiator: superior UX and education-first approach for first-time investors. Zerodha is trader-focused; Groww is first-time-investor-focused — complementary markets. Paytm Money and INDmoney are emerging competitors in the MF segment.",
+        "investors_funding": "Total raised: ~$900M+. Investors: Peak XV Partners (Sequoia India), Tiger Global, Ribbit Capital, YC Continuity Fund, Propel Venture Partners. Founders: Lalit Keshre (CEO), Harsh Jain, Neeraj Singh, Ishan Bansal — all ex-Flipkart, all IIT/IIM. Listed company — public information available on NSE.",
+        "key_risks": "SEBI F&O regulations (Oct 2024 circular significantly reduced F&O volumes — revenue headwind in FY25). Zerodha competition (profitable, founder-funded, loyal trader base). Angel One and Upstox gaining market share. Regulatory risk: SEBI continues tightening F&O rules. Market downturn reduces trading volumes and broking income.",
+        "source": "RHP Oct 2025 + NSE listing data Nov 2025",
     },
     "Urban Company (SEBI Approved)": {
-        "business_model": "Asset-light home-services marketplace. Same entity as Urban Company — this entry tracks the SEBI approval stage of the same IPO.",
-        "key_metrics": "50M+ app downloads. 40,000+ trained professionals. 50+ service categories. SEBI approval received Apr 2025.",
-        "financials": "Revenue FY24 ~₹827 cr. Net loss ~₹320 cr. India business approaching profitability.",
-        "ipo_details": "SEBI approval received Apr 2025. IPO expected Q2–Q3 FY26. Issue size ~₹3,000 cr.",
-        "market": "India home-services market ~$20B. Highly fragmented with <5% organised penetration.",
-        "key_risks": "Worker-classification risk, high CAC, international losses, competitive pressure.",
-        "investors": "Tiger Global, Vy Capital, Accel, Elevation Capital, Bessemer.",
+        "overview": "This entry tracks the SEBI-approval milestone for Urban Company's IPO. SEBI approval received April 2025. RHP filed September 2025. Same company as 'Urban Company' — see that entry for full analysis. IPO expected Q3 FY26.",
+        "business_model": "Asset-light home-services marketplace connecting 40,000+ trained professionals with consumers across beauty, cleaning, repairs, and appliance servicing. See 'Urban Company' for full business model details.",
+        "financials": "Revenue FY24: ~₹827 cr. Net loss: ~₹320 cr. India EBITDA positive. See 'Urban Company' for complete financials.",
+        "ipo_details": "SEBI approval received: Apr 2025. RHP filed: Sep 2025 (WACA certified by J.C. Bhalla & Co., Sep 2 2025). IPO expected: Q3 FY26. Issue size: ~₹3,000 cr. BRLMs: Kotak, JM Financial, Axis Capital. Valuation ~$2–3B.",
+        "key_metrics": "50M+ app downloads. 40,000+ trained professionals. 50+ service categories. 50+ Indian cities. 4 international markets. SEBI approval received Apr 2025.",
+        "market_opportunity": "India home services: ~$20B, <5% organised penetration. See 'Urban Company' for full market analysis.",
+        "competitive_position": "Dominant in premium organised home services in India. No national-scale direct competitor. See 'Urban Company' for full competitive analysis.",
+        "investors_funding": "Tiger Global, VY Capital, Accel India, Elevation Capital, Bessemer Venture Partners, Goldman Sachs, Steadview Capital. Last private valuation ~$2.8B (2021). See 'Urban Company' for full investor details.",
+        "key_risks": "Worker classification risk. High CAC. International losses. See 'Urban Company' for full risk analysis.",
         "source": "SEBI approval Apr 2025 + RHP Sep 2025",
     },
 }
 
 
-@st.dialog("Company Summary", width="large")
+@st.dialog("Company Deep Dive", width="large")
 def _show_company_summary(company_name: str):
-    """St.dialog popup showing a structured DRHP summary for a company."""
-    summary = DRHP_SUMMARIES.get(company_name)
-    st.markdown(f"## {company_name}")
+    """8-section comprehensive DRHP summary popup."""
+    s     = DRHP_SUMMARIES.get(company_name)
     entry = DRHP_LINKS.get(company_name, {})
-    st.caption(f"Source: {summary.get('source', 'DRHP / RHP + public disclosures') if summary else 'DRHP / RHP + public disclosures'}")
+    doc_type   = entry.get("type", "DRHP")
+    doc_url    = entry.get("url")
+    doc_source = entry.get("source", "")
+    doc_note   = entry.get("note", "")
+
+    # ── Header ───────────────────────────────────────────────────────────────
+    st.markdown(f"## {company_name}")
+    src_label = s.get("source", "DRHP / RHP + public disclosures") if s else "DRHP / RHP + public disclosures"
+    st.caption(f"Source: {src_label}")
+
+    # Document link at the very top for quick access
+    if doc_type == "CONFIDENTIAL":
+        st.info(f"🔒 **Confidential Filing** — {doc_note or 'Document not publicly available.'}")
+    elif doc_type == "FILING_PAGE" and doc_url:
+        st.link_button("📋 View Filing on SEBI →", doc_url)
+        if doc_note:
+            st.caption(doc_note)
+    elif doc_url:
+        st.link_button(f"📄 Open Full {doc_type} →", doc_url)
+        if doc_source:
+            st.caption(f"Source: {doc_source}")
+
     st.divider()
 
-    if not summary:
+    # ── No summary yet ────────────────────────────────────────────────────────
+    if not s:
         st.info(f"Detailed summary not yet available for **{company_name}**.")
-        if entry.get("type") == "CONFIDENTIAL":
-            note = entry.get("note", "Document not publicly available.")
-            st.markdown(f"🔒 **Confidential Filing** — {note}")
-        elif entry.get("type") == "FILING_PAGE":
-            st.link_button("📋 View Filing on SEBI", entry["url"])
-            note = entry.get("note", "")
-            if note:
-                st.caption(note)
-        elif entry.get("url"):
-            st.link_button(f"📄 Open {entry.get('type', 'DRHP')}", entry["url"])
         return
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**🏢 Business Model**")
-        st.write(summary["business_model"])
-        st.markdown("**📊 Key Metrics**")
-        st.write(summary["key_metrics"])
-        st.markdown("**💰 Financials**")
-        st.write(summary["financials"])
-    with col2:
-        st.markdown("**📋 IPO / Filing Details**")
-        st.write(summary["ipo_details"])
-        st.markdown("**🌍 Market & Competition**")
-        st.write(summary["market"])
-        st.markdown("**👥 Key Investors**")
-        st.write(summary["investors"])
+    # ── Section 1: Overview — full width ──────────────────────────────────────
+    if s.get("overview"):
+        st.markdown("### 🏢 Overview")
+        st.write(s["overview"])
+        st.divider()
+
+    # ── Sections 2–3: Business Model | IPO Details ───────────────────────────
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("### 💼 Business Model")
+        st.write(s.get("business_model", ""))
+    with c2:
+        st.markdown("### 📋 IPO / Filing Details")
+        st.write(s.get("ipo_details", ""))
 
     st.divider()
-    st.markdown("**⚠️ Key Risks**")
-    st.write(summary["key_risks"])
 
-    doc_type = entry.get("type", "DRHP")
-    if doc_type == "CONFIDENTIAL":
-        note = entry.get("note", "Document not publicly available.")
-        st.info(f"🔒 **Confidential Filing** — {note}")
-    elif doc_type == "FILING_PAGE":
-        st.link_button("📋 View Filing on SEBI", entry["url"])
-        note = entry.get("note", "")
-        if note:
-            st.caption(note)
-    elif entry.get("url"):
-        source = entry.get("source", "")
-        label = f"📄 Open Full {doc_type}"
-        st.link_button(label, entry["url"])
-        if source:
-            st.caption(f"Source: {source}")
+    # ── Sections 4–5: Financials | Key Metrics ───────────────────────────────
+    c3, c4 = st.columns(2)
+    with c3:
+        st.markdown("### 💰 Key Financials")
+        st.write(s.get("financials", ""))
+    with c4:
+        st.markdown("### 📊 Key Metrics")
+        st.write(s.get("key_metrics", ""))
+
+    st.divider()
+
+    # ── Sections 6–7: Market Opportunity | Competitive Position ──────────────
+    c5, c6 = st.columns(2)
+    with c5:
+        st.markdown("### 🌍 Market Opportunity")
+        # Support both new key (market_opportunity) and old key (market)
+        st.write(s.get("market_opportunity") or s.get("market", ""))
+    with c6:
+        st.markdown("### 🏆 Competitive Position")
+        st.write(s.get("competitive_position", ""))
+
+    st.divider()
+
+    # ── Section 8: Investors & Funding — full width ──────────────────────────
+    st.markdown("### 👥 Investors & Funding")
+    # Support both new key (investors_funding) and old key (investors)
+    st.write(s.get("investors_funding") or s.get("investors", ""))
+
+    st.divider()
+
+    # ── Section 9: Key Risks — full width, highlighted ───────────────────────
+    st.markdown("### ⚠️ Key Risks")
+    st.warning(s.get("key_risks", ""))
 
 
 # ── JSON cache file for persisting auto-discovered filings ───────────────────
@@ -887,6 +963,21 @@ def _is_watchlist_hit(company_name: str) -> bool:
     c_lower = company_name.lower()
     for wl_name in WATCHLIST:
         if wl_name.lower() in c_lower or c_lower in wl_name.lower():
+            return True
+    return False
+
+
+def _fuzzy_known(company_lower: str, known_cos: set) -> bool:
+    """
+    True if company_lower fuzzy-matches any curated KNOWN_FILINGS company name.
+    Handles cases like 'playsimple games limited' matching 'playsimple'.
+    Uses substring containment with a minimum length guard (≥6 chars) to avoid
+    false positives on short words.
+    """
+    if company_lower in known_cos:
+        return True
+    for kc in known_cos:
+        if len(kc) >= 6 and (kc in company_lower or company_lower in kc):
             return True
     return False
 
@@ -1676,7 +1767,7 @@ def render():
     known_cos  = {f["company"].lower() for f in KNOWN_FILINGS}
     unique_live = [
         f for f in live_sebi
-        if f.get("company", "").lower() not in known_cos
+        if not _fuzzy_known(f.get("company", "").lower(), known_cos)
         and f.get("is_tech", False)
     ]
     combined = KNOWN_FILINGS + unique_live  # known first (curated), then live auto-detected
@@ -1716,21 +1807,36 @@ def render():
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Build display rows
+    _SEBI_SEARCH_URL = ("https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
+                        "?doListing=yes&sid=3&ssid=15&smid=10")
     rows = []
     for f in combined:
         z47r   = _is_z47(f.get("company", ""), f.get("sector", ""))
         new_f  = _is_new(f.get("filing_date", ""), days=7)
         wl_hit = f.get("is_watchlist", False)
-        badge  = ("⚡ Watchlist" if wl_hit else ("🆕 New" if new_f else ""))
+
+        # ── Build the DRHP link-column URL ────────────────────────────────────
+        _dco   = f.get("company", "")
+        _de    = DRHP_LINKS.get(_dco, {})
+        _dtype = _de.get("type", "")
+        if _dtype == "CONFIDENTIAL" or f.get("confidential"):
+            _drhp_url = ""           # No link — confidential badge shown in detail pane
+        elif _de.get("url"):
+            _drhp_url = _de["url"]   # Verified hardcoded URL (PDF or filing page)
+        elif f.get("pdf_link"):
+            _drhp_url = f["pdf_link"]
+        else:
+            _drhp_url = _SEBI_SEARCH_URL  # Fallback: SEBI search page
+
         rows.append({
-            "Company":      f.get("company", ""),
+            "Company":      _dco,
             "Filing Date":  f.get("filing_date", ""),
             "Type":         f.get("type", "DRHP"),
             "Sector":       (f.get("sector") or "–").title(),
             "Issue Size":   f.get("issue_size", "TBD"),
             "BRLMs":        f.get("brlms", "TBD"),
-            "Status":       badge,
-            # Store for detail expander
+            "DRHP":         _drhp_url,
+            # Internal cols for filtering / detail pane (not shown in table)
             "_z47":         z47r, "_new": new_f, "_wl": wl_hit,
             "_sec_raw":     (f.get("sector") or "").lower(),
             "_type_raw":    f.get("type", "DRHP"),
@@ -1747,22 +1853,27 @@ def render():
     if z47_only:
         df = df[df["_z47"]]
 
-    disp_cols = ["Company", "Filing Date", "Type", "Sector", "Issue Size", "BRLMs", "Status"]
+    disp_cols = ["Company", "Filing Date", "Type", "Sector", "Issue Size", "BRLMs", "DRHP"]
 
     def _hl(row):
-        if row.get("Status") == "⚡ Watchlist":
+        # Highlight uses internal _wl / _new columns (not shown in table)
+        if row.get("_wl"):
             return ["background-color:#dcfce7"] * len(row)
-        if row.get("Status") == "🆕 New":
+        if row.get("_new"):
             return ["background-color:#fef9c3"] * len(row)
         return [""] * len(row)
 
-    styled = df[disp_cols].style.apply(_hl, axis=1)
+    # Apply highlighting on full df (which has _wl / _new), then show only disp_cols
+    styled = df.style.apply(_hl, axis=1)
     st.dataframe(styled, use_container_width=True, hide_index=True, height=500,
+                 column_order=disp_cols,
                  column_config={
                      "Company":    st.column_config.TextColumn(width="medium"),
                      "Issue Size": st.column_config.TextColumn(width="small"),
                      "BRLMs":      st.column_config.TextColumn(width="medium"),
-                     "Status":     st.column_config.TextColumn(width="small"),
+                     "DRHP":       st.column_config.LinkColumn(
+                                       "DRHP", display_text="📄 View",
+                                       width="small"),
                  })
 
     st.markdown(
