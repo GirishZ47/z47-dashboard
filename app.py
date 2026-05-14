@@ -7,7 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import yfinance as yf
-from datetime import timedelta
+from datetime import timedelta, datetime
+from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import anthropic
@@ -267,13 +268,28 @@ def fetch_market_caps() -> dict:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_1m_returns() -> dict[str, float]:
-    """Batch download ~35 days of prices for 1-month return calculation."""
-    tickers = [yf_ticker(c) for c in COMPANIES]
-    end   = pd.Timestamp.today()
-    start = end - timedelta(days=37)
+    """
+    Batch download 50 days of prices and compute exact 1-calendar-month returns.
+
+    Methodology (matches Google Finance):
+    - End price   = close of the most recent trading day available
+    - Start price = close of the first trading day ON OR AFTER the date
+                    that is exactly 1 calendar month ago
+                    (skips forward over weekends / market holidays, as
+                    Google Finance does when that date falls on a holiday)
+    - Return = (end − start) / start × 100
+
+    Fixes the previous bug where iloc[0] of a 37-day window was used as the
+    start, anchoring ~37 calendar days ago instead of exactly 1 month ago.
+    """
+    tickers      = [yf_ticker(c) for c in COMPANIES]
+    today        = pd.Timestamp(datetime.now().date())
+    start_target = today - relativedelta(months=1)
+    fetch_start  = (today - pd.Timedelta(days=50)).strftime("%Y-%m-%d")
+
     try:
-        raw    = yf.download(tickers, start=start.strftime("%Y-%m-%d"),
-                             end=end.strftime("%Y-%m-%d"), progress=False, auto_adjust=True)
+        raw    = yf.download(tickers, start=fetch_start,
+                             progress=False, auto_adjust=True, timeout=25)
         closes = raw["Close"]
     except Exception:
         return {}
@@ -283,8 +299,28 @@ def fetch_1m_returns() -> dict[str, float]:
         tk = yf_ticker(c)
         try:
             s = closes[tk].dropna()
-            if len(s) >= 2:
-                result[c["ticker"]] = round(float((s.iloc[-1] / s.iloc[0] - 1) * 100), 2)
+            if s.empty or len(s) < 2:
+                continue
+
+            # Normalise index to tz-naive dates
+            s.index = pd.to_datetime(s.index)
+            if s.index.tz is not None:
+                s.index = s.index.tz_localize(None)
+            s = s.sort_index()
+
+            end_price = float(s.iloc[-1])
+
+            # First trading day on or after exactly 1M ago
+            candidates = s[s.index >= start_target]
+            if candidates.empty:
+                start_price = float(s.iloc[0])   # fallback: oldest available
+            else:
+                start_price = float(candidates.iloc[0])
+
+            if start_price <= 0 or end_price <= 0:
+                continue
+
+            result[c["ticker"]] = round(float((end_price / start_price - 1) * 100), 2)
         except Exception:
             pass
     return result
