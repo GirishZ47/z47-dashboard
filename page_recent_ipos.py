@@ -132,8 +132,8 @@ IPOS = [
     {
         "company": "BlueStone", "sector": "Consumer / Consumer Tech", "ticker": "BLUESTONE.NS", "exchange": "NSE",
         "listing_date": "2025-08-19", "price_band": "₹490–517", "issue_price": 517,
-        "listing_price": 510.0, "issue_size": "₹1,000 cr", "issue_size_cr": 1000,
-        "lot_size": 26, "fresh_issue": "₹1,000 cr", "ofs": "–",
+        "listing_price": 510.0, "issue_size": "₹1,175 cr", "issue_size_cr": 1175,
+        "lot_size": 26, "fresh_issue": "₹1,000 cr", "ofs": "₹174.73 cr",
         "use_of_funds": "Store expansion, technology, working capital.",
         "key_investors": "Accel, Kalaari Capital, Ratan Tata",
         "qib_sub": "47.2x", "nii_sub": "33.1x", "rii_sub": "14.6x", "overall_sub": "44.8x",
@@ -676,10 +676,19 @@ _ANCHOR_DATA = {
             {"investor": "Nippon India MF",     "category": "Mutual Fund",       "allocation_cr": 20},
         ],
         "pripo_investors": [
-            {"investor": "AceVector Group (fmr Snapdeal / Jasper Infotech)", "round": "Acquisition into Snapdeal ecosystem (2012)", "entry_val": "WACA ₹23.52/sh (implied)", "pct_held": "~47% pre-IPO", "return_at_ipo": "~4.6x at issue / ~10x at listing (WACA ₹23.52 → issue ₹108 → listing ₹235)", "return_at_cmp": "—"},
-            {"investor": "SoftBank (indirect via Snapdeal / AceVector)", "round": "Indirect via Snapdeal ownership (2014–15)", "entry_val": "N/A (indirect through AceVector)", "pct_held": "~25% effective", "return_at_ipo": "~3.5x at issue / ~7–8x at listing (SoftBank holds via AceVector which holds Unicommerce)", "return_at_cmp": "—"},
-            {"investor": "B2 Capital Partners",  "round": "Pre-IPO growth round (2022)", "entry_val": "~₹1,200–1,800 cr valuation", "pct_held": "~4%", "return_at_ipo": "Did not sell in OFS; ~5–10x paper gain at listing", "return_at_cmp": "—"},
-            {"investor": "Anchorage Capital Partners (Z47 ecosystem)", "round": "Pre-IPO (2023)", "entry_val": "~₹1,500 cr valuation", "pct_held": "~3%", "return_at_ipo": "~3–5x at listing", "return_at_cmp": "—"},
+            # OFS sellers — RHP-certified WACAs (Rawat & Associates, CA, Aug 4 2024)
+            {"investor": "AceVector Limited (fmr Snapdeal / Jasper Infotech)", "round": "Acquisition (2012)", "entry_val": "WACA ₹23.52/sh (RHP certified)", "pct_held": "~47% pre-IPO", "return_at_ipo": "~4.59× at IPO / ~9.99× at listing (WACA ₹23.52 → ₹108 → ₹235)", "return_at_cmp": "—"},
+            {"investor": "SB Investment Holdings (UK) Ltd (SoftBank)",          "round": "Via AceVector (2014–15)", "entry_val": "WACA ₹30.87/sh (RHP certified)", "pct_held": "~25% effective", "return_at_ipo": "~3.50× at IPO / ~7.61× at listing (WACA ₹30.87 → ₹108 → ₹235)", "return_at_cmp": "—"},
+            {"investor": "Accel India III (Mauritius) Ltd",                      "round": "Early institutional (2015–17)", "entry_val": "WACA ₹63.68/sh (RHP certified)", "pct_held": "~16.1M pre-offer shares", "return_at_ipo": "~1.70× at IPO / ~3.69× at listing (WACA ₹63.68 → ₹108 → ₹235; sold 26.03L shares)", "return_at_cmp": "—"},
+            {"investor": "Saama Capital II Ltd",                                 "round": "Series B–C",                "entry_val": "WACA ₹48.70/sh (RHP certified)", "pct_held": "~4.1M shares (full exit)", "return_at_ipo": "~2.22× at IPO / ~4.82× at listing (WACA ₹48.70 → ₹108 → ₹235; full exit)", "return_at_cmp": "—"},
+            {"investor": "Kalaari Capital Partners II LLC",                      "round": "Series B–C",                "entry_val": "WACA ₹59.28/sh (RHP certified)", "pct_held": "~7.1M pre-offer shares", "return_at_ipo": "~1.82× at IPO / ~3.96× at listing (WACA ₹59.28 → ₹108 → ₹235; sold ~50%)", "return_at_cmp": "—"},
+            {"investor": "Kalaari Capital Partners Opportunity Fund LLC",        "round": "Growth round",              "entry_val": "WACA ₹82.41/sh (RHP certified)", "pct_held": "~0.9M pre-offer shares", "return_at_ipo": "~1.31× at IPO / ~2.85× at listing (WACA ₹82.41 → ₹108 → ₹235)", "return_at_cmp": "—"},
+            {"investor": "Iron Pillar Fund I Ltd",                               "round": "Series C–D",                "entry_val": "WACA ₹92.81/sh (RHP certified)", "pct_held": "~3.4M pre-offer shares", "return_at_ipo": "~1.16× at IPO / ~2.53× at listing (WACA ₹92.81 → ₹108 → ₹235)", "return_at_cmp": "—"},
+            {"investor": "Iron Pillar India Fund I",                             "round": "Series C–D",                "entry_val": "WACA ₹82.41/sh (RHP certified)", "pct_held": "~2.1M pre-offer shares", "return_at_ipo": "~1.31× at IPO / ~2.85× at listing (WACA ₹82.41 → ₹108 → ₹235)", "return_at_cmp": "—"},
+            {"investor": "Sunil Kant Munjal (Hero Enterprise Partner Ventures)", "round": "Growth / Series D",        "entry_val": "WACA ₹262.76/sh (RHP certified)",  "pct_held": "~7.8M pre-offer shares", "return_at_ipo": "⚠️ LOSS — 0.41× at IPO (WACA ₹262.76 > IPO ₹108). 0.89× at listing (₹235 < ₹262.76 WACA)", "return_at_cmp": "—"},
+            # Non-OFS investors (retained)
+            {"investor": "B2 Capital Partners",                                  "round": "Pre-IPO (2022)",           "entry_val": "~₹1,200–1,800 cr valuation", "pct_held": "~4%", "return_at_ipo": "Did not sell in OFS; ~5–10× paper gain at listing", "return_at_cmp": "—"},
+            {"investor": "Anchorage Capital Partners (Z47 ecosystem)",           "round": "Pre-IPO (2023)",           "entry_val": "~₹1,500 cr valuation",       "pct_held": "~3%", "return_at_ipo": "~3–5× at listing",                                   "return_at_cmp": "—"},
         ],
     },
     "TBO Tek": {
@@ -890,16 +899,20 @@ _ANCHOR_DATA = {
             {"investor": "SBI MF",             "category": "Mutual Fund",       "allocation_cr": 30},
         ],
         "pripo_investors": [
-            {"investor": "Accel",                  "round": "Series A–B (2011–14)",  "entry_val": "~$5–15M valuation",      "pct_held": "~14%", "return_at_ipo": "~8.12x at issue / ~8x at listing (WACA ~₹63.7/sh → issue ₹517 = 8.12x; listing ₹510 ~flat)", "return_at_cmp": "—"},
-            {"investor": "Kalaari Capital",        "round": "Series A–B (2012–15)",  "entry_val": "~$10–30M valuation",     "pct_held": "~12%", "return_at_ipo": "~8.72x at issue / ~8.6x at listing (WACA ~₹59.3/sh → issue ₹517)", "return_at_cmp": "—"},
-            {"investor": "Saama Capital",          "round": "Series B (2015)",       "entry_val": "~$30–50M valuation",     "pct_held": "~8%",  "return_at_ipo": "~10.62x at issue (WACA ~₹48.7/sh → issue ₹517; sold in OFS)", "return_at_cmp": "—"},
-            {"investor": "Iron Pillar",            "round": "Series C–D (2018–20)",  "entry_val": "~$100–200M valuation",   "pct_held": "~6%",  "return_at_ipo": "~5.57x at issue (WACA ~₹92.8/sh → issue ₹517)", "return_at_cmp": "—"},
-            {"investor": "Sunil Munjal (family office)", "round": "Series D (2020)", "entry_val": "~$200M valuation",       "pct_held": "~4%",  "return_at_ipo": "~1.97x at issue (WACA ~₹262/sh → issue ₹517)", "return_at_cmp": "—"},
-            {"investor": "Peak XV Partners (Sequoia)", "round": "Series D–E (2020–22)", "entry_val": "~$200–600M valuation", "pct_held": "~7%", "return_at_ipo": "Did NOT sell in OFS; ~2–5x paper gain at listing", "return_at_cmp": "—"},
-            {"investor": "Prosus Ventures",        "round": "Series E (2022)",       "entry_val": "~$500M valuation",       "pct_held": "~5%",  "return_at_ipo": "Did NOT sell in OFS; ~1.5x paper gain at listing", "return_at_cmp": "—"},
-            {"investor": "Steadview Capital",      "round": "Series E (2022)",       "entry_val": "~$500M valuation",       "pct_held": "~3%",  "return_at_ipo": "~1.5x at listing (sold partial in OFS)", "return_at_cmp": "—"},
-            {"investor": "Ratan Tata (personal)",  "round": "Angel / Series B (2015)", "entry_val": "~$20M valuation",      "pct_held": "<1%",  "return_at_ipo": ">20x at issue (early angel; did not sell in OFS)", "return_at_cmp": "—"},
-            {"investor": "Info Edge Ventures",     "round": "Series B–C (2014–17)",  "entry_val": "~$10–50M valuation",     "pct_held": "~2%",  "return_at_ipo": "~15–30x at listing (early strategic financer)", "return_at_cmp": "—"},
+            # OFS sellers — RHP-certified WACAs (Ray & Ray, CA FRN:301072E, Jul 4 2025)
+            {"investor": "NS Niketan LLP (Promoter)",             "round": "Founding/early",           "entry_val": "WACA ₹16.14/sh (RHP certified)", "pct_held": "—", "return_at_ipo": "~32.03× at IPO / ~31.60× at listing (WACA ₹16.14 → ₹517 → ₹510; 4.90L OFS shares)", "return_at_cmp": "—"},
+            {"investor": "SNS Infrarealty LLP (Promoter)",        "round": "Founding/early",           "entry_val": "WACA ₹13.72/sh (RHP certified)", "pct_held": "—", "return_at_ipo": "~37.68× at IPO / ~37.17× at listing (WACA ₹13.72 → ₹517 → ₹510; 3.10L OFS shares)", "return_at_cmp": "—"},
+            {"investor": "Space Solutions India Pte Ltd",          "round": "Growth (fmr Lisbrine)",   "entry_val": "WACA ₹107.25/sh (RHP certified)", "pct_held": "—", "return_at_ipo": "~4.82× at IPO / ~4.76× at listing (WACA ₹107.25 → ₹517 → ₹510; 25.80L OFS shares)", "return_at_cmp": "—"},
+            # Non-OFS investors (retained stake — paper gains only; listing slightly below IPO)
+            {"investor": "Accel",                                  "round": "Series A–B (2011–14)",   "entry_val": "~$5–15M valuation",      "pct_held": "~14%", "return_at_ipo": "~8.12× at IPO / ~7.99× at listing (WACA ~₹63.7/sh → IPO ₹517; listing ₹510 −1.4%)", "return_at_cmp": "—"},
+            {"investor": "Kalaari Capital",                        "round": "Series A–B (2012–15)",   "entry_val": "~$10–30M valuation",     "pct_held": "~12%", "return_at_ipo": "~8.72× at IPO / ~8.60× at listing (WACA ~₹59.3/sh → IPO ₹517)", "return_at_cmp": "—"},
+            {"investor": "Saama Capital",                          "round": "Series B (2015)",        "entry_val": "~$30–50M valuation",     "pct_held": "~8%",  "return_at_ipo": "~10.62× at IPO / ~10.47× at listing (WACA ~₹48.7/sh → IPO ₹517)", "return_at_cmp": "—"},
+            {"investor": "Iron Pillar",                            "round": "Series C–D (2018–20)",   "entry_val": "~$100–200M valuation",   "pct_held": "~6%",  "return_at_ipo": "~5.57× at IPO / ~5.50× at listing (WACA ~₹92.8/sh → IPO ₹517)", "return_at_cmp": "—"},
+            {"investor": "Sunil Munjal (family office)",           "round": "Series D (2020)",        "entry_val": "~$200M valuation",       "pct_held": "~4%",  "return_at_ipo": "~1.97× at IPO / ~1.95× at listing (WACA ~₹262/sh → IPO ₹517)", "return_at_cmp": "—"},
+            {"investor": "Peak XV Partners (Sequoia)",             "round": "Series D–E (2020–22)",   "entry_val": "~$200–600M valuation",   "pct_held": "~7%",  "return_at_ipo": "Did NOT sell in OFS; ~2–5× paper gain at listing",               "return_at_cmp": "—"},
+            {"investor": "Prosus Ventures",                        "round": "Series E (2022)",        "entry_val": "~$500M valuation",       "pct_held": "~5%",  "return_at_ipo": "Did NOT sell in OFS; ~1.5× paper gain at listing",                "return_at_cmp": "—"},
+            {"investor": "Ratan Tata (personal)",                  "round": "Angel / Series B (2015)", "entry_val": "~$20M valuation",       "pct_held": "<1%",  "return_at_ipo": ">20× at IPO (early angel; did not sell in OFS)",                  "return_at_cmp": "—"},
+            {"investor": "Info Edge Ventures",                     "round": "Series B–C (2014–17)",   "entry_val": "~$10–50M valuation",     "pct_held": "~2%",  "return_at_ipo": "~15–30× at listing (early strategic financer)",                  "return_at_cmp": "—"},
         ],
     },
     # ── Smartworks: co-working space, fresh-issue IPO Aug 2024 ────────────────
@@ -2794,18 +2807,30 @@ def render():
                             f"Investor returns will be shown once price band is filed.")
 
             # ── OFS Verification log (console) ───────────────────────────────
+            def _safe_fmt_shares(val) -> str:
+                """Format share count safely — handles None/non-numeric."""
+                try:
+                    return f"{int(val):,}" if val is not None else "N/A"
+                except (TypeError, ValueError):
+                    return str(val) if val else "N/A"
+
             _v2 = VERIFIED_INVESTOR_DATA.get(_company)
             if _v2 and not _is_upcoming:
-                _ofs_exp = _v2.get("ofs_total_shares", 0)
-                _ofs_act = sum(
-                    (v.get("ofs_shares") or 0)
-                    for v in _v2.get("investors", {}).values()
-                )
-                _match = _ofs_act == _ofs_exp
-                print(
-                    f"[OFS VERIFY] {_company}: "
-                    f"sum={_ofs_act:,}  RHP={_ofs_exp:,}  MATCH={_match}"
-                )
+                try:
+                    _ofs_exp = _v2.get("ofs_total_shares") or 0
+                    _ofs_act = sum(
+                        (v.get("ofs_shares") or 0)
+                        for v in _v2.get("investors", {}).values()
+                    )
+                    _match = (_ofs_exp == 0) or (_ofs_act == _ofs_exp)
+                    print(
+                        f"[OFS VERIFY] {_company}: "
+                        f"sum={_safe_fmt_shares(_ofs_act)}  "
+                        f"RHP={_safe_fmt_shares(_ofs_exp)}  "
+                        f"MATCH={_match}"
+                    )
+                except Exception as _verify_err:
+                    print(f"[OFS VERIFY] {_company}: skipped ({type(_verify_err).__name__})")
 
             # ── Column headers (6 cols) ───────────────────────────────────────
             if _is_upcoming:

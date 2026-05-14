@@ -1503,14 +1503,16 @@ VERIFIED_IPO_DATA: dict[str, dict] = {
 
     # ══════════════════════════════════════════════════════════════════════════
     # BLUESTONE
-    # IPO Aug 2025. ₹517 issue, ₹510 listing (-1.4%). Pure fresh issue.
-    # WACAa partially from RHP (existing data labels).
+    # IPO Aug 2025. ₹517 issue, ₹510 listing (-1.35% discount on NSE).
+    # NOT pure fresh issue — 3 OFS sellers (NS Niketan, SNS Infrarealty, Space Solutions).
+    # OFS = 3,379,740 shares × ₹517 = ₹174.73 cr. WACA: Ray & Ray CA, Jul 4 2025.
+    # Authoritative data now in VERIFIED_INVESTOR_DATA (v2).
     # ══════════════════════════════════════════════════════════════════════════
     "BlueStone": {
         "ipo_price":      517,
         "listing_price":  510.0,
         "fresh_issue_cr": 1000.0,
-        "ofs_total_cr":   0.0,
+        "ofs_total_cr":   174.73,   # 3,379,740 sh × ₹517/sh (Ray & Ray CA certified)
         "investors": {
             "Accel": {
                 "waca": 63.7,
@@ -2239,6 +2241,184 @@ VERIFIED_INVESTOR_DATA: dict[str, dict] = {
             },
         },
     },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # UNICOMMERCE (eSolutions Ltd)
+    # IPO Aug 2024. ₹108 issue, ₹235 listing (+117.6%). Pure OFS ₹276.57 cr.
+    # 7 investors with RHP-certified WACAs (Rawat & Associates, CA, Aug 4 2024).
+    # OFS also included AceVector (9,438,272 sh) + SoftBank (16,170,240 sh);
+    # those entities' OFS rounds up to the full ₹276.57 cr total (25.6M shares).
+    # Note: Sunil Kant Munjal (Hero Enterprise) sold at a LOSS — WACA ₹262.76 > IPO ₹108.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Unicommerce": {
+        "ipo_price":        108,
+        "listing_price":    235.0,
+        "listing_date":     "2024-08-13",
+        "ca_firm":          "Rawat & Associates, CA",
+        "ca_date":          "August 4, 2024",
+        "fresh_issue_cr":   0.0,
+        "ofs_total_shares": None,   # full OFS = 25,608,512 sh (AceVector+SoftBank+VCs combined)
+        "investors": {
+            # ── Main OFS sellers: AceVector + SoftBank ─────────────────────
+            "AceVector Limited (fmr Snapdeal / Jasper Infotech)": {
+                "type": "investor",
+                "waca": 23.52,
+                "waca_source": "RHP — WACA ₹23.52/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": None,
+                "ofs_shares":       9_438_272,
+                "notes": "~4.59× at IPO (₹108 ÷ ₹23.52). ~9.99× at listing (₹235 ÷ ₹23.52).",
+            },
+            "SB Investment Holdings (UK) Ltd (SoftBank)": {
+                "type": "investor",
+                "waca": 30.87,
+                "waca_source": "RHP — WACA ₹30.87/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": None,
+                "ofs_shares":       16_170_240,
+                "notes": "~3.50× at IPO (₹108 ÷ ₹30.87). ~7.61× at listing (₹235 ÷ ₹30.87).",
+            },
+            # ── VC investors with RHP-certified WACAs ──────────────────────
+            "Accel India III (Mauritius) Ltd": {
+                "type": "investor",
+                "waca": 63.68,
+                "waca_source": "RHP — WACA ₹63.68/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 16_143_970,
+                "ofs_shares":       2_603_915,
+                "notes": "~1.70× at IPO (₹108 ÷ ₹63.68). ~3.69× at listing (₹235 ÷ ₹63.68).",
+            },
+            "Saama Capital II Ltd": {
+                "type": "investor",
+                "waca": 48.70,
+                "waca_source": "RHP — WACA ₹48.70/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 4_100_970,
+                "ofs_shares":       4_100_970,   # sold entire holding
+                "notes": "~2.22× at IPO (₹108 ÷ ₹48.70). ~4.82× at listing (₹235 ÷ ₹48.70). Full exit.",
+            },
+            "Kalaari Capital Partners II LLC": {
+                "type": "investor",
+                "waca": 59.28,
+                "waca_source": "RHP — WACA ₹59.28/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 7_073_980,
+                "ofs_shares":       3_536_990,   # sold ~50%
+                "notes": "~1.82× at IPO (₹108 ÷ ₹59.28). ~3.96× at listing (₹235 ÷ ₹59.28).",
+            },
+            "Kalaari Capital Partners Opportunity Fund LLC": {
+                "type": "investor",
+                "waca": 82.41,
+                "waca_source": "RHP — WACA ₹82.41/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 904_290,
+                "ofs_shares":       452_145,
+                "notes": "~1.31× at IPO (₹108 ÷ ₹82.41). ~2.85× at listing (₹235 ÷ ₹82.41).",
+            },
+            "Iron Pillar Fund I Ltd": {
+                "type": "investor",
+                "waca": 92.81,
+                "waca_source": "RHP — WACA ₹92.81/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 3_431_010,
+                "ofs_shares":       821_085,
+                "notes": "~1.16× at IPO (₹108 ÷ ₹92.81). ~2.53× at listing (₹235 ÷ ₹92.81).",
+            },
+            "Iron Pillar India Fund I": {
+                "type": "investor",
+                "waca": 82.41,
+                "waca_source": "RHP — WACA ₹82.41/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 2_062_010,
+                "ofs_shares":       493_958,
+                "notes": "~1.31× at IPO (₹108 ÷ ₹82.41). ~2.85× at listing (₹235 ÷ ₹82.41).",
+            },
+            "Sunil Kant Munjal (Hero Enterprise Partner Ventures)": {
+                "type": "investor",
+                "waca": 262.76,
+                "waca_source": "RHP — WACA ₹262.76/sh; certified by Rawat & Associates, CA, Aug 4 2024",
+                "pre_offer_shares": 7_757_570,
+                "ofs_shares":       1_930_000,
+                "notes": "SOLD AT A LOSS — WACA ₹262.76 > IPO ₹108. "
+                         "0.41× at IPO (loss). 0.89× at listing (still a loss vs cost).",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # BLUESTONE (BlueStone Jewellery & Lifestyle Ltd)
+    # IPO Aug 2025. ₹517 issue, ₹510 listing (-1.35% discount on NSE).
+    # NOT a pure fresh issue — has 3 OFS sellers per RHP.
+    # OFS sellers: NS Niketan (promoter), SNS Infrarealty (promoter), Space Solutions.
+    # Total OFS = 3,379,740 shares × ₹517 = ₹174.73 cr.
+    # WACA certified by: Ray & Ray, CA (FRN: 301072E), July 4, 2025.
+    # ══════════════════════════════════════════════════════════════════════════
+    "BlueStone": {
+        "ipo_price":        517,
+        "listing_price":    510.0,
+        "listing_date":     "2025-08-19",
+        "ca_firm":          "Ray & Ray, CA (FRN: 301072E)",
+        "ca_date":          "July 4, 2025",
+        "fresh_issue_cr":   1000.0,
+        "ofs_total_shares": 3_379_740,   # NS Niketan + SNS Infrarealty + Space Solutions
+        "ofs_total_cr":     174.73,      # 3,379,740 × ₹517 / 1e7
+        "investors": {
+            "NS Niketan LLP (Promoter)": {
+                "type": "promoter",
+                "waca": 16.14,
+                "waca_source": "RHP — WACA ₹16.14/sh; certified by Ray & Ray, CA (FRN: 301072E), Jul 4 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       490_000,
+                "notes": "~32.03× at IPO (₹517 ÷ ₹16.14). ~31.60× at listing (₹510 ÷ ₹16.14). "
+                         "Listed slightly below IPO price but still massive promoter gain.",
+            },
+            "SNS Infrarealty LLP (Promoter)": {
+                "type": "promoter",
+                "waca": 13.72,
+                "waca_source": "RHP — WACA ₹13.72/sh; certified by Ray & Ray, CA (FRN: 301072E), Jul 4 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       310_000,
+                "notes": "~37.68× at IPO (₹517 ÷ ₹13.72). ~37.17× at listing (₹510 ÷ ₹13.72).",
+            },
+            "Space Solutions India Pte Ltd": {
+                "type": "investor",
+                "waca": 107.25,
+                "waca_source": "RHP — WACA ₹107.25/sh (fmr Lisbrine Pte Ltd); certified by Ray & Ray, CA "
+                               "(FRN: 301072E), Jul 4 2025",
+                "pre_offer_shares": None,
+                "ofs_shares":       2_579_740,
+                "notes": "~4.82× at IPO (₹517 ÷ ₹107.25). ~4.76× at listing (₹510 ÷ ₹107.25). "
+                         "Listed below IPO price but still profitable vs WACA.",
+            },
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SNAPDEAL / ACEVC VECTOR LIMITED  (upcoming — not yet listed)
+    # AceVector Limited (formerly Snapdeal Limited) filed DRHP for its own IPO.
+    # WACA certified by: B.B. & Associates, CA, July 30, 2024.
+    # ipo_price / listing_price to be updated when IPO happens.
+    # ══════════════════════════════════════════════════════════════════════════
+    "Snapdeal (AceVector)": {
+        "ipo_price":        None,   # not yet listed
+        "listing_price":    None,
+        "listing_date":     None,
+        "ca_firm":          "B.B. & Associates, CA",
+        "ca_date":          "July 30, 2024",
+        "fresh_issue_cr":   None,
+        "ofs_total_shares": 25_608_512,  # 9,438,272 + 16,170,240 (planned OFS per DRHP)
+        "investors": {
+            "AceVector Limited (formerly Snapdeal Ltd)": {
+                "type": "promoter",
+                "waca": 23.52,
+                "waca_source": "DRHP — WACA ₹23.52/sh; certified by B.B. & Associates, CA, Jul 30 2024",
+                "pre_offer_shares": None,
+                "ofs_shares":       9_438_272,
+                "notes": "Promoter entity. WACA ₹23.52/sh. OFS proceeds depend on final IPO price.",
+            },
+            "SB Investment Holdings (UK) Ltd (SoftBank)": {
+                "type": "investor",
+                "waca": 30.87,
+                "waca_source": "DRHP — WACA ₹30.87/sh; certified by B.B. & Associates, CA, Jul 30 2024",
+                "pre_offer_shares": None,
+                "ofs_shares":       16_170_240,
+                "notes": "SoftBank vehicle. WACA ₹30.87/sh. Returns TBD at IPO pricing.",
+            },
+        },
+    },
+
 }
 
 
