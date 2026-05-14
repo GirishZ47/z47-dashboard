@@ -228,6 +228,11 @@ IPOS = [
         "key_investors": "SoftBank, Peak XV Partners, Elevation Capital, Fidelity, YC Continuity",
         "qib_sub": "N/A", "nii_sub": "N/A", "rii_sub": "N/A", "overall_sub": "79x",
         "known_listing_gain_pct": 46.4,
+        # Live price data (updated 14 May 2026)
+        "cmp": 189.92, "mcap_cr": 87125,
+        "week_52_high": 254.40, "week_52_low": 125.56,
+        "nse_symbol": "MEESHO", "bse_code": "381966",
+        "allotment_date": "2025-12-08",
     },
     {
         "company": "Capillary Technologies", "sector": "SaaS / AI", "ticker": "CAPILLARY.NS", "exchange": "NSE",
@@ -968,6 +973,8 @@ _ANCHOR_DATA = {
     },
     # ── Meesho: listed 10 Dec 2025 @ ₹162.50 NSE (+46.4%). IPO price ₹111. Sub: 79x ──
     # Returns: realised = IPO ÷ WACA; listing = ₹162.50 ÷ WACA; CMP ≈ live from MEESHO.NS
+    # return_at_cmp column is updated by _enrich_meesho_returns() at render time with live price.
+    # Static fallback CMP ₹189.92 (verified 14 May 2026). Ticker: MEESHO.NS
     "Meesho": {
         "anchor_total_cr": 1500,
         "anchors": [
@@ -979,68 +986,80 @@ _ANCHOR_DATA = {
             {"investor": "HDFC MF",            "category": "Mutual Fund",       "allocation_cr": 180},
         ],
         # ── OFS sellers: 10 verified from RHP (B.B. & Associates CA, UDIN: 25511341BMIVDB9527) ──
-        # IPO price ₹111 · Listing ₹162.50 NSE (+46.4%) · Listed 10 Dec 2025
+        # IPO price ₹111 · Listing ₹162.50 NSE (+46.4%) · CMP ₹189.92 (14 May 2026) · Listed 10 Dec 2025
+        # return_at_ipo  = realised (OFS exit at IPO price ₹111)
+        # return_at_cmp  = mark-to-market at CMP for remaining/non-OFS holdings; label updated live
         "pripo_investors": [
             {"investor": "Elevation Capital",
              "round": "Series A–C (2015–19)",
              "entry_val": "WACA ₹3.04/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~36.5x at ₹111 (+3,549%)",
-             "return_at_cmp": "~53.5x at listing ₹162.50"},
+             "pct_held": "OFS 2.44 cr shares",
+             "return_at_ipo": "~36.5x realised at ₹111 (+3,549%)",
+             "return_at_cmp": "~62.5x at CMP ₹189.92",
+             "_waca": 3.04, "_ofs_shares": 24_445_349, "_type": "investor"},
             {"investor": "Peak XV Partners (Sequoia Capital India)",
              "round": "Series B–D (2016–21)",
              "entry_val": "WACA ₹4.29/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~25.9x at ₹111 (+2,487%)",
-             "return_at_cmp": "~37.9x at listing ₹162.50"},
-            {"investor": "Vidit Aatrey",
+             "pct_held": "OFS 1.74 cr shares",
+             "return_at_ipo": "~25.9x realised at ₹111 (+2,487%)",
+             "return_at_cmp": "~44.3x at CMP ₹189.92",
+             "_waca": 4.29, "_ofs_shares": 17_380_873, "_type": "investor"},
+            {"investor": "Vidit Aatrey (Promoter / Co-founder)",
              "round": "Founder (2015)",
              "entry_val": "WACA ₹0.06/sh (CA-certified RHP)",
-             "pct_held": "—",
+             "pct_held": "OFS 1.60 cr shares",
              "return_at_ipo": "Promoter — OFS proceeds ₹177.6 cr",
-             "return_at_cmp": "1,850× at ₹111 (near-nil cost basis)"},
-            {"investor": "Sanjeev Kumar Barnwal",
+             "return_at_cmp": "~3,165x at CMP on retained shares (near-nil cost)",
+             "_waca": 0.06, "_ofs_shares": 16_000_000, "_type": "promoter"},
+            {"investor": "Sanjeev Kumar Barnwal (Promoter / Co-founder)",
              "round": "Founder (2015)",
              "entry_val": "WACA ₹0.02/sh (CA-certified RHP)",
-             "pct_held": "—",
+             "pct_held": "OFS 1.60 cr shares",
              "return_at_ipo": "Promoter — OFS proceeds ₹177.6 cr",
-             "return_at_cmp": "5,550× at ₹111 (near-nil cost basis)"},
+             "return_at_cmp": "~9,496x at CMP on retained shares (near-nil cost)",
+             "_waca": 0.02, "_ofs_shares": 16_000_000, "_type": "promoter"},
             {"investor": "Venture Highway",
              "round": "Series B (2018)",
              "entry_val": "WACA ₹46.81/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~2.37x at ₹111 (+137%)",
-             "return_at_cmp": "~3.47x at listing ₹162.50"},
+             "pct_held": "OFS 86.4 L shares",
+             "return_at_ipo": "~2.37x realised at ₹111 (+137%)",
+             "return_at_cmp": "~4.1x at CMP ₹189.92",
+             "_waca": 46.81, "_ofs_shares": 8_636_727, "_type": "investor"},
             {"investor": "Golden Summit Private Limited",
              "round": "Series D–E (2020–21)",
              "entry_val": "WACA ₹92.43/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~1.20x at ₹111 (+20%)",
-             "return_at_cmp": "~1.76x at listing ₹162.50"},
+             "pct_held": "OFS 79.6 L shares",
+             "return_at_ipo": "~1.20x realised at ₹111 (+20%)",
+             "return_at_cmp": "~2.1x at CMP ₹189.92",
+             "_waca": 92.43, "_ofs_shares": 7_961_640, "_type": "investor"},
             {"investor": "YC Continuity Fund",
              "round": "Series C (2017)",
              "entry_val": "WACA ₹1.02/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~108.8x at ₹111 (+10,782%)",
-             "return_at_cmp": "~159.3x at listing ₹162.50"},
+             "pct_held": "OFS 71.9 L shares",
+             "return_at_ipo": "~108.8x realised at ₹111 (+10,782%)",
+             "return_at_cmp": "~186.2x at CMP ₹189.92",
+             "_waca": 1.02, "_ofs_shares": 7_195_453, "_type": "investor"},
             {"investor": "Man Hay Tam",
              "round": "Early stage (2015)",
              "entry_val": "WACA ₹0.51/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~217.6x at ₹111 (+21,665%)",
-             "return_at_cmp": "~318.6x at listing ₹162.50"},
+             "pct_held": "OFS 33.0 L shares",
+             "return_at_ipo": "~217.6x realised at ₹111 (+21,665%)",
+             "return_at_cmp": "~372.4x at CMP ₹189.92",
+             "_waca": 0.51, "_ofs_shares": 3_301_140, "_type": "investor"},
             {"investor": "Sarin Family (Ashutosh Sarin)",
              "round": "Early stage (2015)",
              "entry_val": "WACA ₹2.22/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~50.0x at ₹111 (+4,900%)",
-             "return_at_cmp": "~73.2x at listing ₹162.50"},
+             "pct_held": "OFS 15.9 L shares",
+             "return_at_ipo": "~50.0x realised at ₹111 (+4,900%)",
+             "return_at_cmp": "~85.5x at CMP ₹189.92",
+             "_waca": 2.22, "_ofs_shares": 1_591_044, "_type": "investor"},
             {"investor": "Gemini Investments (Prosus / Naspers)",
              "round": "Series C–D (2017–20)",
              "entry_val": "WACA ₹8.28/sh (CA-certified RHP)",
-             "pct_held": "—",
-             "return_at_ipo": "~13.4x at ₹111 (+1,241%)",
-             "return_at_cmp": "~19.6x at listing ₹162.50"},
+             "pct_held": "OFS 12.5 L shares",
+             "return_at_ipo": "~13.4x realised at ₹111 (+1,241%)",
+             "return_at_cmp": "~22.9x at CMP ₹189.92",
+             "_waca": 8.28, "_ofs_shares": 1_247_351, "_type": "investor"},
         ],
     },
 }
@@ -1217,12 +1236,17 @@ _VALUATION_DATA = {
     "Meesho": {
         # Listed 10-Dec-2025 @ ₹162.50 NSE (+46.4%). IPO price ₹111 (band ₹105–111). Sub: 79×.
         # MCap at listing: ~4,657 cr shares × ₹162.50 ≈ ₹75,676 cr.
-        # Shares estimate: market_cap_cr ₹85,000 cr at CMP ₹182.50 → ~4,657 cr total shares.
+        # CMP ₹189.92 (14 May 2026) → MCap ~₹87,125 cr (yfinance verified).
+        # 52W High ₹254.40 · 52W Low ₹125.56. NSE ticker: MEESHO.
         # FY24: Rev ₹7,615 cr (+33% YoY), loss-making. FY25 path to profitability.
         # EV = 75,676 + ~2,000 − ~10,000 (cash post fresh issue) = ~₹67,676 cr. EV/Rev ~8.9x.
         "listing_mcap_cr": 75676, "revenue_cr": 7615, "revenue_year": "FY24",
         "profitable": False, "ev_rev_at_listing": 8.9,
         "pat_cr": None, "pe_at_listing": None, "book_value_cr": None, "pb_at_listing": None,
+        # CMP data for live return calculation
+        "cmp": 189.92, "mcap_cr": 87125,
+        "week_52_high": 254.40, "week_52_low": 125.56,
+        "cmp_date": "2026-05-14",
     },
 }
 
@@ -1265,6 +1289,7 @@ _BSE_CODES = {
     "GODIGIT":   "543957",
     "SHADOWFAX": "544494",
     "ATHERENERG":"544346",
+    "MEESHO":    "381966",   # Listed 10 Dec 2025
 }
 
 _SH_CACHE_TTL = 1800  # 30 minutes

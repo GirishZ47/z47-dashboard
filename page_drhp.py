@@ -75,103 +75,138 @@ WATCHLIST = [
 ]
 
 # ── Hardcoded verified DRHP/RHP PDF links (PRIMARY source — never stale) ─────
-# url: None means confidential (no public PDF). type: DRHP/RHP/CONFIDENTIAL.
+# All URLs verified live May 2026. Sources: NSE Archives, BSE, SEBI commondocs.
+# url: None = confidential / no public PDF.
+# type: DRHP | UDRHP | RHP | CONFIDENTIAL | FILING_PAGE
+# FILING_PAGE = url is an HTML filing page (not direct PDF); opens in browser.
+# ── HOW TO UPDATE: find the real URL on sebi.gov.in/filings/ or nsearchives.nseindia.com
+#    Verify it returns HTTP 200 before adding here. NEVER fabricate URLs.
 DRHP_LINKS = {
+    # ── CONFIDENTIAL / NO PUBLIC DRHP ─────────────────────────────────────────
     "Zepto": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1742880943961.pdf",
-        "type": "DRHP"
+        "url": None,
+        "type": "CONFIDENTIAL",
+        "note": "SEBI approved confidential DRHP May 8 2026; public UDRHP not yet filed.",
     },
     "PhonePe": {
         "url": None,
-        "type": "CONFIDENTIAL"
-    },
-    "Meesho": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737018893392.pdf",
-        "type": "DRHP"
-    },
-    "Lenskart": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1736922055524.pdf",
-        "type": "DRHP"
+        "type": "CONFIDENTIAL",
+        "note": "Confidential DRHP filed with SEBI. Document not publicly available.",
     },
     "Ola Cabs": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737005739540.pdf",
-        "type": "DRHP"
-    },
-    "Boat (Imagine Marketing)": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739175035429.pdf",
-        "type": "DRHP"
-    },
-    "Urban Company": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1738564823491.pdf",
-        "type": "DRHP"
-    },
-    "Urban Company (SEBI Approved)": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1738564823491.pdf",
-        "type": "DRHP"
+        "url": None,
+        "type": "CONFIDENTIAL",
+        "note": "No public DRHP found on SEBI or BSE. May be in pre-filing stage.",
     },
     "Rebel Foods (Faasos)": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1734006987572.pdf",
-        "type": "DRHP"
-    },
-    "Pine Labs": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741951573726.pdf",
-        "type": "RHP"
-    },
-    "Capillary Technologies": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737363982451.pdf",
-        "type": "RHP"
-    },
-    "Groww (Billionbrains Garage)": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/oct-2025/1729490234521.pdf",
-        "type": "RHP"
+        "url": None,
+        "type": "CONFIDENTIAL",
+        "note": "No public DRHP found on SEBI or BSE.",
     },
     "Cars24": {
         "url": None,
-        "type": "CONFIDENTIAL"
+        "type": "CONFIDENTIAL",
+        "note": "Confidential filing. No public DRHP.",
     },
     "OYO": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2024/1711096458625.pdf",
-        "type": "DRHP"
+        "url": None,
+        "type": "CONFIDENTIAL",
+        "note": "Original 2021 DRHP lapsed. No new public filing found as of May 2026.",
     },
     "Infra.Market": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/apr-2025/1744103432731.pdf",
-        "type": "DRHP"
+        "url": None,
+        "type": "CONFIDENTIAL",
+        "note": "Filed confidentially with SEBI. No public DRHP available yet.",
+    },
+
+    # ── VERIFIED WORKING PDF LINKS (checked May 2026) ──────────────────────────
+    "Meesho": {
+        "url": "https://www.bseindia.com/corporates/download/381966/IPO%20Prior/MeeshoLimited_UDRHP1_20251018222146.pdf",
+        "type": "UDRHP",
+        "source": "BSE · SEBI filing Oct 2025",
+    },
+    "Lenskart": {
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_29072025101510_DRHP.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Aug 2025",
+    },
+    "Boat (Imagine Marketing)": {
+        "url": "https://nsearchives.nseindia.com/corporate/Imagine_UDRHP_1.pdf",
+        "type": "UDRHP",
+        "source": "NSE Archives · SEBI filing Oct 2025",
+    },
+    "Urban Company": {
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_28042025190408_UrbanCompanyDRHP.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Apr 2025",
+    },
+    "Urban Company (SEBI Approved)": {
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_28042025190408_UrbanCompanyDRHP.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Apr 2025",
+    },
+    "Pine Labs": {
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_26062025131338_PineLabsLimitedDRHP__.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Jun 2025",
+    },
+    "Capillary Technologies": {
+        "url": "https://investmentbank.kotak.com/downloads/capillary-technologies-india-limited-DRHP.pdf",
+        "type": "DRHP",
+        "source": "Kotak Investment Banking · SEBI filing Jun 2025",
+    },
+    "Groww (Billionbrains Garage)": {
+        "url": "https://resources.groww.in/web-assets/media-library/2025/9/UDRHP%20-%201.pdf",
+        "type": "UDRHP",
+        "source": "Groww Investor Relations · SEBI filing Sep 2025",
     },
     "Shiprocket": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1736753700045.pdf",
-        "type": "DRHP"
+        "url": "https://nsearchives.nseindia.com/corporate/Shiprocket_Limited_UDRHP_1.pdf",
+        "type": "UDRHP",
+        "source": "NSE Archives · SEBI filing Dec 2025",
     },
     "Turtlemint": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1738906578543.pdf",
-        "type": "DRHP"
+        "url": "https://nsearchives.nseindia.com/corporate/Turtlemint_UDRHP_I.pdf",
+        "type": "UDRHP",
+        "source": "NSE Archives · SEBI filing Feb 2026",
     },
     "MoneyView": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741337432897.pdf",
-        "type": "DRHP"
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_03032026232951_DRHP.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Mar 2026",
     },
     "Snapdeal": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/dec-2024/1733980572638.pdf",
-        "type": "DRHP"
+        "url": "https://nsearchives.nseindia.com/corporate/AceVector_Limited_UDRHP_1.pdf",
+        "type": "UDRHP",
+        "source": "NSE Archives · AceVector Ltd · SEBI filing Dec 2025",
     },
     "RentoMojo": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/nov-2024/1731050387461.pdf",
-        "type": "DRHP"
+        "url": "https://www.sebi.gov.in/sebi_data/commondocs/apr-2026/Rentomojo%20Limited-Draft%20Abridged%20Prospectus_p.pdf",
+        "type": "DRHP",
+        "source": "SEBI · Apr 2026",
     },
     "Purple Style Labs": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/jan-2025/1737006392765.pdf",
-        "type": "DRHP"
+        "url": "https://nsearchives.nseindia.com/corporate/Registration_22092025202833_PurpleStyleLabsLimitedDRHP.pdf",
+        "type": "DRHP",
+        "source": "NSE Archives · SEBI filing Sep 2025",
     },
     "PlaySimple": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739260125987.pdf",
-        "type": "DRHP"
-    },
-    "CureFoods": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/mar-2025/1741765394823.pdf",
-        "type": "DRHP"
+        "url": "https://www.sebi.gov.in/sebi_data/commondocs/may-2026/Playsimple%20Games%20Limited_p.pdf",
+        "type": "DRHP",
+        "source": "SEBI · Apr 2026",
     },
     "InCred Holdings": {
-        "url": "https://www.sebi.gov.in/sebi_data/attachdocs/feb-2025/1739096832561.pdf",
-        "type": "DRHP"
+        "url": "https://www.incredequities.com/wp-content/uploads/2026/05/InCred-Holdings-Limited-UDRHP-I.pdf",
+        "type": "UDRHP",
+        "source": "InCred Investor Relations · SEBI filing May 2026",
+    },
+
+    # ── FILING PAGE (HTML — no direct PDF; opens SEBI filing detail page) ───────
+    "CureFoods": {
+        "url": "https://www.sebi.gov.in/filings/public-issues/jul-2025/curefoods-india-limited_95013.html",
+        "type": "FILING_PAGE",
+        "source": "SEBI filing page · Jun 2025",
+        "note": "Opens SEBI filing detail page; click the document link there.",
     },
 }
 
@@ -199,13 +234,13 @@ DRHP_SUMMARIES: dict[str, dict] = {
     },
     "Meesho": {
         "business_model": "Social commerce / value e-commerce platform serving Tier 2–4 India. Zero-commission model for sellers; revenue from logistics, ads, and financial services.",
-        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities. NSE ticker: MEESHO.",
-        "financials": "Revenue FY24 ~₹7,615 cr (+33% YoY). Net loss significantly reduced. Contribution margin positive since FY23. Listed MCap ~₹75,676 cr at ₹162.50.",
-        "ipo_details": "✅ LISTED 10 Dec 2025. IPO price ₹111 (band ₹105–111). Listing price ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). Subscription: 79×. Issue size ₹3,152 cr (₹2,000 cr fresh + ₹1,152 cr OFS). BRLMs: Goldman Sachs, ICICI Securities, Kotak.",
+        "key_metrics": "130M+ annual transacting users. 1.5M+ active sellers. Average order value ~₹350. 90%+ orders from Tier 2+ cities. NSE ticker: MEESHO. CMP ₹189.92 · MCap ₹87,125 cr (14 May 2026).",
+        "financials": "Revenue FY24 ~₹7,615 cr (+33% YoY). Net loss significantly reduced. Contribution margin positive since FY23. MCap at listing ₹75,676 cr; current MCap ₹87,125 cr. 52W range: ₹125.56–₹254.40.",
+        "ipo_details": "✅ LISTED 10 Dec 2025. IPO price ₹111 (band ₹105–111). Listing ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). CMP ₹189.92 (+71.1% vs IPO price). Sub: 79×. Issue ₹3,152 cr (₹2,000 cr fresh + ₹1,152 cr OFS). BRLMs: Goldman Sachs, ICICI Securities, Kotak. Allotment: 8 Dec 2025. Pre-IPO lock-in expires: 10 Jun 2026.",
         "market": "India e-commerce ~$70B by 2027. Value segment (sub-₹500 orders) largely under-served by Amazon/Flipkart.",
-        "key_risks": "Low average selling price limits per-order revenue, logistics costs, returns rate, competition from quick commerce, post-listing lock-in expiry (pre-IPO: Jun 10 2026).",
+        "key_risks": "Low average selling price limits per-order revenue, logistics costs, returns rate, competition from quick commerce, pre-IPO lock-in expiry Jun 10 2026 (3,083 cr shares ~68% unlock).",
         "investors": "SoftBank, Peak XV Partners (Sequoia), Elevation Capital, Fidelity, Meta, B Capital, YC Continuity Fund.",
-        "source": "NSE, Groww, Indian Express, Screener — as of 13 May 2026",
+        "source": "NSE, yfinance, Groww, Screener — CMP verified 14 May 2026",
     },
     "Urban Company": {
         "business_model": "Asset-light home-services marketplace connecting consumers with trained professional partners for beauty, cleaning, repairs, and appliance servicing. Present in 50+ cities and 3 international markets.",
@@ -432,7 +467,13 @@ def _show_company_summary(company_name: str):
     if not summary:
         st.info(f"Detailed summary not yet available for **{company_name}**.")
         if entry.get("type") == "CONFIDENTIAL":
-            st.markdown("🔒 Filing is confidential — no public document available.")
+            note = entry.get("note", "Document not publicly available.")
+            st.markdown(f"🔒 **Confidential Filing** — {note}")
+        elif entry.get("type") == "FILING_PAGE":
+            st.link_button("📋 View Filing on SEBI", entry["url"])
+            note = entry.get("note", "")
+            if note:
+                st.caption(note)
         elif entry.get("url"):
             st.link_button(f"📄 Open {entry.get('type', 'DRHP')}", entry["url"])
         return
@@ -457,10 +498,21 @@ def _show_company_summary(company_name: str):
     st.markdown("**⚠️ Key Risks**")
     st.write(summary["key_risks"])
 
-    if entry.get("type") == "CONFIDENTIAL":
-        st.info("🔒 Full document is a confidential SEBI filing — not publicly available.")
+    doc_type = entry.get("type", "DRHP")
+    if doc_type == "CONFIDENTIAL":
+        note = entry.get("note", "Document not publicly available.")
+        st.info(f"🔒 **Confidential Filing** — {note}")
+    elif doc_type == "FILING_PAGE":
+        st.link_button("📋 View Filing on SEBI", entry["url"])
+        note = entry.get("note", "")
+        if note:
+            st.caption(note)
     elif entry.get("url"):
-        st.link_button(f"📄 Open Full {entry.get('type', 'DRHP')} on SEBI", entry["url"])
+        source = entry.get("source", "")
+        label = f"📄 Open Full {doc_type}"
+        st.link_button(label, entry["url"])
+        if source:
+            st.caption(f"Source: {source}")
 
 
 # ── JSON cache file for persisting auto-discovered filings ───────────────────
@@ -545,10 +597,17 @@ KNOWN_FILINGS = [
      "description": "India's largest UPI payments platform with 550M+ registered users. Backed by Walmart. Confidential DRHP filing."},
 
     {"company": "Meesho",
-     "filing_date": "2025-12", "type": "Listed", "sector": "ecommerce",
+     "filing_date": "2025-12", "type": "Listed ✅", "sector": "ecommerce",
      "issue_size": "₹3,152 cr", "brlms": "Goldman Sachs, ICICI Securities, Kotak",
      "pdf_link": DRHP_LINKS["Meesho"]["url"], "confidential": False,
-     "description": "Listed 10 Dec 2025 @ ₹162.50 NSE (+46.4%). IPO price ₹111. Sub: 79×. Social commerce serving Tier 2/3 India. Ticker: MEESHO.NS"},
+     "description": (
+         "✅ Listed 10 Dec 2025 @ ₹162.50 NSE (+46.4%) / ₹161.20 BSE (+45.2%). "
+         "IPO price ₹111 (band ₹105–111). Subscription: 79×. "
+         "CMP ₹189.92 (+71.1% vs IPO). MCap ₹87,125 cr. "
+         "52W: ₹125.56–₹254.40. Allotment 8 Dec 2025. "
+         "Pre-IPO lock-in: 10 Jun 2026. "
+         "Social commerce platform serving Tier 2/3 India. NSE: MEESHO."
+     )},
 
     {"company": "Lenskart",
      "filing_date": "2025-01", "type": "DRHP", "sector": "consumer tech",
@@ -708,7 +767,8 @@ def _verify_url(url):
 def _sebi_find_pdf(company_name):
     """
     Search the live SEBI DRHP filings page for a company name.
-    Returns the PDF URL if found, or None.
+    Returns the PDF URL (or filing page URL) if found, or None.
+    Uses the real SEBI listing page (verified May 2026).
     Caches per company for 24 hours.
     """
     ck = f"sebi_pdf_{company_name.lower()[:24]}"
@@ -718,10 +778,12 @@ def _sebi_find_pdf(company_name):
 
     url_found = None
     try:
+        # Real SEBI DRHP listing page (not the old broken intmId=7 URL)
         r = requests.get(
-            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
-            "?doRecognisedFpi=yes&intmId=7",
-            headers={"User-Agent": "Mozilla/5.0",
+            "https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
+            "?doListing=yes&sid=3&ssid=15&smid=10",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                   "AppleWebKit/537.36",
                      "Referer": "https://www.sebi.gov.in/"},
             timeout=15,
         )
@@ -731,19 +793,24 @@ def _sebi_find_pdf(company_name):
             name_lower = company_name.lower()
             name_words = [w for w in name_lower.split() if len(w) > 3]
             for row in table.find_all("tr")[1:]:
-                cols = row.find_all("td")
-                if not cols:
-                    continue
-                row_text = " ".join(c.get_text(strip=True) for c in cols).lower()
+                row_text = row.get_text(strip=True).lower()
                 if name_lower in row_text or any(w in row_text for w in name_words):
-                    for col in cols:
-                        a = col.find("a", href=True)
-                        if a:
+                    # Prefer PDF link; fall back to filing detail page
+                    for a in row.find_all("a", href=True):
+                        href = a["href"]
+                        if not href.startswith("http"):
+                            href = "https://www.sebi.gov.in" + href
+                        if ".pdf" in href.lower() or ".zip" in href.lower():
+                            url_found = href
+                            break
+                    if not url_found:
+                        for a in row.find_all("a", href=True):
                             href = a["href"]
                             if not href.startswith("http"):
                                 href = "https://www.sebi.gov.in" + href
-                            url_found = href
-                            break
+                            if "/filings/" in href:
+                                url_found = href
+                                break
                     if url_found:
                         break
     except Exception:
@@ -795,7 +862,8 @@ def _get_best_link(filing):
         result = ("verified", sebi_url)
     else:
         # Always fall back to SEBI search page — never 'not_found'
-        result = ("sebi_fallback", "https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doRecognisedFpi=yes&intmId=7")
+        # Real SEBI DRHP listing page (intmId=7 is the old broken URL)
+        result = ("sebi_fallback", "https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=3&ssid=15&smid=10")
 
     st.session_state[ck] = {"status": result[0], "url": result[1], "ts": time.time()}
     return result
@@ -838,34 +906,46 @@ def _sebi_fetch_all():
 
     filings = []
 
-    # ── Source 1: SEBI DRHP filings page ──────────────────────────────────────
+    # ── Source 1: SEBI DRHP filings page (real listing URL, verified May 2026) ──
+    # URL: https://www.sebi.gov.in/sebiweb/home/HomeAction.do?doListing=yes&sid=3&ssid=15&smid=10
+    # Table structure: col[0]=Date, col[1]=Title (with a[href] links in <td>)
+    # PDF links use pattern: /sebi_data/commondocs/MONTH-YEAR/FILENAME.pdf
+    # Filing detail pages: /filings/public-issues/MONTH-YEAR/SLUG_ID.html
     try:
         r = requests.get(
-            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
-            "?doRecognisedFpi=yes&intmId=7",
-            headers={"User-Agent": "Mozilla/5.0",
+            "https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
+            "?doListing=yes&sid=3&ssid=15&smid=10",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                   "AppleWebKit/537.36",
                      "Referer": "https://www.sebi.gov.in/"},
             timeout=15,
         )
         soup  = BeautifulSoup(r.text, "lxml")
-        table = soup.find("table", {"class": "table"}) or soup.find("table")
+        table = soup.find("table")
         if table:
             for row in table.find_all("tr")[1:]:
                 cols = row.find_all("td")
                 if len(cols) < 2:
                     continue
-                company  = cols[0].get_text(strip=True)
-                date_str = cols[1].get_text(strip=True) if len(cols) > 1 else ""
-                # Find PDF link in any column
-                pdf_url = None
-                for col in cols:
-                    a = col.find("a", href=True)
-                    if a:
-                        href = a["href"]
-                        if not href.startswith("http"):
-                            href = "https://www.sebi.gov.in" + href
+                date_str = cols[0].get_text(strip=True)
+                # Title is in col[1]; company name = title up to " - DRHP"
+                title_text = cols[1].get_text(strip=True)
+                company = title_text.split(" - DRHP")[0].split(" - RHP")[0].strip()
+                if not company:
+                    continue
+                # Prefer PDF link (commondocs) over filing detail page
+                pdf_url      = None
+                filing_page  = None
+                for a in row.find_all("a", href=True):
+                    href = a["href"]
+                    if not href.startswith("http"):
+                        href = "https://www.sebi.gov.in" + href
+                    if ".pdf" in href.lower() or ".zip" in href.lower():
                         pdf_url = href
-                        break
+                    elif "/filings/" in href:
+                        filing_page = href
+                # Use PDF if available, else filing page as fallback
+                link = pdf_url or filing_page
                 is_rel = _is_relevant_company(company)
                 is_wl  = _is_watchlist_hit(company)
                 filings.append({
@@ -875,7 +955,7 @@ def _sebi_fetch_all():
                     "sector":       "",
                     "issue_size":   "N/A",
                     "brlms":        "N/A",
-                    "pdf_link":     pdf_url,
+                    "pdf_link":     link,
                     "confidential": False,
                     "description":  "Auto-detected from SEBI",
                     "is_tech":      is_rel,
@@ -1755,48 +1835,54 @@ def render():
             pdf_url      = sel_row.get("_pdf")
             company_name = sel_row.get("Company", "")
 
-            if is_conf:
+            drhp_entry   = DRHP_LINKS.get(company_name, {})
+            entry_type   = drhp_entry.get("type", "")
+            entry_url    = drhp_entry.get("url")
+            entry_source = drhp_entry.get("source", "")
+            entry_note   = drhp_entry.get("note", "")
+
+            if is_conf or entry_type == "CONFIDENTIAL":
+                note_text = entry_note or "Document not publicly available."
                 st.markdown(
                     "<div style='display:inline-block;background:#e5e7eb;color:#6b7a8d;"
                     "border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600'>"
-                    "🔒 Confidential Filing — document not publicly available</div>",
+                    f"🔒 Confidential Filing — {note_text}</div>",
                     unsafe_allow_html=True)
+            elif entry_type == "FILING_PAGE" and entry_url:
+                st.link_button(
+                    "📋 View Filing on SEBI",
+                    entry_url,
+                    use_container_width=False)
+                note_text = entry_note or ""
+                st.caption(f"✅ Verified SEBI filing page · {entry_source}" +
+                           (f" · {note_text}" if note_text else ""))
+            elif entry_url:
+                st.link_button(
+                    f"📄 View {entry_type or 'DRHP'}",
+                    entry_url,
+                    use_container_width=False)
+                st.caption(f"✅ Verified link · {entry_source}")
+            elif pdf_url:
+                st.link_button("📄 View DRHP / RHP Document",
+                               pdf_url,
+                               use_container_width=False)
+                st.caption("✅ Curated source · SEBI / BSE")
             else:
-                drhp_entry = DRHP_LINKS.get(company_name, {})
-                if drhp_entry.get("type") == "CONFIDENTIAL":
-                    st.markdown(
-                        "<div style='display:inline-block;background:#e5e7eb;color:#6b7a8d;"
-                        "border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600'>"
-                        "🔒 Confidential Filing — document not publicly available</div>",
-                        unsafe_allow_html=True)
-                elif drhp_entry.get("url"):
-                    doc_type = drhp_entry.get("type", "DRHP")
-                    st.link_button(
-                        f"📄 View {doc_type} on SEBI",
-                        drhp_entry["url"],
-                        use_container_width=False)
-                    st.caption("✅ Verified hardcoded link · Source: SEBI")
-                elif pdf_url:
+                with st.spinner("Searching SEBI for document link…"):
+                    sebi_url = _sebi_find_pdf(company_name)
+                if sebi_url:
                     st.link_button("📄 View DRHP / RHP Document",
-                                   pdf_url,
+                                   sebi_url,
                                    use_container_width=False)
-                    st.caption("✅ Curated source · SEBI / BSE")
+                    st.caption("🔍 Found via live SEBI search")
                 else:
-                    with st.spinner("Searching SEBI for document link…"):
-                        sebi_url = _sebi_find_pdf(company_name)
-                    if sebi_url:
-                        st.link_button("📄 View DRHP / RHP Document",
-                                       sebi_url,
-                                       use_container_width=False)
-                        st.caption("🔍 Found via live SEBI search")
-                    else:
-                        st.link_button(
-                            "🔍 Search on SEBI",
-                            "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
-                            "?doRecognisedFpi=yes&intmId=7",
-                            use_container_width=False)
-                        st.caption(
-                            f"Direct link unavailable — search for '{company_name}' on SEBI")
+                    st.link_button(
+                        "🔍 Search on SEBI",
+                        "https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
+                        "?doListing=yes&sid=3&ssid=15&smid=10",
+                        use_container_width=False)
+                    st.caption(
+                        f"Direct link unavailable — search for '{company_name}' on SEBI")
 
     # ── Summary Stats ─────────────────────────────────────────────────────────
     st.markdown("---")
