@@ -606,49 +606,120 @@ def fetch_company_financials(yf_tk: str) -> dict:
         return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_z47_fundamentals() -> dict:
-    """
-    Median valuation multiples + average operating metrics for all 47 Z47 constituents.
-    Uses parallel yfinance fetches; cached for 1 hour.
-    """
-    Z47_SYMBOLS = [yf_ticker(c) for c in COMPANIES]
+# ── Index Fundamentals — constituent lists ────────────────────────────────────
 
-    def _fetch_one(sym):
+NIFTY50_SYMBOLS = [
+    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "BHARTIARTL.NS",
+    "ICICIBANK.NS", "INFY.NS", "SBIN.NS", "HINDUNILVR.NS",
+    "ITC.NS", "LICI.NS", "KOTAKBANK.NS", "LT.NS",
+    "HCLTECH.NS", "BAJFINANCE.NS", "MARUTI.NS", "SUNPHARMA.NS",
+    "ADANIENT.NS", "ONGC.NS", "NTPC.NS", "TITAN.NS",
+    "ULTRACEMCO.NS", "WIPRO.NS", "AXISBANK.NS", "ASIANPAINT.NS",
+    "POWERGRID.NS", "M&M.NS", "ADANIPORTS.NS", "NESTLEIND.NS",
+    "TECHM.NS", "BAJAJFINSV.NS", "COALINDIA.NS", "TATASTEEL.NS",
+    "JSWSTEEL.NS", "HINDALCO.NS", "DRREDDY.NS", "CIPLA.NS",
+    "DIVISLAB.NS", "BRITANNIA.NS", "EICHERMOT.NS", "BPCL.NS",
+    "APOLLOHOSP.NS", "TATACONSUM.NS", "HEROMOTOCO.NS",
+    "SHRIRAMFIN.NS", "BAJAJ-AUTO.NS", "GRASIM.NS",
+    "SBILIFE.NS", "HDFCLIFE.NS", "INDUSINDBK.NS", "BEL.NS",
+]
+
+SENSEX_SYMBOLS = [
+    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "BHARTIARTL.NS",
+    "ICICIBANK.NS", "INFY.NS", "SBIN.NS", "HINDUNILVR.NS",
+    "ITC.NS", "KOTAKBANK.NS", "LT.NS", "HCLTECH.NS",
+    "BAJFINANCE.NS", "MARUTI.NS", "SUNPHARMA.NS", "TITAN.NS",
+    "ULTRACEMCO.NS", "WIPRO.NS", "AXISBANK.NS", "ASIANPAINT.NS",
+    "POWERGRID.NS", "M&M.NS", "NESTLEIND.NS", "TECHM.NS",
+    "BAJAJFINSV.NS", "TATASTEEL.NS", "JSWSTEEL.NS",
+    "DRREDDY.NS", "ADANIPORTS.NS", "NTPC.NS",
+]
+
+# EV/Revenue and EV/EBITDA not meaningful for financial companies
+_FINANCIAL_SYMS = {
+    "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS",
+    "AXISBANK.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS",
+    "SBILIFE.NS", "HDFCLIFE.NS", "SHRIRAMFIN.NS",
+    "INDUSINDBK.NS", "LICI.NS",
+}
+
+# Z47 financial companies — NBFC / insurance / HFC
+_Z47_FINANCIAL_SYMS = {
+    "GROWW.NS", "PAYTM.NS", "SBICARD.NS", "POLICYBZR.NS",
+    "360ONE.NS", "GODIGIT.NS", "PINELABS.NS", "APTUS.NS",
+    "FIVESTAR.NS", "HOMEFIRST.NS", "INDIASHLTR.NS",
+    "MOBIKWIK.NS", "MEDIASSIST.NS", "AYE.NS", "KISSHT.NS",
+    "MMYT",                          # US-listed — no EV data anyway
+}
+
+
+def _fetch_constituent_fundamentals(symbols: list, fin_syms: set) -> list:
+    """Parallel yfinance fetch for a list of symbols. Returns list of dicts."""
+
+    def _one(sym):
         try:
-            info        = yf.Ticker(sym).info
-            market_cap  = info.get("marketCap")  or 0
-            total_debt  = info.get("totalDebt")  or 0
-            total_cash  = info.get("totalCash")  or 0
-            minority    = info.get("minorityInterest") or 0
-            ev          = market_cap + total_debt - total_cash + minority
-            revenue_ttm = info.get("totalRevenue") or 0
-            ebitda_ttm  = info.get("ebitda")       or 0
-            rev_growth  = info.get("revenueGrowth")
-            ebitda_mgn  = info.get("ebitdaMargins")
-            trailing_pe = info.get("trailingPE")
-            ev_rev  = ev / revenue_ttm if ev > 0 and revenue_ttm > 0 else None
-            ev_ebit = ev / ebitda_ttm  if ev > 0 and ebitda_ttm  > 0 else None
+            info = yf.Ticker(sym).info
+            is_fin = sym in fin_syms
+            mcap   = info.get("marketCap")      or 0
+            debt   = info.get("totalDebt")       or 0
+            cash   = info.get("totalCash")       or 0
+            minint = info.get("minorityInterest") or 0
+            ev     = mcap + debt - cash + minint
+            rev    = info.get("totalRevenue")    or 0
+            ebitda = info.get("ebitda")          or 0
+            rg     = info.get("revenueGrowth")
+            em     = info.get("ebitdaMargins")
+            pe     = info.get("trailingPE")
+            pb     = info.get("priceToBook")
+            ev_rev  = (ev / rev)   if (not is_fin and ev > 0 and rev > 0)   else None
+            ev_ebit = (ev / ebitda) if (not is_fin and ev > 0 and ebitda > 0) else None
             return {
                 "symbol":        sym,
+                "is_financial":  is_fin,
                 "ev_revenue":    ev_rev,
                 "ev_ebitda":     ev_ebit,
-                "pe":            trailing_pe,
-                "rev_growth":    rev_growth * 100 if rev_growth  is not None else None,
-                "ebitda_margin": ebitda_mgn * 100  if ebitda_mgn is not None else None,
+                "pe":            pe,
+                "pb":            pb,
+                "rev_growth":    rg * 100 if rg is not None else None,
+                "ebitda_margin": em * 100 if (not is_fin and em is not None) else None,
             }
         except Exception as _e:
-            print(f"[Fundamentals] {sym}: {_e}")
-            return {"symbol": sym}
+            print(f"[Fund fetch] {sym}: {_e}")
+            return {"symbol": sym, "is_financial": sym in fin_syms}
 
     results = []
-    with ThreadPoolExecutor(max_workers=10) as _ex:
-        _futs = {_ex.submit(_fetch_one, s): s for s in Z47_SYMBOLS}
-        for _f in as_completed(_futs, timeout=45):
+    with ThreadPoolExecutor(max_workers=12) as _ex:
+        _futs = {_ex.submit(_one, s): s for s in symbols}
+        for _f in as_completed(_futs, timeout=50):
             try:
                 results.append(_f.result())
             except Exception:
                 pass
+    return results
+
+
+def _compute_index_metrics(data: list, index_name: str, n_declared: int) -> dict:
+    """Aggregate constituent data into index-level metrics."""
+
+    def _ok(v, lo, hi):
+        try:
+            f = float(v)
+            return lo < f < hi
+        except (TypeError, ValueError):
+            return False
+
+    def _vals(key, excl_fin=False, lo=None, hi=None):
+        out = []
+        for d in data:
+            if excl_fin and d.get("is_financial"):
+                continue
+            v = d.get(key)
+            if v is None:
+                continue
+            if lo is not None and not _ok(v, lo, hi):
+                continue
+            out.append(float(v))
+        return out
 
     def _median(vals):
         if not vals:
@@ -659,46 +730,99 @@ def get_z47_fundamentals() -> dict:
     def _mean(vals):
         return round(sum(vals) / len(vals), 1) if vals else None
 
-    ev_rev_v  = [r["ev_revenue"]    for r in results if r.get("ev_revenue")    is not None and 0  < r["ev_revenue"]    < 50]
-    ev_ebit_v = [r["ev_ebitda"]     for r in results if r.get("ev_ebitda")     is not None and 0  < r["ev_ebitda"]     < 200]
-    pe_v      = [r["pe"]            for r in results if r.get("pe")            is not None and 0  < r["pe"]            < 500]
-    rg_v      = [r["rev_growth"]    for r in results if r.get("rev_growth")    is not None and -50 < r["rev_growth"]   < 200]
-    em_v      = [r["ebitda_margin"] for r in results if r.get("ebitda_margin") is not None and -200 < r["ebitda_margin"] < 100]
+    n_non_fin = sum(1 for d in data if not d.get("is_financial"))
+
+    ev_rev_v  = _vals("ev_revenue",    excl_fin=True,  lo=0,    hi=100)
+    ev_ebit_v = _vals("ev_ebitda",     excl_fin=True,  lo=0,    hi=200)
+    pe_v      = _vals("pe",                            lo=0,    hi=500)
+    pb_v      = _vals("pb",                            lo=0,    hi=100)
+    rg_v      = _vals("rev_growth",                    lo=-50,  hi=200)
+    em_v      = _vals("ebitda_margin", excl_fin=True,  lo=-100, hi=80)
 
     return {
-        "ev_revenue_median":  _median(ev_rev_v),
-        "ev_ebitda_median":   _median(ev_ebit_v),
-        "pe_median":          _median(pe_v),
-        "ev_revenue_mean":    _mean(ev_rev_v),
-        "ev_ebitda_mean":     _mean(ev_ebit_v),
-        "pe_mean":            _mean(pe_v),
-        "rev_growth_mean":    _mean(rg_v),
-        "ebitda_margin_mean": _mean(em_v),
-        "n_total":            len(Z47_SYMBOLS),
-        "n_ev_revenue":       len(ev_rev_v),
-        "n_ev_ebitda":        len(ev_ebit_v),
-        "n_pe":               len(pe_v),
-        "n_rev_growth":       len(rg_v),
-        "n_ebitda_margin":    len(em_v),
-        "company_data":       results,
-        "as_of":              pd.Timestamp.now().strftime("%d %b %Y %H:%M"),
+        "index_name":      index_name,
+        "n_total":         n_declared,
+        "n_fetched":       len(data),
+        "n_non_financial": n_non_fin,
+        "ev_revenue":      _median(ev_rev_v),
+        "n_ev_revenue":    len(ev_rev_v),
+        "ev_ebitda":       _median(ev_ebit_v),
+        "n_ev_ebitda":     len(ev_ebit_v),
+        "pe":              _median(pe_v),
+        "n_pe":            len(pe_v),
+        "pe_source":       "computed",
+        "pb":              _median(pb_v),
+        "n_pb":            len(pb_v),
+        "rev_growth":      _mean(rg_v),
+        "n_rev_growth":    len(rg_v),
+        "ebitda_margin":   _mean(em_v),
+        "n_ebitda_margin": len(em_v),
     }
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_index_fundamentals() -> dict:
-    """Fetch Nifty50 and Sensex P/E from yfinance index info (cached 1 hour)."""
-    out = {"nifty": {}, "sensex": {}}
-    for key, sym in [("nifty", "^NSEI"), ("sensex", "^BSESN")]:
-        try:
-            info = yf.Ticker(sym).info
-            out[key] = {
-                "pe": info.get("trailingPE"),
-                "pb": info.get("priceToBook"),
-            }
-        except Exception as _e:
-            print(f"[Index fundamentals] {sym}: {_e}")
-    return out
+def _get_nifty50_official_pe() -> dict:
+    """Try to fetch official Nifty 50 P/E from NSE API."""
+    try:
+        _s = requests.Session()
+        _h = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com/",
+              "Accept": "application/json, */*"}
+        _s.get("https://www.nseindia.com", headers=_h, timeout=5)
+        r = _s.get(
+            "https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%2050",
+            headers=_h, timeout=8,
+        )
+        if r.status_code == 200:
+            meta = r.json().get("metadata", {})
+            pe = meta.get("pe"); pb = meta.get("pb")
+            if pe:
+                return {"pe": float(pe), "pb": float(pb) if pb else None,
+                        "source": "NSE official"}
+    except Exception as _e:
+        print(f"[NSE PE] {_e}")
+    return {"pe": None, "pb": None, "source": "unavailable"}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_all_index_fundamentals() -> dict:
+    """
+    Compute fundamentals for Z47, Nifty 50, and BSE Sensex.
+    Parallel yfinance fetch for all ~130 constituents; cached 1 hour.
+    """
+    print("[Fund] Computing index fundamentals for Z47 + Nifty50 + Sensex…")
+    Z47_SYMS = [yf_ticker(c) for c in COMPANIES]
+
+    # Parallel fetch all three constituent lists at once
+    all_syms = list(dict.fromkeys(Z47_SYMS + NIFTY50_SYMBOLS + SENSEX_SYMBOLS))
+    all_data = _fetch_constituent_fundamentals(all_syms, _FINANCIAL_SYMS | _Z47_FINANCIAL_SYMS)
+    data_map = {d["symbol"]: d for d in all_data}
+
+    z47_data    = [data_map[s] for s in Z47_SYMS         if s in data_map]
+    nifty_data  = [data_map[s] for s in NIFTY50_SYMBOLS  if s in data_map]
+    sensex_data = [data_map[s] for s in SENSEX_SYMBOLS   if s in data_map]
+
+    # For Z47, use the Z47-specific financial exclusion set
+    for d in z47_data:
+        d["is_financial"] = d["symbol"] in _Z47_FINANCIAL_SYMS
+
+    z47_m    = _compute_index_metrics(z47_data,    "Z47",       len(Z47_SYMS))
+    nifty_m  = _compute_index_metrics(nifty_data,  "Nifty 50",  len(NIFTY50_SYMBOLS))
+    sensex_m = _compute_index_metrics(sensex_data, "BSE Sensex", len(SENSEX_SYMBOLS))
+
+    # Override Nifty P/E with official NSE value where available
+    official = _get_nifty50_official_pe()
+    if official.get("pe"):
+        nifty_m["pe"]        = round(official["pe"], 1)
+        nifty_m["pe_source"] = official["source"]
+        if official.get("pb"):
+            nifty_m["pb"] = round(official["pb"], 1)
+
+    return {
+        "z47":    z47_m,
+        "nifty":  nifty_m,
+        "sensex": sensex_m,
+        "as_of":  pd.Timestamp.now().strftime("%d %b %Y %H:%M"),
+    }
 
 
 @st.cache_data(ttl=300, show_spinner=False)   # same cadence as prices
@@ -1803,110 +1927,118 @@ def main():
         print(f"[CRASH] z47_desktop: {type(_desk_err).__name__}: {_desk_err}\n{_tb.format_exc()}")
 
 
-def render_index_fundamentals(z47: dict, idx: dict) -> None:
-    """Render the Index Fundamentals table on the Z47 desktop page."""
-    nifty  = idx.get("nifty",  {})
-    sensex = idx.get("sensex", {})
-    n_total = z47.get("n_total", 47)
+def render_index_fundamentals(metrics: dict) -> None:
+    """Render the Index Fundamentals comparison table (Z47 vs Nifty50 vs Sensex)."""
+    z47    = metrics.get("z47",    {})
+    nifty  = metrics.get("nifty",  {})
+    sensex = metrics.get("sensex", {})
+    as_of  = metrics.get("as_of",  "N/A")
 
-    def _fmt_x(v):
+    def _fx(v):
         return "—" if v is None else f"{v:.1f}x"
 
-    def _fmt_pct(v):
-        if v is None:
-            return "—"
+    def _fp(v):
+        if v is None: return "—"
         return f"{'+' if v > 0 else ''}{v:.1f}%"
 
-    def _cov(n):
-        return f"{n}/{n_total} cos"
-
     TH = "padding:10px 16px;color:#8b6d4a;font-size:12px;font-weight:600;white-space:nowrap"
-    TD = "padding:10px 16px;vertical-align:top"
+    TD = "padding:11px 16px;vertical-align:top"
 
-    # Column header row
     hdr = (
         f"<tr style='background:{BG_ALT}'>"
         f"<th style='text-align:left;{TH}'>Metric</th>"
         f"<th style='text-align:right;{TH}'>Z47 Index"
-        f"<div style='font-weight:400;font-size:10px;color:#a38060'>median of constituents</div></th>"
-        f"<th style='text-align:right;{TH}'>Nifty 50</th>"
-        f"<th style='text-align:right;{TH}'>BSE Sensex</th>"
+        f"<div style='font-weight:400;font-size:10px;color:#a38060'>median · 47 cos</div></th>"
+        f"<th style='text-align:right;{TH}'>Nifty 50"
+        f"<div style='font-weight:400;font-size:10px;color:#a38060'>median · 50 cos</div></th>"
+        f"<th style='text-align:right;{TH}'>BSE Sensex"
+        f"<div style='font-weight:400;font-size:10px;color:#a38060'>median · 30 cos</div></th>"
         f"</tr>"
     )
 
-    def _z47_cell(val, n, is_pct=False):
-        txt   = _fmt_pct(val) if is_pct else _fmt_x(val)
+    def _cell(val, n, total, is_pct=False, is_z47=False, src=""):
+        txt = _fp(val) if is_pct else _fx(val)
         if val is None:
             col = "#9ca3af"
         elif is_pct:
             col = "#16a34a" if val >= 0 else "#dc2626"
         else:
-            col = "#1a0f00"
-        cov_div = f"<div style='font-size:10px;color:#a38060'>{_cov(n)}</div>" if n is not None else ""
+            col  = "#1a0f00" if is_z47 else "#4a3520"
+        fw   = "700" if is_z47 else "600"
+        cov  = (f"<div style='font-size:10px;color:#a38060'>{n}/{total} cos</div>"
+                if n is not None else "")
+        src_tag = (f"<div style='font-size:10px;color:#16a34a'>★ NSE official</div>"
+                   if "NSE" in src else "")
         return (
             f"<td style='text-align:right;{TD}'>"
-            f"<span style='font-size:18px;font-weight:700;color:{col}'>{txt}</span>"
-            f"{cov_div}</td>"
+            f"<span style='font-size:18px;font-weight:{fw};color:{col}'>{txt}</span>"
+            f"{cov}{src_tag}</td>"
         )
 
-    def _idx_cell(val, is_pct=False):
-        txt = _fmt_pct(val) if is_pct else _fmt_x(val)
-        col = "#4a3520" if val is not None else "#9ca3af"
-        return (
-            f"<td style='text-align:right;{TD}'>"
-            f"<span style='font-size:18px;font-weight:600;color:{col}'>{txt}</span></td>"
-        )
-
-    def _sec_hdr(label):
+    def _sec(label):
         return (
             f"<tr style='background:{BG_ALT}'>"
-            f"<td colspan='4' style='padding:6px 16px;color:#8b6d4a;"
+            f"<td colspan='4' style='padding:5px 16px;color:#8b6d4a;"
             f"font-size:10px;font-weight:700;letter-spacing:.6px'>{label}</td></tr>"
         )
 
-    def _row(label, sublabel, z47_val, z47_n, nifty_val, sensex_val, is_pct=False):
+    def _row(label, sub, zk_v, zk_n, nk_v, nk_n, sk_v, sk_n, is_pct=False,
+             nifty_src="", z_total=47, n_total=50, s_total=30):
         return (
             f"<tr style='border-top:1px solid {BORDER}'>"
-            f"<td style='{TD}'>"
-            f"<div style='font-weight:600;color:#1a0f00'>{label}</div>"
-            f"<div style='font-size:11px;color:#8b6d4a'>{sublabel}</div></td>"
-            + _z47_cell(z47_val, z47_n, is_pct)
-            + _idx_cell(nifty_val, is_pct)
-            + _idx_cell(sensex_val, is_pct)
+            f"<td style='{TD}'><div style='font-weight:600;color:#1a0f00'>{label}</div>"
+            f"<div style='font-size:11px;color:#8b6d4a'>{sub}</div></td>"
+            + _cell(zk_v, zk_n, z_total, is_pct, is_z47=True)
+            + _cell(nk_v, nk_n, n_total, is_pct, src=nifty_src)
+            + _cell(sk_v, sk_n, s_total, is_pct)
             + "</tr>"
         )
 
+    npe_src = nifty.get("pe_source", "computed")
+    n_nf    = nifty.get("n_non_financial",  38)
+    s_nf    = sensex.get("n_non_financial", 22)
+
     rows = (
-        _sec_hdr("VALUATION MULTIPLES (TTM · MEDIAN)")
+        _sec("VALUATION MULTIPLES (TTM · MEDIAN)")
         + _row("EV / Revenue",
-               "Enterprise Value ÷ Revenue",
-               z47.get("ev_revenue_median"), z47.get("n_ev_revenue"),
-               None, None)
+               "non-financial cos only",
+               z47.get("ev_revenue"),    z47.get("n_ev_revenue"),
+               nifty.get("ev_revenue"),  nifty.get("n_ev_revenue"),
+               sensex.get("ev_revenue"), sensex.get("n_ev_revenue"),
+               n_total=n_nf, s_total=s_nf)
         + _row("EV / EBITDA",
-               "Enterprise Value ÷ EBITDA (profitable cos only)",
-               z47.get("ev_ebitda_median"), z47.get("n_ev_ebitda"),
-               None, None)
-        + _row("P/E Ratio",
-               "Price ÷ Earnings (profitable cos only)",
-               z47.get("pe_median"), z47.get("n_pe"),
-               nifty.get("pe"), sensex.get("pe"))
-        + _sec_hdr("OPERATING METRICS (TTM · MEAN)")
+               "non-financial, EBITDA+ only",
+               z47.get("ev_ebitda"),    z47.get("n_ev_ebitda"),
+               nifty.get("ev_ebitda"),  nifty.get("n_ev_ebitda"),
+               sensex.get("ev_ebitda"), sensex.get("n_ev_ebitda"),
+               n_total=n_nf, s_total=s_nf)
+        + _row("P / E Ratio",
+               "profitable cos only",
+               z47.get("pe"),    z47.get("n_pe"),
+               nifty.get("pe"),  nifty.get("n_pe"),
+               sensex.get("pe"), sensex.get("n_pe"),
+               nifty_src=npe_src)
+        + _sec("OPERATING METRICS (TTM · MEAN)")
         + _row("Revenue Growth YoY",
-               "Average of constituents",
-               z47.get("rev_growth_mean"), z47.get("n_rev_growth"),
-               None, None, is_pct=True)
+               "mean of all constituents",
+               z47.get("rev_growth"),    z47.get("n_rev_growth"),
+               nifty.get("rev_growth"),  nifty.get("n_rev_growth"),
+               sensex.get("rev_growth"), sensex.get("n_rev_growth"),
+               is_pct=True)
         + _row("EBITDA Margin",
-               "Average of constituents (includes loss-makers)",
-               z47.get("ebitda_margin_mean"), z47.get("n_ebitda_margin"),
-               None, None, is_pct=True)
+               "mean, non-financial cos",
+               z47.get("ebitda_margin"),    z47.get("n_ebitda_margin"),
+               nifty.get("ebitda_margin"),  nifty.get("n_ebitda_margin"),
+               sensex.get("ebitda_margin"), sensex.get("n_ebitda_margin"),
+               is_pct=True, n_total=n_nf, s_total=s_nf)
     )
 
     st.markdown('<div class="section-header">Index Fundamentals</div>', unsafe_allow_html=True)
     st.markdown(
         "<p style='color:#8b6d4a;font-size:12px;margin-bottom:12px'>"
-        "Valuation multiples (median) and operating metrics (mean) for Z47 constituents. "
-        "EV/EBITDA and P/E exclude loss-making companies. "
-        "Coverage shows how many of 47 cos have valid data for each metric.</p>",
+        "Valuation multiples (median) and operating metrics (mean) computed from each index's "
+        "constituents via yfinance. EV metrics exclude banks, NBFCs and insurance. "
+        "Coverage (X/Y) = companies with valid data for that metric.</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -1914,16 +2046,16 @@ def render_index_fundamentals(z47: dict, idx: dict) -> None:
         f"<table style='width:100%;border-collapse:collapse;font-size:13px'>"
         f"<thead>{hdr}</thead><tbody>{rows}</tbody></table>"
         f"<div style='padding:10px 14px;color:#a38060;font-size:11px'>"
-        f"Nifty/Sensex EV metrics not published by NSE/BSE — P/E sourced from index data. "
+        f"★ Nifty 50 P/E from NSE official API where available. "
         f"Data: yfinance TTM | Refreshes every hour | "
-        f"Last updated: {z47.get('as_of', 'N/A')}</div></div>",
+        f"Last updated: {as_of}</div></div>",
         unsafe_allow_html=True,
     )
     _rf1, _rf2 = st.columns([1, 10])
     with _rf1:
         if st.button("🔄 Refresh", key="refresh_fundamentals"):
-            get_z47_fundamentals.clear()
-            get_index_fundamentals.clear()
+            get_all_index_fundamentals.clear()
+            _get_nifty50_official_pe.clear()
             st.rerun()
 
 
@@ -2154,10 +2286,9 @@ def _run_z47_desktop():
 
     # ── Index Fundamentals ────────────────────────────────────────────────────
     try:
-        with st.spinner("Loading index fundamentals…"):
-            _z47_fund = get_z47_fundamentals()
-            _idx_fund = get_index_fundamentals()
-        render_index_fundamentals(_z47_fund, _idx_fund)
+        with st.spinner("Loading index fundamentals… (first load fetches ~130 stocks, ~15–25 s)"):
+            _all_fund = get_all_index_fundamentals()
+        render_index_fundamentals(_all_fund)
     except Exception as _fund_err:
         st.info("📊 Index fundamentals temporarily unavailable.")
         print(f"[Fundamentals section] {type(_fund_err).__name__}: {_fund_err}")
