@@ -635,25 +635,29 @@ SENSEX_SYMBOLS = [
     "DRREDDY.NS", "ADANIPORTS.NS", "NTPC.NS",
 ]
 
-# Financial companies — EV/EBITDA excluded; EV/Revenue uses MCap/Rev proxy
-# Covers Nifty50 + Sensex30 banks, NBFCs, insurance
+# Financial companies — EV/EBITDA excluded; EV/Revenue uses P/S (MCap/Rev) proxy
+# Covers Nifty50 + Sensex30 banks, NBFCs, insurance + asset management
 _FINANCIAL_SYMS = {
     # Banks
     "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS",
     "AXISBANK.NS", "INDUSINDBK.NS", "BANDHANBNK.NS",
     "FEDERALBNK.NS", "IDFCFIRSTB.NS", "PNB.NS",
-    "BANKBARODA.NS", "CANBK.NS",
+    "BANKBARODA.NS", "CANBK.NS", "UNIONBANK.NS",
+    "AUBANK.NS", "KARURVYSYA.NS", "RBLBANK.NS",
     # NBFCs / Financial Services
     "BAJFINANCE.NS", "BAJAJFINSV.NS", "SHRIRAMFIN.NS",
     "CHOLAFIN.NS", "MUTHOOTFIN.NS", "M&MFIN.NS",
-    "LTFH.NS", "PFC.NS", "RECLTD.NS",
+    "LTFH.NS", "PFC.NS", "RECLTD.NS", "HUDCO.NS", "IRFC.NS",
     # Insurance
     "SBILIFE.NS", "HDFCLIFE.NS", "LICI.NS",
-    "ICICIGI.NS", "GICRE.NS", "NIACL.NS",
+    "ICICIGI.NS", "GICRE.NS", "NIACL.NS", "GODIGIT.NS",
+    # Asset Management / Broking / Exchange
+    "HDFCAMC.NS", "NAM-INDIA.NS", "UTIAMC.NS",
+    "360ONE.NS", "ANGELONE.NS", "CDSL.NS", "BSE.NS",
 }
 
 # Z47 financial companies — NBFC / insurance / HFC / fintech-financial
-# EV/EBITDA excluded; EV/Revenue uses MCap/Rev proxy
+# EV/EBITDA excluded; EV/Revenue uses P/S (MCap/Rev) proxy
 _Z47_FINANCIAL_SYMS = {
     "GROWW.NS", "PAYTM.NS", "SBICARD.NS", "POLICYBZR.NS",
     "360ONE.NS", "GODIGIT.NS", "PINELABS.NS", "APTUS.NS",
@@ -670,28 +674,51 @@ def _fetch_constituent_fundamentals(symbols: list, fin_syms: set) -> list:
         try:
             info   = yf.Ticker(sym).info
             is_fin = sym in fin_syms
-            mcap   = info.get("marketCap")       or 0
-            debt   = info.get("totalDebt")        or 0
-            cash   = info.get("totalCash")        or 0
-            minint = info.get("minorityInterest")  or 0
+            mcap   = info.get("marketCap")        or 0
+            debt   = info.get("totalDebt")         or 0
+            cash   = info.get("totalCash")         or 0
+            minint = info.get("minorityInterest")   or 0
             ev     = mcap + debt - cash + minint
-            rev    = info.get("totalRevenue")     or 0
-            ebitda = info.get("ebitda")           or 0
+            ebitda = info.get("ebitda")            or 0
             rg     = info.get("revenueGrowth")
             em     = info.get("ebitdaMargins")
             pe     = info.get("trailingPE")
             pb     = info.get("priceToBook")
 
-            # EV/Revenue — financials use MCap/Rev proxy; non-financials use EV/Rev
-            if is_fin:
-                ev_rev       = (mcap / rev) if (mcap > 0 and rev > 0) else None
-                ev_rev_proxy = True
-            else:
-                ev_rev       = (ev / rev)   if (ev > 0   and rev > 0) else None
-                ev_rev_proxy = False
+            # ── EV/Revenue ───────────────────────────────────────────────────
+            ev_rev       = None
+            ev_rev_proxy = False
 
-            # EV/EBITDA — still exclude financials (EBITDA not meaningful for them)
-            ev_ebit = (ev / ebitda) if (not is_fin and ev > 0 and ebitda > 0) else None
+            if is_fin:
+                # Primary: P/S ratio from yfinance = MCap/Revenue directly
+                ps = info.get("priceToSalesTrailing12Months")
+                if ps and 0 < float(ps) < 150:
+                    ev_rev       = float(ps)
+                    ev_rev_proxy = True
+                else:
+                    # Fallback: derive revenue from totalRevenue or grossProfits
+                    rev = (info.get("totalRevenue") or
+                           info.get("grossProfits")  or
+                           info.get("operatingRevenue") or 0)
+                    if mcap > 0 and rev > 0:
+                        ev_rev       = mcap / rev
+                        ev_rev_proxy = True
+            else:
+                rev = info.get("totalRevenue") or 0
+                if ev > 0 and rev > 0:
+                    ev_rev       = ev / rev
+                    ev_rev_proxy = False
+
+            # Filter extreme values (data error guard)
+            if ev_rev is not None and (ev_rev <= 0 or ev_rev > 150):
+                ev_rev = None
+
+            # ── EV/EBITDA — still exclude financials ─────────────────────────
+            ev_ebit = None
+            if not is_fin and ev > 0 and ebitda > 0:
+                ev_ebit = ev / ebitda
+                if ev_ebit <= 0 or ev_ebit > 200:
+                    ev_ebit = None
 
             return {
                 "symbol":           sym,
@@ -753,7 +780,12 @@ def _compute_index_metrics(data: list, index_name: str, n_declared: int) -> dict
 
     n_non_fin = sum(1 for d in data if not d.get("is_financial"))
 
-    # EV/Revenue: ALL companies — financials use MCap/Rev proxy (excl_fin=False)
+    # Debug: log symbols still missing EV/Revenue
+    _missing_evr = [d["symbol"] for d in data if d.get("ev_revenue") is None]
+    if _missing_evr:
+        print(f"[Fund] {index_name} missing EV/Revenue: {_missing_evr}")
+
+    # EV/Revenue: ALL companies — financials use P/S proxy (excl_fin=False)
     ev_rev_v  = _vals("ev_revenue",                    lo=0,    hi=100)
     ev_ebit_v = _vals("ev_ebitda",     excl_fin=True,  lo=0,    hi=200)
     pe_v      = _vals("pe",                            lo=0,    hi=500)
