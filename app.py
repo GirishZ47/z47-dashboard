@@ -635,21 +635,31 @@ SENSEX_SYMBOLS = [
     "DRREDDY.NS", "ADANIPORTS.NS", "NTPC.NS",
 ]
 
-# EV/Revenue and EV/EBITDA not meaningful for financial companies
+# Financial companies — EV/EBITDA excluded; EV/Revenue uses MCap/Rev proxy
+# Covers Nifty50 + Sensex30 banks, NBFCs, insurance
 _FINANCIAL_SYMS = {
+    # Banks
     "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS",
-    "AXISBANK.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS",
-    "SBILIFE.NS", "HDFCLIFE.NS", "SHRIRAMFIN.NS",
-    "INDUSINDBK.NS", "LICI.NS",
+    "AXISBANK.NS", "INDUSINDBK.NS", "BANDHANBNK.NS",
+    "FEDERALBNK.NS", "IDFCFIRSTB.NS", "PNB.NS",
+    "BANKBARODA.NS", "CANBK.NS",
+    # NBFCs / Financial Services
+    "BAJFINANCE.NS", "BAJAJFINSV.NS", "SHRIRAMFIN.NS",
+    "CHOLAFIN.NS", "MUTHOOTFIN.NS", "M&MFIN.NS",
+    "LTFH.NS", "PFC.NS", "RECLTD.NS",
+    # Insurance
+    "SBILIFE.NS", "HDFCLIFE.NS", "LICI.NS",
+    "ICICIGI.NS", "GICRE.NS", "NIACL.NS",
 }
 
-# Z47 financial companies — NBFC / insurance / HFC
+# Z47 financial companies — NBFC / insurance / HFC / fintech-financial
+# EV/EBITDA excluded; EV/Revenue uses MCap/Rev proxy
 _Z47_FINANCIAL_SYMS = {
     "GROWW.NS", "PAYTM.NS", "SBICARD.NS", "POLICYBZR.NS",
     "360ONE.NS", "GODIGIT.NS", "PINELABS.NS", "APTUS.NS",
     "FIVESTAR.NS", "HOMEFIRST.NS", "INDIASHLTR.NS",
     "MOBIKWIK.NS", "MEDIASSIST.NS", "AYE.NS", "KISSHT.NS",
-    "MMYT",                          # US-listed — no EV data anyway
+    "MMYT",       # US-listed, no EV data anyway
 }
 
 
@@ -658,34 +668,45 @@ def _fetch_constituent_fundamentals(symbols: list, fin_syms: set) -> list:
 
     def _one(sym):
         try:
-            info = yf.Ticker(sym).info
+            info   = yf.Ticker(sym).info
             is_fin = sym in fin_syms
-            mcap   = info.get("marketCap")      or 0
-            debt   = info.get("totalDebt")       or 0
-            cash   = info.get("totalCash")       or 0
-            minint = info.get("minorityInterest") or 0
+            mcap   = info.get("marketCap")       or 0
+            debt   = info.get("totalDebt")        or 0
+            cash   = info.get("totalCash")        or 0
+            minint = info.get("minorityInterest")  or 0
             ev     = mcap + debt - cash + minint
-            rev    = info.get("totalRevenue")    or 0
-            ebitda = info.get("ebitda")          or 0
+            rev    = info.get("totalRevenue")     or 0
+            ebitda = info.get("ebitda")           or 0
             rg     = info.get("revenueGrowth")
             em     = info.get("ebitdaMargins")
             pe     = info.get("trailingPE")
             pb     = info.get("priceToBook")
-            ev_rev  = (ev / rev)   if (not is_fin and ev > 0 and rev > 0)   else None
+
+            # EV/Revenue — financials use MCap/Rev proxy; non-financials use EV/Rev
+            if is_fin:
+                ev_rev       = (mcap / rev) if (mcap > 0 and rev > 0) else None
+                ev_rev_proxy = True
+            else:
+                ev_rev       = (ev / rev)   if (ev > 0   and rev > 0) else None
+                ev_rev_proxy = False
+
+            # EV/EBITDA — still exclude financials (EBITDA not meaningful for them)
             ev_ebit = (ev / ebitda) if (not is_fin and ev > 0 and ebitda > 0) else None
+
             return {
-                "symbol":        sym,
-                "is_financial":  is_fin,
-                "ev_revenue":    ev_rev,
-                "ev_ebitda":     ev_ebit,
-                "pe":            pe,
-                "pb":            pb,
-                "rev_growth":    rg * 100 if rg is not None else None,
-                "ebitda_margin": em * 100 if (not is_fin and em is not None) else None,
+                "symbol":           sym,
+                "is_financial":     is_fin,
+                "ev_revenue":       ev_rev,
+                "ev_revenue_proxy": ev_rev_proxy,
+                "ev_ebitda":        ev_ebit,
+                "pe":               pe,
+                "pb":               pb,
+                "rev_growth":       rg * 100 if rg is not None else None,
+                "ebitda_margin":    em * 100 if (not is_fin and em is not None) else None,
             }
         except Exception as _e:
             print(f"[Fund fetch] {sym}: {_e}")
-            return {"symbol": sym, "is_financial": sym in fin_syms}
+            return {"symbol": sym, "is_financial": sym in fin_syms, "ev_revenue_proxy": False}
 
     results = []
     with ThreadPoolExecutor(max_workers=12) as _ex:
@@ -732,12 +753,25 @@ def _compute_index_metrics(data: list, index_name: str, n_declared: int) -> dict
 
     n_non_fin = sum(1 for d in data if not d.get("is_financial"))
 
-    ev_rev_v  = _vals("ev_revenue",    excl_fin=True,  lo=0,    hi=100)
+    # EV/Revenue: ALL companies — financials use MCap/Rev proxy (excl_fin=False)
+    ev_rev_v  = _vals("ev_revenue",                    lo=0,    hi=100)
     ev_ebit_v = _vals("ev_ebitda",     excl_fin=True,  lo=0,    hi=200)
     pe_v      = _vals("pe",                            lo=0,    hi=500)
     pb_v      = _vals("pb",                            lo=0,    hi=100)
     rg_v      = _vals("rev_growth",                    lo=-50,  hi=200)
     em_v      = _vals("ebitda_margin", excl_fin=True,  lo=-100, hi=80)
+
+    # Count proxy vs standard in EV/Revenue
+    n_ev_rev_proxy = sum(
+        1 for d in data
+        if d.get("ev_revenue_proxy") and d.get("ev_revenue") is not None
+        and 0 < d["ev_revenue"] < 100
+    )
+    n_ev_rev_std = sum(
+        1 for d in data
+        if not d.get("ev_revenue_proxy") and d.get("ev_revenue") is not None
+        and 0 < d["ev_revenue"] < 100
+    )
 
     return {
         "index_name":      index_name,
@@ -746,6 +780,8 @@ def _compute_index_metrics(data: list, index_name: str, n_declared: int) -> dict
         "n_non_financial": n_non_fin,
         "ev_revenue":      _median(ev_rev_v),
         "n_ev_revenue":    len(ev_rev_v),
+        "n_ev_rev_proxy":  n_ev_rev_proxy,
+        "n_ev_rev_std":    n_ev_rev_std,
         "ev_ebitda":       _median(ev_ebit_v),
         "n_ev_ebitda":     len(ev_ebit_v),
         "pe":              _median(pe_v),
@@ -2001,11 +2037,10 @@ def render_index_fundamentals(metrics: dict) -> None:
     rows = (
         _sec("VALUATION MULTIPLES (TTM · MEDIAN)")
         + _row("EV / Revenue",
-               "non-financial cos only",
+               "all cos; financials use MCap/Rev*",
                z47.get("ev_revenue"),    z47.get("n_ev_revenue"),
                nifty.get("ev_revenue"),  nifty.get("n_ev_revenue"),
-               sensex.get("ev_revenue"), sensex.get("n_ev_revenue"),
-               n_total=n_nf, s_total=s_nf)
+               sensex.get("ev_revenue"), sensex.get("n_ev_revenue"))
         + _row("EV / EBITDA",
                "non-financial, EBITDA+ only",
                z47.get("ev_ebitda"),    z47.get("n_ev_ebitda"),
@@ -2049,6 +2084,17 @@ def render_index_fundamentals(metrics: dict) -> None:
         f"★ Nifty 50 P/E from NSE official API where available. "
         f"Data: yfinance TTM | Refreshes every hour | "
         f"Last updated: {as_of}</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div style='font-size:11px;color:#9ca3af;margin-top:6px;line-height:1.6'>"
+        "* <b>EV/Revenue methodology:</b> Non-financial companies use standard "
+        "EV/Revenue (EV = Market Cap + Debt − Cash). "
+        "Financial companies (banks, NBFCs, insurance) use Market Cap ÷ Revenue as a proxy, "
+        "since debt is their core business input and traditional EV overstates their enterprise value. "
+        "The index-level figure is a blended median across both methodologies. "
+        "EV/EBITDA continues to exclude financial companies as EBITDA is not a relevant metric for them."
+        "</div>",
         unsafe_allow_html=True,
     )
     _rf1, _rf2 = st.columns([1, 10])
