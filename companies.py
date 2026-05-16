@@ -1,6 +1,9 @@
-# Z47 Index constituents — corrected float % from BSE/NSE audit (May 2026)
-# mkt_cap_mn = INR Mn as of March 2026 (last Excel refresh)
+# Z47 Index constituents — updated May 2026
+# mkt_cap_mn = INR Mn as of March 2026 (last Excel refresh); new entrants use listing-month market cap
 # Sectors: exactly 4 — Fintech / Financial Services | Consumer / Consumer Tech | B2B | SaaS / AI
+# Constituent changes:
+#   16 Feb 2026: Aye Finance (AYE) IN  — Smartworks (SMARTWORKS) OUT
+#    8 May 2026: Kissht (KISSHT)   IN  — Awfis (AWFIS)           OUT
 COMPANIES = [
     {"num":  1, "name": "Eternal (Zomato)",           "ticker": "ETERNAL",    "exchange": "NSE",    "sector": "Consumer / Consumer Tech",       "float_pct": 74.43, "mkt_cap_mn": 2365689.80},
     {"num":  2, "name": "Groww",                       "ticker": "GROWW",      "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct":  9.71, "mkt_cap_mn": 1305096.31},
@@ -41,11 +44,11 @@ COMPANIES = [
     {"num": 37, "name": "BlueStone",                   "ticker": "BLUESTONE",  "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 36.14, "mkt_cap_mn":   76599.46},
     {"num": 38, "name": "Shadowfax",                   "ticker": "SHADOWFAX",  "exchange": "NSE",    "sector": "B2B",                             "float_pct": 20.86, "mkt_cap_mn":   99121.48},
     {"num": 39, "name": "Wakefit",                     "ticker": "WAKEFIT",    "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 20.01, "mkt_cap_mn":   43677.70},
-    {"num": 40, "name": "Smartworks",                  "ticker": "SMARTWORKS", "exchange": "NSE",    "sector": "B2B",                             "float_pct": 14.55, "mkt_cap_mn":   52731.95},
+    {"num": 40, "name": "Aye Finance",                  "ticker": "AYE",        "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 30.02, "mkt_cap_mn":   30628.37},  # joined 16 Feb 2026
     {"num": 41, "name": "E2E Networks",                "ticker": "E2E",        "exchange": "NSE",    "sector": "SaaS / AI",                       "float_pct": 41.93, "mkt_cap_mn":   65932.11},
     {"num": 42, "name": "Capillary Technologies",      "ticker": "CAPILLARY",  "exchange": "NSE",    "sector": "SaaS / AI",                       "float_pct": 18.77, "mkt_cap_mn":   43991.72},
     {"num": 43, "name": "Medi Assist",                 "ticker": "MEDIASSIST", "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 86.70, "mkt_cap_mn":   28211.15},
-    {"num": 44, "name": "Awfis Space Solutions",       "ticker": "AWFIS",      "exchange": "NSE",    "sector": "B2B",                             "float_pct": 68.60, "mkt_cap_mn":   26212.44},
+    {"num": 44, "name": "Kissht (OnEMI Technology)",    "ticker": "KISSHT",     "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 28.31, "mkt_cap_mn":   33034.47},  # joined 8 May 2026
     {"num": 45, "name": "Yatra Online",                "ticker": "YATRA",      "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 35.54, "mkt_cap_mn":   17252.94},
     {"num": 46, "name": "MobiKwik",                    "ticker": "MOBIKWIK",   "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 52.90, "mkt_cap_mn":   16906.54},
     {"num": 47, "name": "Unicommerce",                 "ticker": "UNIECOM",    "exchange": "NSE",    "sector": "SaaS / AI",                       "float_pct": 40.00, "mkt_cap_mn":   10231.95},

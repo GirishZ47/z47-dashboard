@@ -2240,6 +2240,60 @@ def _run_z47_desktop():
         )
         st.plotly_chart(fig_sb, use_container_width=True)
 
+    # ── Index Changes Log ────────────────────────────────────────────────────
+    _INDEX_CHANGES = [
+        {"date": "16 Feb 2026", "action": "IN",  "company": "Aye Finance",
+         "symbol": "AYE",       "sector": "Fintech / Financial Services",
+         "replaces": "Smartworks", "reason": "New listing — MSME lending NBFC"},
+        {"date": "16 Feb 2026", "action": "OUT", "company": "Smartworks",
+         "symbol": "SMARTWORKS", "sector": "B2B",
+         "replaces": "",        "reason": "Replaced by Aye Finance"},
+        {"date": "8 May 2026",  "action": "IN",  "company": "Kissht (OnEMI Technology)",
+         "symbol": "KISSHT",    "sector": "Fintech / Financial Services",
+         "replaces": "Awfis", "reason": "New listing — consumer lending fintech"},
+        {"date": "8 May 2026",  "action": "OUT", "company": "Awfis Space Solutions",
+         "symbol": "AWFIS",     "sector": "B2B",
+         "replaces": "",        "reason": "Replaced by Kissht"},
+    ]
+    with st.expander("Index Changes — Constituent History", expanded=False):
+        th_s = "padding:8px 12px;color:#8b6d4a;font-weight:600;font-size:12px;text-align:left"
+        td_s = "padding:8px 12px;font-size:13px;color:#4a3520;border-top:1px solid " + BORDER
+        rows_html = ""
+        for chg in _INDEX_CHANGES:
+            action_color = "#16a34a" if chg["action"] == "IN" else "#dc2626"
+            action_badge = (f"<span style='background:{action_color}20;color:{action_color};"
+                            f"font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px'>"
+                            f"{chg['action']}</span>")
+            rows_html += (
+                f"<tr>"
+                f"<td style='{td_s}'>{chg['date']}</td>"
+                f"<td style='{td_s}'>{action_badge}</td>"
+                f"<td style='{td_s}'><b>{chg['company']}</b></td>"
+                f"<td style='{td_s};font-family:monospace'>{chg['symbol']}</td>"
+                f"<td style='{td_s}'>{chg['sector']}</td>"
+                f"<td style='{td_s};color:#8b6d4a'>{chg['reason']}</td>"
+                f"</tr>"
+            )
+        st.markdown(
+            f"<div style='overflow-x:auto'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr style='background:{BG_ALT}'>"
+            f"<th style='{th_s}'>Date</th>"
+            f"<th style='{th_s}'>Action</th>"
+            f"<th style='{th_s}'>Company</th>"
+            f"<th style='{th_s}'>Symbol</th>"
+            f"<th style='{th_s}'>Sector</th>"
+            f"<th style='{th_s}'>Reason</th>"
+            f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<div style='font-size:11px;color:#8b6d4a;margin-top:8px'>"
+            "Divisor smoothing applied at each change date — index value continuous across all transitions."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
     # ── Methodology ──────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Methodology</div>', unsafe_allow_html=True)
     st.markdown(f"""
