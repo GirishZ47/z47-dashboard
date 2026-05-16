@@ -951,6 +951,19 @@ def _render_analyst_insights(details, info, sym):
         curr = apt.get("current") or info.get("currentPrice") or info.get("previousClose")
 
         if all(v for v in [low, high, mean, curr]):
+            # ── x-axis range: 30% padding on each side of Low-to-High ──
+            _all_vals   = [low, high, mean, curr]
+            _data_min   = min(_all_vals)
+            _data_max   = max(_all_vals)
+            _data_range = _data_max - _data_min or _data_max * 0.1
+            _pad        = _data_range * 0.30
+            _ax_min     = max(0, _data_min - _pad)
+            _ax_max     = _data_max + _pad
+            # Round to clean numbers (nearest power-of-10 two digits below max)
+            _mag        = 10 ** max(0, len(str(int(_ax_max))) - 2)
+            _ax_min     = int(_ax_min / _mag) * _mag
+            _ax_max     = (int(_ax_max / _mag) + 1) * _mag
+
             fig = go.Figure()
             # Range bar
             fig.add_trace(go.Scatter(
@@ -978,7 +991,8 @@ def _render_analyst_insights(details, info, sym):
             fig.update_layout(
                 paper_bgcolor=CARD_BG, plot_bgcolor=CARD_BG, height=220,
                 margin=dict(l=40, r=40, t=50, b=50),
-                xaxis=dict(showgrid=False, color="#a38060", tickprefix=sym),
+                xaxis=dict(range=[_ax_min, _ax_max],
+                           showgrid=False, color="#a38060", tickprefix=sym),
                 yaxis=dict(visible=False),
                 legend=dict(orientation="h", yanchor="bottom", y=1.0, font=dict(color="#4a3520")),
                 annotations=[
