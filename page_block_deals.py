@@ -965,9 +965,19 @@ def render():
                      })
         st.caption(f"Source: {src} | {len(df)} deal(s) shown  |  Price source: 🔵 NSE/BSE  📰 news  📈 closing price")
 
-    tab1, tab2, tab3, tab4 = st.tabs(["📦 Block Deals", "📊 Bulk Deals", "🗓️ All Deals Today", "📚 History (60–90 Days)"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🗓️ All Deals Today", "📦 Block Deals", "📊 Bulk Deals", "📚 History (60–90 Days)"])
 
     with tab1:
+        try:
+            st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
+            _show(all_df, "deals", f"{bsrc}/{usrc}")
+            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
+                        unsafe_allow_html=True)
+        except Exception as _e:
+            st.error("⚠️ All Deals tab error. Refresh to try again.")
+            print(f"[TAB] All Deals: {_e}")
+
+    with tab2:
         try:
             st.markdown("**Block Deals for Z47 Index Companies**")
             _show(block_df, "block deals", bsrc)
@@ -977,7 +987,7 @@ def render():
             st.error("⚠️ Block Deals tab error. Refresh to try again.")
             print(f"[TAB] Block Deals: {_e}")
 
-    with tab2:
+    with tab3:
         try:
             st.markdown("**Bulk Deals for Z47 Index Companies**")
             _show(bulk_df, "bulk deals", usrc)
@@ -986,16 +996,6 @@ def render():
         except Exception as _e:
             st.error("⚠️ Bulk Deals tab error. Refresh to try again.")
             print(f"[TAB] Bulk Deals: {_e}")
-
-    with tab3:
-        try:
-            st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
-            _show(all_df, "deals", f"{bsrc}/{usrc}")
-            st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
-                        unsafe_allow_html=True)
-        except Exception as _e:
-            st.error("⚠️ All Deals tab error. Refresh to try again.")
-            print(f"[TAB] All Deals: {_e}")
 
     # ── Optional news enrichment — manual, never auto ────────────────────────
     still_zero = (
