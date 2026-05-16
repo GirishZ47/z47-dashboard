@@ -258,56 +258,6 @@ def render():
             unsafe_allow_html=True,
         )
 
-    # ── Pipeline ──────────────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown(
-        f"""<div style='background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-        padding:14px 18px;margin-bottom:12px'>
-        <h3 style='margin:0;color:#1e40af'>📂 DRHP Filed / SEBI Pipeline</h3></div>""",
-        unsafe_allow_html=True,
-    )
-    pl_rows = []
-    for f in UPCOMING_FALLBACK:
-        mcap   = f.get("expected_mcap_cr")
-        usd    = f.get("expected_val_usd_b")
-        rev    = f.get("revenue_cr")
-        rev_yr = f.get("revenue_year", "")
-        pat    = f.get("pat_cr")
-        bv     = f.get("book_value_cr")
-        prof   = f.get("profitable")
-        pl_rows.append({
-            "Company":            f["company"],
-            "Sector":             f["sector"],
-            "Status":             f["status"],
-            "Issue Size":         f["issue_size"],
-            "Expected Listing":   f["expected_listing"],
-            "Exp. MCap (₹ Cr)":   mcap,
-            "Exp. Val ($B)":      usd,
-            f"Revenue ({rev_yr})": rev,
-            "PAT (₹ Cr)":         pat,
-            "Book Value (₹ Cr)":  bv,
-            "Exp. EV/Rev":        f.get("expected_ev_rev"),
-            "Exp. P/E":           f.get("expected_pe"),
-            "Exp. P/B":           f.get("expected_pb"),
-            "Profitable?":        "✅ Yes" if prof else ("❌ No" if prof is not None else "—"),
-            "About":              f["description"],
-        })
-    pl = pd.DataFrame(pl_rows)
-    st.dataframe(pl, use_container_width=True, hide_index=True,
-                 column_config={
-                     "Exp. MCap (₹ Cr)":   st.column_config.NumberColumn(format="₹%d cr"),
-                     "Exp. Val ($B)":       st.column_config.NumberColumn(format="$%.1fB"),
-                     "Revenue (FY25)":      st.column_config.NumberColumn(format="₹%d cr"),
-                     "Revenue (FY24)":      st.column_config.NumberColumn(format="₹%d cr"),
-                     "Revenue ()":          st.column_config.NumberColumn(format="₹%d cr"),
-                     "PAT (₹ Cr)":          st.column_config.NumberColumn(format="₹%d cr"),
-                     "Book Value (₹ Cr)":   st.column_config.NumberColumn(format="₹%d cr"),
-                     "Exp. EV/Rev":         st.column_config.NumberColumn(format="%.1fx"),
-                     "Exp. P/E":            st.column_config.NumberColumn(format="%.1fx"),
-                     "Exp. P/B":            st.column_config.NumberColumn(format="%.1fx"),
-                     "About":               st.column_config.TextColumn(width="large"),
-                 })
-
     # ── GMP Tracker ───────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown(

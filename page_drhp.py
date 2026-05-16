@@ -383,7 +383,7 @@ DRHP_SUMMARIES: dict[str, dict] = {
         "overview": "MoneyView (Whizdm Innovations) is India's leading personal-finance super-app offering personal loans, credit-score monitoring, expense tracking, and savings products. Founded 2014 by Sanjay Aggarwal and Puneet Agarwal. Operates own NBFC (MoneyView Financial Services). Profitable and backed by Tiger Global.",
         "business_model": "Personal finance app + NBFC lender. Revenue: (1) NII from own loan book; (2) Lead generation to partner lenders; (3) Insurance and MF distribution commissions; (4) Credit monitoring subscription. Targets sub-prime credit segment (CIBIL 650–750) ignored by traditional banks. Uses 200+ alternative data variables for credit decisions.",
         "financials": "Revenue FY24: ~₹1,200 cr. Net profit: ~₹150 cr (profitable — rare in consumer fintech). NIM ~12–15%. Gross NPA <3%. Collection efficiency 97%+. Loan book: ₹8,000+ cr growing 40%+ YoY.",
-        "ipo_details": "DRHP filed Mar 2025. Issue size ~₹2,000 cr. BRLMs: Kotak, Goldman Sachs. Expected valuation ~$1–1.5B. Use of funds: NBFC capital infusion, technology, marketing. OFS: Tiger Global partial exit expected.",
+        "ipo_details": "DRHP filed Mar 2025. Issue size ~₹2,000 cr. BRLMs: Axis Capital, BofA Securities India, IIFL Capital Services, Kotak Mahindra Capital. Registrar: MUFG Intime India (formerly Link Intime). Expected valuation ~$1–1.5B. Use of funds: NBFC capital infusion, technology, marketing. OFS: Tiger Global partial exit expected.",
         "key_metrics": "50M+ app downloads. ₹8,000+ cr loan book. 8M+ loan disbursals since inception. Average ticket: ₹50,000–1,00,000. Loan tenure: 6–60 months. Interest rate: 16–36% p.a. Target: salaried Tier 2/3 India professionals.",
         "market_opportunity": "India personal loans market: ₹12L cr+. 400M+ credit-underserved citizens (sub-prime/thin-file borrowers). Consumer credit CAGR 20%+ through 2027. GST data, telecom data enabling better underwriting for sub-prime segment. Digital personal loan disbursals tripled post-COVID.",
         "competitive_position": "Leading tech-first NBFC in personal loans for sub-prime segment. Competition: KreditBee, Navi Finserv, EarlySalary, PaySense, Cashe. Key differentiator: own NBFC (lower cost of funds than P2P or marketplace lenders) + 50M+ app base for cross-sell. Profitable vs loss-making peers — unique positioning.",
@@ -750,7 +750,7 @@ KNOWN_FILINGS = [
 
     {"company": "MoneyView",
      "filing_date": "2025-03", "type": "DRHP", "sector": "fintech",
-     "issue_size": "~₹2,000 cr", "brlms": "Kotak, Goldman Sachs",
+     "issue_size": "~₹2,000 cr", "brlms": "Axis Capital, BofA Securities, IIFL Capital, Kotak",
      "pdf_link": DRHP_LINKS["MoneyView"]["url"], "confidential": False,
      "description": "Digital lending platform. Tiger Global & Storm Ventures-backed. 5M+ loan customers."},
 
@@ -1645,11 +1645,6 @@ def render():
                 st.session_state.pop(k, None)
             st.rerun()
 
-    # ── NEWS FEED ─────────────────────────────────────────────────────────────
-    _render_news_feed()
-
-    st.markdown("---")
-
     # ── PIPELINE STAGE TRACKER ───────────────────────────────────────────────
     st.markdown("### 🚀 IPO Pipeline — Stage Tracker")
     _STAGES = [
@@ -1681,71 +1676,6 @@ def render():
                 unsafe_allow_html=True,
             )
     st.markdown("<div style='margin-bottom:16px'></div>", unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # ── LIVE IPOs ─────────────────────────────────────────────────────────────
-    st_autorefresh(interval=600_000, key="live_ipo_refresh")   # 10-min auto-refresh
-    st.markdown("### 📢 IPOs Currently Open for Subscription")
-    with st.spinner("Fetching live IPO data…"):
-        live_ipos = _fetch_live_ipos()
-
-    tech_live = [i for i in live_ipos if _is_tech_ipo(i["company"])]
-    if tech_live:
-        st.markdown(
-            f"<div style='background:#dcfce7;border:1px solid #86efac;border-radius:8px;"
-            f"padding:8px 14px;margin-bottom:8px;font-size:13px;color:#166534'>"
-            f"💡 <b>{len(tech_live)} new-age tech / fintech IPO(s) currently open</b></div>",
-            unsafe_allow_html=True)
-        for ipo in tech_live:
-            _render_ipo_card(ipo, highlight=True)
-        if len(live_ipos) > len(tech_live):
-            with st.expander(f"Show all {len(live_ipos)} open IPOs"):
-                for ipo in live_ipos:
-                    _render_ipo_card(ipo)
-    elif live_ipos:
-        st.info(f"No new-age tech/fintech IPOs currently open. "
-                f"{len(live_ipos)} other IPO(s) are open:")
-        for ipo in live_ipos[:5]:
-            _render_ipo_card(ipo)
-        if len(live_ipos) > 5:
-            with st.expander(f"Show all {len(live_ipos)} open IPOs"):
-                for ipo in live_ipos:
-                    _render_ipo_card(ipo)
-    else:
-        st.info("No IPOs currently open for subscription.")
-
-    st.caption(f"Source: NSE API / Chittorgarh | Auto-refreshes every 10 min | {_now_ist()}")
-
-    st.markdown("---")
-
-    # ── UPCOMING IPOs ─────────────────────────────────────────────────────────
-    st.markdown("### 📅 Opening Soon — Next 30 Days")
-    with st.spinner("Fetching upcoming IPO data…"):
-        upcoming_ipos = _fetch_upcoming_ipos()
-
-    tech_up = [i for i in upcoming_ipos if _is_tech_ipo(i["company"])]
-    if tech_up:
-        st.markdown(
-            f"<div style='background:#ede9fe;border:1px solid #a78bfa;border-radius:8px;"
-            f"padding:8px 14px;margin-bottom:8px;font-size:13px;color:#6d28d9'>"
-            f"🔮 <b>{len(tech_up)} new-age tech / fintech IPO(s) opening soon</b></div>",
-            unsafe_allow_html=True)
-        for ipo in tech_up:
-            _render_ipo_card(ipo, highlight=False)
-        if len(upcoming_ipos) > len(tech_up):
-            with st.expander(f"Show all {len(upcoming_ipos)} upcoming IPOs"):
-                for ipo in upcoming_ipos:
-                    _render_ipo_card(ipo)
-    elif upcoming_ipos:
-        st.info(f"No new-age tech/fintech IPOs in the next 30 days. "
-                f"{len(upcoming_ipos)} other IPO(s) upcoming:")
-        for ipo in upcoming_ipos[:5]:
-            _render_ipo_card(ipo)
-    else:
-        st.info("No upcoming IPOs found for the next 30 days.")
-
-    st.caption(f"Source: NSE API / Chittorgarh | Auto-refreshes every 30 min | {_now_ist()}")
 
     st.markdown("---")
 
@@ -1922,89 +1852,6 @@ def render():
                 if st.button(f"📋 {_co}", key=f"sum_btn_{_co}", use_container_width=True):
                     _show_company_summary(_co)
 
-    # ── Filing Detail Expander ────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown("### 📄 Filing Details & Document Link")
-    all_cos  = [r["Company"] for r in rows]
-    sel_co   = st.selectbox("Select company", all_cos, key="drhp_detail")
-    sel_row  = next((r for r in rows if r["Company"] == sel_co), None)
-
-    if sel_row:
-        with st.expander(f"📄 {sel_row['Company']} — {sel_row['Type']}", expanded=True):
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"**Company:** {sel_row['Company']}")
-                st.markdown(f"**Filing Date:** {sel_row['Filing Date']}")
-                st.markdown(f"**Filing Type:** {sel_row['Type']}")
-                st.markdown(f"**Sector:** {sel_row['Sector']}")
-            with c2:
-                st.markdown(f"**Issue Size:** {sel_row['Issue Size']}")
-                st.markdown(f"**BRLMs:** {sel_row['BRLMs']}")
-                if sel_row.get("_desc"):
-                    st.markdown(f"**About:** {sel_row['_desc']}")
-
-            # Document link + Summary button side by side
-            _link_col, _sum_col = st.columns([3, 1])
-            with _link_col:
-                st.markdown("**DRHP / RHP Document:**")
-            with _sum_col:
-                if st.button("📋 Summary", key=f"sum_detail_{sel_co}",
-                             use_container_width=True):
-                    _show_company_summary(sel_co)
-
-            is_conf      = sel_row.get("_conf", False)
-            pdf_url      = sel_row.get("_pdf")
-            company_name = sel_row.get("Company", "")
-
-            drhp_entry   = DRHP_LINKS.get(company_name, {})
-            entry_type   = drhp_entry.get("type", "")
-            entry_url    = drhp_entry.get("url")
-            entry_source = drhp_entry.get("source", "")
-            entry_note   = drhp_entry.get("note", "")
-
-            if is_conf or entry_type == "CONFIDENTIAL":
-                note_text = entry_note or "Document not publicly available."
-                st.markdown(
-                    "<div style='display:inline-block;background:#e5e7eb;color:#6b7a8d;"
-                    "border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600'>"
-                    f"🔒 Confidential Filing — {note_text}</div>",
-                    unsafe_allow_html=True)
-            elif entry_type == "FILING_PAGE" and entry_url:
-                st.link_button(
-                    "📋 View Filing on SEBI",
-                    entry_url,
-                    use_container_width=False)
-                note_text = entry_note or ""
-                st.caption(f"✅ Verified SEBI filing page · {entry_source}" +
-                           (f" · {note_text}" if note_text else ""))
-            elif entry_url:
-                st.link_button(
-                    f"📄 View {entry_type or 'DRHP'}",
-                    entry_url,
-                    use_container_width=False)
-                st.caption(f"✅ Verified link · {entry_source}")
-            elif pdf_url:
-                st.link_button("📄 View DRHP / RHP Document",
-                               pdf_url,
-                               use_container_width=False)
-                st.caption("✅ Curated source · SEBI / BSE")
-            else:
-                with st.spinner("Searching SEBI for document link…"):
-                    sebi_url = _sebi_find_pdf(company_name)
-                if sebi_url:
-                    st.link_button("📄 View DRHP / RHP Document",
-                                   sebi_url,
-                                   use_container_width=False)
-                    st.caption("🔍 Found via live SEBI search")
-                else:
-                    st.link_button(
-                        "🔍 Search on SEBI",
-                        "https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
-                        "?doListing=yes&sid=3&ssid=15&smid=10",
-                        use_container_width=False)
-                    st.caption(
-                        f"Direct link unavailable — search for '{company_name}' on SEBI")
-
     # ── Summary Stats ─────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("### Summary Statistics")
@@ -2020,3 +1867,7 @@ def render():
         f'<div style="color:#a38060;font-size:11px;text-align:right">'
         f'Updated: {_now_ist()}</div>',
         unsafe_allow_html=True)
+
+    # ── NEWS FEED (moved to last) ──────────────────────────────────────────────
+    st.markdown("---")
+    _render_news_feed()
