@@ -2074,7 +2074,7 @@ def render_index_fundamentals(metrics: dict) -> None:
                nifty.get("ev_revenue"),  nifty.get("n_ev_revenue"),
                sensex.get("ev_revenue"), sensex.get("n_ev_revenue"))
         + _row("EV / EBITDA",
-               "non-financial, EBITDA+ only",
+               "non-financial, EBITDA profitable only",
                z47.get("ev_ebitda"),    z47.get("n_ev_ebitda"),
                nifty.get("ev_ebitda"),  nifty.get("n_ev_ebitda"),
                sensex.get("ev_ebitda"), sensex.get("n_ev_ebitda"),
