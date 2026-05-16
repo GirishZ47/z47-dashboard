@@ -606,6 +606,101 @@ def fetch_company_financials(yf_tk: str) -> dict:
         return {}
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_z47_fundamentals() -> dict:
+    """
+    Median valuation multiples + average operating metrics for all 47 Z47 constituents.
+    Uses parallel yfinance fetches; cached for 1 hour.
+    """
+    Z47_SYMBOLS = [yf_ticker(c) for c in COMPANIES]
+
+    def _fetch_one(sym):
+        try:
+            info        = yf.Ticker(sym).info
+            market_cap  = info.get("marketCap")  or 0
+            total_debt  = info.get("totalDebt")  or 0
+            total_cash  = info.get("totalCash")  or 0
+            minority    = info.get("minorityInterest") or 0
+            ev          = market_cap + total_debt - total_cash + minority
+            revenue_ttm = info.get("totalRevenue") or 0
+            ebitda_ttm  = info.get("ebitda")       or 0
+            rev_growth  = info.get("revenueGrowth")
+            ebitda_mgn  = info.get("ebitdaMargins")
+            trailing_pe = info.get("trailingPE")
+            ev_rev  = ev / revenue_ttm if ev > 0 and revenue_ttm > 0 else None
+            ev_ebit = ev / ebitda_ttm  if ev > 0 and ebitda_ttm  > 0 else None
+            return {
+                "symbol":        sym,
+                "ev_revenue":    ev_rev,
+                "ev_ebitda":     ev_ebit,
+                "pe":            trailing_pe,
+                "rev_growth":    rev_growth * 100 if rev_growth  is not None else None,
+                "ebitda_margin": ebitda_mgn * 100  if ebitda_mgn is not None else None,
+            }
+        except Exception as _e:
+            print(f"[Fundamentals] {sym}: {_e}")
+            return {"symbol": sym}
+
+    results = []
+    with ThreadPoolExecutor(max_workers=10) as _ex:
+        _futs = {_ex.submit(_fetch_one, s): s for s in Z47_SYMBOLS}
+        for _f in as_completed(_futs, timeout=45):
+            try:
+                results.append(_f.result())
+            except Exception:
+                pass
+
+    def _median(vals):
+        if not vals:
+            return None
+        s = sorted(vals); n = len(s); mid = n // 2
+        return round(s[mid] if n % 2 == 1 else (s[mid - 1] + s[mid]) / 2, 1)
+
+    def _mean(vals):
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    ev_rev_v  = [r["ev_revenue"]    for r in results if r.get("ev_revenue")    is not None and 0  < r["ev_revenue"]    < 50]
+    ev_ebit_v = [r["ev_ebitda"]     for r in results if r.get("ev_ebitda")     is not None and 0  < r["ev_ebitda"]     < 200]
+    pe_v      = [r["pe"]            for r in results if r.get("pe")            is not None and 0  < r["pe"]            < 500]
+    rg_v      = [r["rev_growth"]    for r in results if r.get("rev_growth")    is not None and -50 < r["rev_growth"]   < 200]
+    em_v      = [r["ebitda_margin"] for r in results if r.get("ebitda_margin") is not None and -200 < r["ebitda_margin"] < 100]
+
+    return {
+        "ev_revenue_median":  _median(ev_rev_v),
+        "ev_ebitda_median":   _median(ev_ebit_v),
+        "pe_median":          _median(pe_v),
+        "ev_revenue_mean":    _mean(ev_rev_v),
+        "ev_ebitda_mean":     _mean(ev_ebit_v),
+        "pe_mean":            _mean(pe_v),
+        "rev_growth_mean":    _mean(rg_v),
+        "ebitda_margin_mean": _mean(em_v),
+        "n_total":            len(Z47_SYMBOLS),
+        "n_ev_revenue":       len(ev_rev_v),
+        "n_ev_ebitda":        len(ev_ebit_v),
+        "n_pe":               len(pe_v),
+        "n_rev_growth":       len(rg_v),
+        "n_ebitda_margin":    len(em_v),
+        "company_data":       results,
+        "as_of":              pd.Timestamp.now().strftime("%d %b %Y %H:%M"),
+    }
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_index_fundamentals() -> dict:
+    """Fetch Nifty50 and Sensex P/E from yfinance index info (cached 1 hour)."""
+    out = {"nifty": {}, "sensex": {}}
+    for key, sym in [("nifty", "^NSEI"), ("sensex", "^BSESN")]:
+        try:
+            info = yf.Ticker(sym).info
+            out[key] = {
+                "pe": info.get("trailingPE"),
+                "pb": info.get("priceToBook"),
+            }
+        except Exception as _e:
+            print(f"[Index fundamentals] {sym}: {_e}")
+    return out
+
+
 @st.cache_data(ttl=300, show_spinner=False)   # same cadence as prices
 def fetch_company_live(yf_tk: str) -> dict:
     """Key stats, analyst targets, recommendations, earnings dates — refreshed with prices."""
@@ -1708,6 +1803,130 @@ def main():
         print(f"[CRASH] z47_desktop: {type(_desk_err).__name__}: {_desk_err}\n{_tb.format_exc()}")
 
 
+def render_index_fundamentals(z47: dict, idx: dict) -> None:
+    """Render the Index Fundamentals table on the Z47 desktop page."""
+    nifty  = idx.get("nifty",  {})
+    sensex = idx.get("sensex", {})
+    n_total = z47.get("n_total", 47)
+
+    def _fmt_x(v):
+        return "—" if v is None else f"{v:.1f}x"
+
+    def _fmt_pct(v):
+        if v is None:
+            return "—"
+        return f"{'+' if v > 0 else ''}{v:.1f}%"
+
+    def _cov(n):
+        return f"{n}/{n_total} cos"
+
+    TH = "padding:10px 16px;color:#8b6d4a;font-size:12px;font-weight:600;white-space:nowrap"
+    TD = "padding:10px 16px;vertical-align:top"
+
+    # Column header row
+    hdr = (
+        f"<tr style='background:{BG_ALT}'>"
+        f"<th style='text-align:left;{TH}'>Metric</th>"
+        f"<th style='text-align:right;{TH}'>Z47 Index"
+        f"<div style='font-weight:400;font-size:10px;color:#a38060'>median of constituents</div></th>"
+        f"<th style='text-align:right;{TH}'>Nifty 50</th>"
+        f"<th style='text-align:right;{TH}'>BSE Sensex</th>"
+        f"</tr>"
+    )
+
+    def _z47_cell(val, n, is_pct=False):
+        txt   = _fmt_pct(val) if is_pct else _fmt_x(val)
+        if val is None:
+            col = "#9ca3af"
+        elif is_pct:
+            col = "#16a34a" if val >= 0 else "#dc2626"
+        else:
+            col = "#1a0f00"
+        cov_div = f"<div style='font-size:10px;color:#a38060'>{_cov(n)}</div>" if n is not None else ""
+        return (
+            f"<td style='text-align:right;{TD}'>"
+            f"<span style='font-size:18px;font-weight:700;color:{col}'>{txt}</span>"
+            f"{cov_div}</td>"
+        )
+
+    def _idx_cell(val, is_pct=False):
+        txt = _fmt_pct(val) if is_pct else _fmt_x(val)
+        col = "#4a3520" if val is not None else "#9ca3af"
+        return (
+            f"<td style='text-align:right;{TD}'>"
+            f"<span style='font-size:18px;font-weight:600;color:{col}'>{txt}</span></td>"
+        )
+
+    def _sec_hdr(label):
+        return (
+            f"<tr style='background:{BG_ALT}'>"
+            f"<td colspan='4' style='padding:6px 16px;color:#8b6d4a;"
+            f"font-size:10px;font-weight:700;letter-spacing:.6px'>{label}</td></tr>"
+        )
+
+    def _row(label, sublabel, z47_val, z47_n, nifty_val, sensex_val, is_pct=False):
+        return (
+            f"<tr style='border-top:1px solid {BORDER}'>"
+            f"<td style='{TD}'>"
+            f"<div style='font-weight:600;color:#1a0f00'>{label}</div>"
+            f"<div style='font-size:11px;color:#8b6d4a'>{sublabel}</div></td>"
+            + _z47_cell(z47_val, z47_n, is_pct)
+            + _idx_cell(nifty_val, is_pct)
+            + _idx_cell(sensex_val, is_pct)
+            + "</tr>"
+        )
+
+    rows = (
+        _sec_hdr("VALUATION MULTIPLES (TTM · MEDIAN)")
+        + _row("EV / Revenue",
+               "Enterprise Value ÷ Revenue",
+               z47.get("ev_revenue_median"), z47.get("n_ev_revenue"),
+               None, None)
+        + _row("EV / EBITDA",
+               "Enterprise Value ÷ EBITDA (profitable cos only)",
+               z47.get("ev_ebitda_median"), z47.get("n_ev_ebitda"),
+               None, None)
+        + _row("P/E Ratio",
+               "Price ÷ Earnings (profitable cos only)",
+               z47.get("pe_median"), z47.get("n_pe"),
+               nifty.get("pe"), sensex.get("pe"))
+        + _sec_hdr("OPERATING METRICS (TTM · MEAN)")
+        + _row("Revenue Growth YoY",
+               "Average of constituents",
+               z47.get("rev_growth_mean"), z47.get("n_rev_growth"),
+               None, None, is_pct=True)
+        + _row("EBITDA Margin",
+               "Average of constituents (includes loss-makers)",
+               z47.get("ebitda_margin_mean"), z47.get("n_ebitda_margin"),
+               None, None, is_pct=True)
+    )
+
+    st.markdown('<div class="section-header">Index Fundamentals</div>', unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#8b6d4a;font-size:12px;margin-bottom:12px'>"
+        "Valuation multiples (median) and operating metrics (mean) for Z47 constituents. "
+        "EV/EBITDA and P/E exclude loss-making companies. "
+        "Coverage shows how many of 47 cos have valid data for each metric.</p>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<div class='card-wrap' style='padding:0;overflow-x:auto'>"
+        f"<table style='width:100%;border-collapse:collapse;font-size:13px'>"
+        f"<thead>{hdr}</thead><tbody>{rows}</tbody></table>"
+        f"<div style='padding:10px 14px;color:#a38060;font-size:11px'>"
+        f"Nifty/Sensex EV metrics not published by NSE/BSE — P/E sourced from index data. "
+        f"Data: yfinance TTM | Refreshes every hour | "
+        f"Last updated: {z47.get('as_of', 'N/A')}</div></div>",
+        unsafe_allow_html=True,
+    )
+    _rf1, _rf2 = st.columns([1, 10])
+    with _rf1:
+        if st.button("🔄 Refresh", key="refresh_fundamentals"):
+            get_z47_fundamentals.clear()
+            get_index_fundamentals.clear()
+            st.rerun()
+
+
 def _run_z47_desktop():
     """Desktop Z47 Index page — wrapped by main() for crash safety."""
     hist = load_history()
@@ -1932,6 +2151,16 @@ def _run_z47_desktop():
         f"<thead>{header}</thead><tbody>{body}</tbody></table></div>",
         unsafe_allow_html=True,
     )
+
+    # ── Index Fundamentals ────────────────────────────────────────────────────
+    try:
+        with st.spinner("Loading index fundamentals…"):
+            _z47_fund = get_z47_fundamentals()
+            _idx_fund = get_index_fundamentals()
+        render_index_fundamentals(_z47_fund, _idx_fund)
+    except Exception as _fund_err:
+        st.info("📊 Index fundamentals temporarily unavailable.")
+        print(f"[Fundamentals section] {type(_fund_err).__name__}: {_fund_err}")
 
     # ── Top 5 gainers / losers ───────────────────────────────────────────────
     st.markdown('<div class="section-header">Top 5 Gainers &amp; Losers — Last Month</div>',
