@@ -864,11 +864,6 @@ KNOWN_FILINGS = [
      "pdf_link": DRHP_LINKS["Kissht"]["url"], "confidential": False,
      "description": "✅ Listed 8 May 2026 on NSE (KISSHT) / BSE. Digital consumer-lending BNPL platform. Fosun, Sistema Asia, Vertex Ventures backed. 10M+ users, 10K+ merchant integrations."},
 
-    {"company": "Urban Company (SEBI Approved)",
-     "filing_date": "2025-04", "type": "SEBI Approved", "sector": "consumer tech",
-     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial",
-     "pdf_link": DRHP_LINKS["Urban Company (SEBI Approved)"]["url"], "confidential": False,
-     "description": "SEBI approval received April 2025. IPO expected Q2 FY26."},
 ]
 
 
