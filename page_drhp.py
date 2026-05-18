@@ -81,6 +81,7 @@ WATCHLIST = [
     "InCred", "OYO", "Meesho", "Lenskart", "Zepto",
     "Rebel Foods", "Faasos", "Ola Cabs", "Boat", "Imagine Marketing",
     "Pine Labs", "Capillary", "Urban Company",
+    "Kissht", "Aye Finance",
 ]
 
 # ── Hardcoded verified DRHP/RHP PDF links (PRIMARY source — never stale) ─────
@@ -216,6 +217,18 @@ DRHP_LINKS = {
         "type": "FILING_PAGE",
         "source": "SEBI filing page · Jun 2025",
         "note": "Opens SEBI filing detail page; click the document link there.",
+    },
+
+    # ── LISTED — RHP available on SEBI/NSE/BSE ───────────────────────────────
+    "Kissht": {
+        "url": None,
+        "type": "RHP",
+        "note": "Listed 8 May 2026 (NSE: KISSHT / BSE). RHP filed with SEBI; check NSE Archives or SEBI for prospectus.",
+    },
+    "Aye Finance": {
+        "url": None,
+        "type": "RHP",
+        "note": "Listed 16 Feb 2026 (NSE: AYEFIN / BSE). RHP filed with SEBI; check NSE Archives or SEBI for prospectus.",
     },
 }
 
@@ -499,6 +512,30 @@ DRHP_SUMMARIES: dict[str, dict] = {
         "key_risks": "SEBI F&O regulations (Oct 2024 circular significantly reduced F&O volumes — revenue headwind in FY25). Zerodha competition (profitable, founder-funded, loyal trader base). Angel One and Upstox gaining market share. Regulatory risk: SEBI continues tightening F&O rules. Market downturn reduces trading volumes and broking income.",
         "source": "RHP Oct 2025 + NSE listing data Nov 2025",
     },
+    "Kissht": {
+        "overview": "Kissht (OnEMI Technology Solutions Ltd) is a digital consumer-lending platform offering instant EMI-based loans for consumer durables, mobile phones, and personal needs at point-of-sale and online. Founded 2015 by Krishnan Vishwanathan (CEO) and Ranvir Singh. Listed on NSE/BSE on 8 May 2026. Backed by Fosun International, Sistema Asia Capital, and Vertex Ventures SE Asia.",
+        "business_model": "Buy-now-pay-later (BNPL) and instant personal-loans platform. Integrates with offline/online retailers (electronics, appliances, furniture) to offer 0% or low-cost EMIs at checkout. Revenue: interest income on loan book, processing fees, and insurance cross-sell. Distribution via app, NBFC partners, and 10,000+ merchant touchpoints.",
+        "financials": "Revenue FY24: ~₹1,450 cr (interest income basis). Net profit: positive. AUM growing ~40%+ YoY. Gross NPA manageable at mid-single-digit levels. Strong unit economics on consumer-durable segment (lower ticket, secured by product). FY25 revenue guidance meaningfully higher vs FY24.",
+        "ipo_details": "✅ Listed 8 May 2026 on NSE (symbol: KISSHT) and BSE. Issue size ~₹2,250 cr. BRLMs: Axis Capital, ICICI Securities, Nuvama. IPO comprised fresh issue + OFS by early investors. Use of funds: augment Tier-1 capital base for loan book expansion.",
+        "key_metrics": "10M+ registered users. 5M+ loans disbursed. 10,000+ merchant integrations. Average loan ticket: ₹20,000–50,000. 30+ product categories financed. NBFC licence (RBI regulated). Listed NSE: KISSHT.",
+        "market_opportunity": "India consumer durable financing market: ~₹1.5L cr. BNPL market growing 30%+ YoY driven by smartphone penetration and aspirational spending in Tier 2/3 cities. Total addressable credit market for sub-prime/near-prime consumers: $100B+. Penetration of formal EMI financing in semi-urban India remains <10%.",
+        "competitive_position": "Leading BNPL / consumer-durables lending platform. Competes with Bajaj Finance (dominant in consumer durables), ZestMoney (shut down), Capital Float, and bank EMI schemes. Kissht differentiates with wider geographic reach in Tier 2/3 cities and tech-first underwriting (alternative data, mobile behaviour).",
+        "investors_funding": "Total raised: ~$200M+. Key investors: Fosun International (Hong Kong), Sistema Asia Capital (Russia/India), Vertex Ventures SE Asia, Brunei Investment Agency, Endeavour Investments. Listed company post-IPO. Pre-IPO: valued at ~$500M in last private round.",
+        "key_risks": "Consumer credit quality risk in economic downturns. RBI NBFC regulations (tightening risk weights on consumer credit since 2023). Competition from Bajaj Finance with deeper merchant relationships and lower cost of funds. Collection risk in semi-urban geographies. Post-IPO: OFS by early investors may create selling pressure.",
+        "source": "SEBI DRHP + public disclosures + NSE listing data May 2026",
+    },
+    "Aye Finance": {
+        "overview": "Aye Finance is a technology-driven MSME lending NBFC focused on micro and small enterprises in manufacturing, trading, and services sectors — particularly in Tier 3/4 cities and semi-urban India. Founded 2014 by Sanjay Sharma (CEO) and Vikram Jetley. Listed on NSE/BSE on 16 February 2026. Backed by CapitalG (Google), A91 Partners, LGT Lightrock, and Falcon Edge Capital.",
+        "business_model": "Cluster-based lending model: identifies high-density micro-enterprise clusters (e.g., leather goods in Agra, steel fabrication in Ludhiana) and develops deep underwriting expertise for that cluster. Loan products: business loans ₹1–10 lakh, secured and unsecured. Distribution: 600+ branches across 22+ states. Revenue: interest income (~30–35% yield on AUM).",
+        "financials": "Revenue FY24: ~₹1,250 cr (interest and fee income). Net profit: ~₹300 cr, consistently profitable since FY23. AUM FY24: ~₹4,500 cr growing ~40%+ YoY. Gross NPA ~2–3% (strong for micro-lending segment). RoE ~18–20%. Cost-to-income ratio improving as AUM scales.",
+        "ipo_details": "✅ Listed 16 Feb 2026 on NSE (symbol: AYEFIN) and BSE. Issue size ~₹1,450 cr. BRLMs: Axis Capital, Kotak Mahindra Capital, IIFL Securities. IPO: fresh issue + partial OFS by CapitalG and LGT Lightrock. Use of funds: augment Tier-1 capital for loan book growth.",
+        "key_metrics": "600,000+ active loan accounts. ₹4,500 cr+ AUM. 600+ branches across 22+ states. Average loan size: ~₹1.5 lakh. 200+ enterprise clusters covered. Gross NPA ~2–3%. RoE ~18–20%. Listed NSE: AYEFIN.",
+        "market_opportunity": "India MSME credit gap: $530B (IFC estimate). Formal credit penetration for micro enterprises <15%. 63M+ MSMEs in India with only 10–12M having any formal credit access. Cluster-based model allows high-quality underwriting where generic scorecards fail — large blue ocean in Tier 3/4 India.",
+        "competitive_position": "Leading MSME micro-lender with proprietary cluster-underwriting moat. Competes with MFIs (Bandhan, CreditAccess Grameen), NBFCs (Ugro Capital, Vivriti Capital), and PSU bank MSME schemes. Aye's cluster model gives lower NPA vs peers at similar ticket sizes. CapitalG relationship brings data/technology advisory advantage.",
+        "investors_funding": "Total raised: ~$250M+. Key investors: CapitalG (Google's independent growth fund, early backer), A91 Partners, LGT Lightrock (impact investing), Falcon Edge Capital, ABC Impact, Deutsche Investitions-und Entwicklungsgesellschaft (DEG). Sanjay Sharma (founder-CEO) retains significant stake. Listed post-IPO.",
+        "key_risks": "MSME credit quality highly sensitive to economic cycles and GST/regulatory changes affecting small traders. Geographic concentration in North India. Operational risk: 600+ branch network execution. Competition from PSU banks under govt MSME schemes (CGTMSE-backed loans at subsidised rates). RBI regulations on NBFC Tier-1 capital adequacy.",
+        "source": "SEBI DRHP + public disclosures + NSE listing data Feb 2026",
+    },
     "Urban Company (SEBI Approved)": {
         "overview": "This entry tracks the SEBI-approval milestone for Urban Company's IPO. SEBI approval received April 2025. RHP filed September 2025. Same company as 'Urban Company' — see that entry for full analysis. IPO expected Q3 FY26.",
         "business_model": "Asset-light home-services marketplace connecting 40,000+ trained professionals with consumers across beauty, cleaning, repairs, and appliance servicing. See 'Urban Company' for full business model details.",
@@ -713,10 +750,10 @@ KNOWN_FILINGS = [
      "description": "India's No.1 wearable brand with 28% market share. Warburg Pincus invested."},
 
     {"company": "Urban Company",
-     "filing_date": "2025-02", "type": "DRHP", "sector": "consumer tech",
+     "filing_date": "2025-02", "type": "SEBI Approved", "sector": "consumer tech",
      "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial, Axis",
      "pdf_link": DRHP_LINKS["Urban Company"]["url"], "confidential": False,
-     "description": "Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
+     "description": "SEBI approval received Apr 2025. RHP filed Sep 2025. IPO expected Q3 FY26. Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
 
     {"company": "Rebel Foods (Faasos)",
      "filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
@@ -814,6 +851,18 @@ KNOWN_FILINGS = [
      "issue_size": "₹6,632 cr", "brlms": "Kotak, JM Financial, Axis",
      "pdf_link": DRHP_LINKS["Groww (Billionbrains Garage)"]["url"], "confidential": False,
      "description": "India's largest discount broker by active users. Listed Nov 2025. Z47 constituent."},
+
+    {"company": "Aye Finance",
+     "filing_date": "2026-02", "type": "Listed ✅", "sector": "fintech",
+     "issue_size": "~₹1,450 cr", "brlms": "Axis Capital, Kotak, IIFL",
+     "pdf_link": DRHP_LINKS["Aye Finance"]["url"], "confidential": False,
+     "description": "✅ Listed 16 Feb 2026 on NSE (AYEFIN) / BSE. MSME lending NBFC with cluster-based underwriting. CapitalG, A91 Partners, LGT Lightrock backed. 600K+ loan accounts, ₹4,500 cr+ AUM."},
+
+    {"company": "Kissht",
+     "filing_date": "2026-05", "type": "Listed ✅", "sector": "fintech",
+     "issue_size": "~₹2,250 cr", "brlms": "Axis Capital, ICICI Securities, Nuvama",
+     "pdf_link": DRHP_LINKS["Kissht"]["url"], "confidential": False,
+     "description": "✅ Listed 8 May 2026 on NSE (KISSHT) / BSE. Digital consumer-lending BNPL platform. Fosun, Sistema Asia, Vertex Ventures backed. 10M+ users, 10K+ merchant integrations."},
 
     {"company": "Urban Company (SEBI Approved)",
      "filing_date": "2025-04", "type": "SEBI Approved", "sector": "consumer tech",
