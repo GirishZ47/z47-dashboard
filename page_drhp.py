@@ -82,6 +82,7 @@ WATCHLIST = [
     "Rebel Foods", "Faasos", "Ola Cabs", "Boat", "Imagine Marketing",
     "Pine Labs", "Capillary", "Urban Company",
     "Kissht", "Aye Finance",
+    "BlueStone", "PhysicsWallah", "Smartworks",
 ]
 
 # ── Hardcoded verified DRHP/RHP PDF links (PRIMARY source — never stale) ─────
@@ -230,6 +231,32 @@ DRHP_LINKS = {
         "type": "RHP",
         "note": "Listed 16 Feb 2026 (NSE: AYEFIN / BSE). RHP filed with SEBI; check NSE Archives or SEBI for prospectus.",
     },
+
+    # ── New listings added May 2026 ───────────────────────────────────────────
+    "Ather Energy": {
+        "url": None, "type": "RHP",
+        "note": "Listed 6 May 2025. NSE: ATHERENERG.",
+    },
+    "BlueStone": {
+        "url": None, "type": "RHP",
+        "note": "Listed 19 Aug 2025. NSE: BLUESTONE.",
+    },
+    "Smartworks": {
+        "url": None, "type": "RHP",
+        "note": "Listed Oct 2025. NSE: SMARTWORKS.",
+    },
+    "PhysicsWallah": {
+        "url": None, "type": "RHP",
+        "note": "Listed 18 Nov 2025. NSE: PWL.",
+    },
+    "Shadowfax": {
+        "url": None, "type": "RHP",
+        "note": "Listed 28 Jan 2026. NSE: SHADOWFAX.",
+    },
+    "Kissht (OnEMI Technology Solutions)": {
+        "url": None, "type": "RHP",
+        "note": "Listed 8 May 2026. NSE: KISSHT.",
+    },
 }
 
 # ── DRHP summaries — comprehensive 8-section brief per company ───────────────
@@ -276,7 +303,7 @@ DRHP_SUMMARIES: dict[str, dict] = {
         "overview": "Urban Company (formerly UrbanClap) is India's largest home-services marketplace, connecting consumers with 40,000+ trained professionals for beauty, cleaning, repairs, and appliance servicing. Founded 2014 by Abhiraj Bhal, Varun Khaitan, and Raghav Chandra. Present in 50+ Indian cities and 3 international markets. SEBI approval received Apr 2025; RHP filed Sep 2025.",
         "business_model": "Asset-light marketplace model — professionals are independent partners, not employees. Services: beauty at home, cleaning, appliance repair, painting, plumbing, carpentry, pest control. Revenue: commission on each booking (15–25%) + product sales via kits. UC Pro: subscription model for professionals (tools, training, insurance, leads). International: UAE, Saudi Arabia, Singapore.",
         "financials": "Revenue FY24: ₹827 cr (+25% YoY from ₹661 cr FY23). Net loss FY24: ₹320 cr (reduced from ₹523 cr FY23). Gross margin ~70%+ (high-margin marketplace). India business EBITDA positive in key metros. International: still loss-making but improving. FY22 revenue: ₹453 cr.",
-        "ipo_details": "DRHP filed Feb 2025. RHP filed Sep 2025 (WACA certified by J.C. Bhalla & Co., Sep 2 2025). SEBI approval received Apr 2025. Issue size ~₹3,000 cr. BRLMs: Kotak Mahindra Capital, JM Financial, Axis Capital. Expected valuation ~$2–3B. OFS sellers: Tiger Global, VY Capital, Accel, Bessemer, Elevation Capital.",
+        "ipo_details": "✅ Listed 17 Sep 2025 @ ₹162.25 NSE (+57.5% vs IPO ₹103). Subscription 103.6×. Issue ₹1,900 cr. NSE: URBANCO. DRHP filed Feb 2025. RHP filed Sep 2025. SEBI approval received Apr 2025. BRLMs: Kotak Mahindra Capital, JM Financial, Axis Capital. OFS sellers: Tiger Global, VY Capital, Accel, Bessemer, Elevation Capital.",
         "key_metrics": "50M+ app downloads. 40,000+ trained professionals. 50+ service categories. 50+ Indian cities. 4 international markets (UAE, KSA, Singapore, Australia). ~10M services delivered annually. Customer rating: 4.7/5 average.",
         "market_opportunity": "India home-services market ~$20B, highly fragmented. Organised sector penetration <5%. Key growth drivers: working women, nuclear families, premium housing. International markets — UAE and Singapore: organised home services penetration growing. Global market $1T+.",
         "competitive_position": "Dominant player in premium organised home services in India with no direct national-scale competitor. Competition from local service providers (90%+ of market), Just Dial listings, Housejoy (much smaller). Network effects: more professionals → better service → more customers. UC Pro training programme creates service quality differentiation.",
@@ -512,7 +539,7 @@ DRHP_SUMMARIES: dict[str, dict] = {
         "key_risks": "SEBI F&O regulations (Oct 2024 circular significantly reduced F&O volumes — revenue headwind in FY25). Zerodha competition (profitable, founder-funded, loyal trader base). Angel One and Upstox gaining market share. Regulatory risk: SEBI continues tightening F&O rules. Market downturn reduces trading volumes and broking income.",
         "source": "RHP Oct 2025 + NSE listing data Nov 2025",
     },
-    "Kissht": {
+    "Kissht (OnEMI Technology Solutions)": {
         "overview": "Kissht (OnEMI Technology Solutions Ltd) is a digital consumer-lending platform offering instant EMI-based loans for consumer durables, mobile phones, and personal needs at point-of-sale and online. Founded 2015 by Krishnan Vishwanathan (CEO) and Ranvir Singh. Listed on NSE/BSE on 8 May 2026. Backed by Fosun International, Sistema Asia Capital, and Vertex Ventures SE Asia.",
         "business_model": "Buy-now-pay-later (BNPL) and instant personal-loans platform. Integrates with offline/online retailers (electronics, appliances, furniture) to offer 0% or low-cost EMIs at checkout. Revenue: interest income on loan book, processing fees, and insurance cross-sell. Distribution via app, NBFC partners, and 10,000+ merchant touchpoints.",
         "financials": "Revenue FY24: ~₹1,450 cr (interest income basis). Net profit: positive. AUM growing ~40%+ YoY. Gross NPA manageable at mid-single-digit levels. Strong unit economics on consumer-durable segment (lower ticket, secured by product). FY25 revenue guidance meaningfully higher vs FY24.",
@@ -535,6 +562,66 @@ DRHP_SUMMARIES: dict[str, dict] = {
         "investors_funding": "Total raised: ~$250M+. Key investors: CapitalG (Google's independent growth fund, early backer), A91 Partners, LGT Lightrock (impact investing), Falcon Edge Capital, ABC Impact, Deutsche Investitions-und Entwicklungsgesellschaft (DEG). Sanjay Sharma (founder-CEO) retains significant stake. Listed post-IPO.",
         "key_risks": "MSME credit quality highly sensitive to economic cycles and GST/regulatory changes affecting small traders. Geographic concentration in North India. Operational risk: 600+ branch network execution. Competition from PSU banks under govt MSME schemes (CGTMSE-backed loans at subsidised rates). RBI regulations on NBFC Tier-1 capital adequacy.",
         "source": "SEBI DRHP + public disclosures + NSE listing data Feb 2026",
+    },
+    "Ather Energy": {
+        "overview": "Ather Energy is India's leading premium electric two-wheeler OEM, designing and manufacturing e-scooters (Ather 450 series, Rizta) with proprietary battery packs, motors, and software. Founded 2013 by Tarun Mehta and Swapnil Jain (IIT Madras). Listed on NSE/BSE on 6 May 2025. Backed by Hero MotoCorp (~37%) and Flipkart (~13%).",
+        "business_model": "Design, manufacture, and sell premium e-scooters under own brand. Revenue: vehicle sales (85%), Ather One subscription (service + software updates, 12%), accessories/spare parts (3%). Own fast-charging network: Ather Grid (1,500+ points). D2C experience centres (Ather Space) in 100+ cities.",
+        "financials": "Revenue FY24: ~₹1,753 cr (+33% YoY). Net loss FY24: ~₹1,059 cr (declining as scale improves). Gross margin improving post PLI benefits. FY25 guidance: margins significantly better as volumes cross 3L units/year. MCap at listing: ~₹12,000 cr.",
+        "ipo_details": "✅ Listed 6 May 2025 @ ₹326.05 NSE (+1.6% vs IPO ₹321). Issue size ₹2,981 cr (₹2,626 cr fresh + ₹355 cr OFS). BRLMs: Axis Capital, Goldman Sachs, IIFL Securities. NSE: ATHERENERG. Use of funds: manufacturing capacity expansion at Hosur plant, R&D, working capital.",
+        "key_metrics": "3L+ e-scooters sold cumulatively. 150+ cities. 1,500+ Ather Grid charging points. 100+ experience centres. 2 manufacturing plants (Hosur, Tamil Nadu). Market share in premium e-scooter segment (>₹1.2L ASP): ~25–30%.",
+        "market_opportunity": "India electric two-wheeler market: 5M+ units/year by FY27 (up from 1M in FY23). Premium e-scooter segment (₹1L+) is fastest-growing. Government FAME II and PLI subsidies accelerating adoption. Petrol two-wheeler replacement: 20M+ units/year total addressable base.",
+        "competitive_position": "Leader in premium e-scooter segment. Competition: Ola Electric (volume leader overall), TVS iQube (strong mid-market), Bajaj Chetak, Honda Activa EV. Ather differentiates on software maturity, Ather Grid network, and brand loyalty among tech-savvy buyers. Hero MotoCorp's distribution network provides reach advantage.",
+        "investors_funding": "Total raised: ~$450M+. Key investors: Hero MotoCorp (~37% stake), Flipkart/Walmart (via GFC, ~13%), Tiger Global, Caladium Investment, National Investment and Infrastructure Fund (NIIF). Founders: Tarun Mehta (CEO) and Swapnil Jain (CTO). Listed company post-IPO.",
+        "key_risks": "EV subsidy policy risk (FAME II reduction). Battery raw material cost volatility (lithium, cobalt). Ola Electric competing aggressively on price. Charging infrastructure density still insufficient for mass adoption. Production ramp-up execution. Competition from legacy OEMs (Bajaj, TVS, Honda) entering EV segment.",
+        "source": "RHP Apr 2025 + NSE listing data May 2025",
+    },
+    "BlueStone": {
+        "overview": "BlueStone is India's leading online-first jewellery brand, offering certified diamond and gold jewellery via its website, app, and 250+ experience stores. Founded 2011 by Gaurav Singh Kushwaha (IIT Bombay). Listed on BSE/NSE on 19 Aug 2025. Backed by Accel, Kalaari Capital, and Ratan Tata (personal investment).",
+        "business_model": "Omnichannel jewellery retail: own e-commerce (bluestone.com/app) + experience stores. Revenue: jewellery product sales (gold, diamond, platinum, silver). 30-day returns policy and lifetime exchange policy build customer trust. Custom jewellery design as a differentiator.",
+        "financials": "Revenue FY24: ~₹1,265 cr (+53% YoY). Net loss FY24: ~₹158 cr (reducing). Gross margin ~25–28% (jewellery retail typical). EBITDA level profitable in peak quarters. Gold price tailwind drove FY24 revenue growth significantly.",
+        "ipo_details": "✅ Listed 19 Aug 2025 @ ₹508.80 BSE (-1.6% vs IPO ₹517). Issue size ₹1,000 cr (fresh issue only). BRLMs: Axis Capital, Kotak Mahindra Capital. NSE: BLUESTONE. Use of funds: store expansion (target 400+ stores), technology, and working capital.",
+        "key_metrics": "250+ experience stores. 10M+ app downloads. 1M+ customers. 6,000+ unique jewellery designs. 100% BIS hallmarked and IGI/GIA certified. 30-day return policy. 30+ cities with experience stores.",
+        "market_opportunity": "India jewellery market: ₹6L cr+, growing 10%+ YoY. Online jewellery penetration <5% — massive headroom. Diamond jewellery fastest-growing segment as younger consumers shift from gold to diamond. Branded and certified jewellery gaining share from unorganised local jewellers.",
+        "competitive_position": "Leading online-first jewellery brand. Competition: Tanishq (Tata — dominant), Kalyan Jewellers (strong retail), CaratLane (Tanishq subsidiary, online), Melorra (online). BlueStone differentiates on return policy (30-day), design variety (6,000+ SKUs), and price transparency vs traditional jewellers.",
+        "investors_funding": "Total raised: ~$120M+. Investors: Accel India, Kalaari Capital, Ratan Tata (personal), Steadview Capital, IIFL Asset Management. Founder: Gaurav Singh Kushwaha (CEO, IIT Bombay). Listed company post-IPO.",
+        "key_risks": "Gold price volatility impacting inventory value and revenue. Tanishq (Tata — unlimited capital) expanding online aggressively. High inventory carrying cost for jewellery. Returns rate risk (30-day policy). Lab-grown diamond disruption in diamond segment.",
+        "source": "RHP Jul 2025 + BSE listing data Aug 2025",
+    },
+    "Smartworks": {
+        "overview": "Smartworks Coworking Spaces is India's second-largest managed office / co-working operator, providing enterprise-grade flexible workspaces to corporates, MNCs, and startups. Founded 2016 by Neetish Sarda and Harsh Binani. Listed on NSE/BSE in Oct 2025. Backed by Keppel Land (Singapore) and Plutus Capital.",
+        "business_model": "Managed workspace operator: long-term lease of commercial real estate, fit-out to enterprise grade, then sublease to corporates on flexible terms (3 months to 3 years). Revenue: monthly seat rentals (₹8,000–25,000/seat/month). Enterprise clients: TCS, IBM, Amazon, Wipro, MNCs. Add-on: meeting rooms, event spaces, food and beverage, IT infrastructure.",
+        "financials": "Revenue FY24: ~₹1,100 cr (+40% YoY). EBITDA positive and growing. Net loss: ~₹130 cr (reducing rapidly as occupancy scales). Seat occupancy: 85%+ in mature locations. Pipeline: 100,000+ seats under development.",
+        "ipo_details": "✅ Listed Oct 2025 @ ₹435 NSE (+7.1% vs IPO ₹407). Issue size ₹550 cr. BRLMs: JM Financial, Axis Capital. NSE: SMARTWORKS. Subscription: 13.45×. Use of funds: new centre fit-out, working capital, and general corporate purposes.",
+        "key_metrics": "70,000+ operational seats. 40+ centres across 12 cities. 85%+ occupancy in mature centres. 200+ enterprise clients. 10M+ sq ft under management. Keppel Land (Singapore sovereign-linked) as anchor investor.",
+        "market_opportunity": "India flexible workspace market: 60M sq ft by FY27 (up from 35M sq ft FY24). Enterprise flex demand growing 30%+ YoY. MNCs expanding India GCCs prefer managed offices over traditional leases. Post-COVID hybrid work is structural, not cyclical.",
+        "competitive_position": "#2 managed workspace operator in India by seats. Competition: WeWork India (Brookfield-owned, largest), Table Space (#3), Awfis (listed). Smartworks differentiates on pure enterprise focus, enterprise-grade IT and security, and Keppel Land's real-estate relationships for prime locations.",
+        "investors_funding": "Total raised: ~$100M+. Key investors: Keppel Land (Singapore; strategic shareholder ~35%), Plutus Capital, Investors' Trust. Founders: Neetish Sarda (CEO) and Harsh Binani (COO). Keppel Land's backing provides access to premium commercial real estate and institutional credibility with enterprise clients.",
+        "key_risks": "Real-estate cycle risk (if commercial rents spike, margins compress). Enterprise client concentration. WeWork India (Brookfield) competing on price. Economic slowdown causes enterprises to reduce flex headcount. Long-term lease liabilities if occupancy drops.",
+        "source": "RHP Sep 2025 + NSE listing data Oct 2025",
+    },
+    "PhysicsWallah": {
+        "overview": "PhysicsWallah (PW) is India's leading affordable EdTech platform offering JEE, NEET, UPSC, and K-12 coaching via online and offline channels. Founded 2020 by Alakh Pandey (the 'Teacher of India') and Prateek Maheshwari. Listed on NSE/BSE on 18 Nov 2025. Backed by WestBridge Capital and GSV Ventures.",
+        "business_model": "Hybrid EdTech: (1) PW App — subscription-based online courses (₹1,000–5,000/year); (2) Vidyapeeth offline centres (400+ centres in Tier 2/3 India); (3) PW Skills — upskilling for working professionals. Revenue: subscriptions, offline fee, and test series. Alakh Pandey's YouTube channel (20M+ subscribers) = massive organic acquisition flywheel.",
+        "financials": "Revenue FY24: ~₹1,940 cr (+2.6× YoY from ₹744 cr FY23). Net profit: ~₹98 cr (turned profitable FY24). Offline Vidyapeeth: EBITDA positive. Online: high-margin subscription model. Raised at $2.8B valuation in Series B 2022.",
+        "ipo_details": "✅ Listed 18 Nov 2025 @ ₹143.10 BSE (+31.4% vs IPO ₹109). Issue size ₹3,480 cr (₹3,100 cr fresh + ₹380 cr OFS). BRLMs: Goldman Sachs, Kotak, JM Financial. NSE: PWL. Subscription: 1.8×. Use of funds: offline centre expansion, technology platform, and marketing.",
+        "key_metrics": "5M+ paid subscribers. 20M+ YouTube subscribers (Alakh Pandey channel). 400+ Vidyapeeth offline centres. 200+ cities. 5,000+ educators. JEE/NEET selections from PW students: 50,000+ annually. App: 4.8 rating, 50M+ downloads.",
+        "market_opportunity": "India K-12 + test prep market: ₹5.6L cr. JEE/NEET aspirants: 3M+/year growing 10%. Affordable digital education: 600M+ students below ₹3L family income who cannot afford Byju's/Allen. UPSC and state PSC exam prep: ₹20,000 cr market.",
+        "competitive_position": "Dominant in affordable JEE/NEET online prep. Competition: Allen Career Institute (offline incumbent), Unacademy (struggling), Vedantu, BYJU'S (distressed). PW's ₹1,000/year vs ₹50,000+/year for Allen = structural price disruption. Alakh Pandey's personal brand makes switching near-impossible for loyal students.",
+        "investors_funding": "Total raised: ~$210M+. Investors: WestBridge Capital (led Series B at $2.8B valuation, 2022), GSV Ventures, Lightspeed India. Founders: Alakh Pandey (CEO — educator-celebrity) and Prateek Maheshwari (COO). Bootstrapped profitably until 2020; raised only one institutional round. Listed company post-IPO.",
+        "key_risks": "Single-founder brand risk — Alakh Pandey's personal brand is the product. Offline centre expansion capex. Regulatory risk: UGC/AICTE oversight of EdTech certificates. Competition from Allen's aggressive online expansion. Government regulation on coaching fees (potential fee caps for JEE/NEET prep).",
+        "source": "RHP Oct 2025 + NSE/BSE listing data Nov 2025",
+    },
+    "Shadowfax": {
+        "overview": "Shadowfax is India's largest last-mile and hyperlocal delivery platform, serving e-commerce, quick-commerce, and D2C brands. Founded 2015 by Abhishek Bansal and Vaibhav Khandelwal (IIT Delhi). Listed on NSE/BSE on 28 Jan 2026. Backed by Flipkart, Mirae Asset, and Eight Roads Ventures.",
+        "business_model": "Asset-light last-mile delivery: proprietary rider network (gig workers) + tech platform. Services: e-commerce last-mile, quick-commerce fulfilment (5–30 min), reverse logistics, and B2B cargo. Revenue: per-shipment fee (₹35–80). Key clients: Meesho, Flipkart, Amazon, Blinkit, Swiggy Instamart.",
+        "financials": "Revenue FY24: ~₹1,850 cr (+35% YoY). Net loss: ~₹120 cr (improving rapidly). Contribution margin positive. 100M+ shipments delivered in FY24. Operating leverage: cost-per-delivery declining as volume scales past 30M shipments/month.",
+        "ipo_details": "✅ Listed 28 Jan 2026 @ ₹124 NSE (flat vs IPO ₹124). Issue size ₹1,907 cr (₹1,000 cr fresh + ₹907 cr OFS). BRLMs: Axis Capital, Kotak, JM Financial. NSE: SHADOWFAX. Subscription: 2.72×. Use of funds: technology, fleet expansion, working capital.",
+        "key_metrics": "30M+ shipments/month. 2,000+ cities serviced. 200,000+ delivery partners. 2,500+ delivery hubs. 95%+ on-time delivery rate. Reverse logistics: 15M+ returns processed/month. Quick-commerce fulfilment in 50+ cities.",
+        "market_opportunity": "India e-commerce logistics: ₹30,000 cr growing to ₹80,000 cr by FY27. Quick-commerce last-mile: ₹5,000 cr growing 50%+ YoY. D2C brand count growing 30%+ YoY. Reverse logistics: ₹8,000 cr market growing as returns become standard.",
+        "competitive_position": "Largest independent last-mile delivery platform in India. Competition: Delhivery (listed, larger), Xpressbees, Ecom Express (distressed), Bluedart (premium). Key differentiator: hyperlocal (30-min) capability for quick-commerce in addition to standard e-commerce. Flipkart as both investor and client creates strategic alignment.",
+        "investors_funding": "Total raised: ~$300M+. Key investors: Flipkart (strategic ~15%), Mirae Asset Venture Investment, Eight Roads Ventures (Fidelity's venture arm), IFC, Nandan Nilekani (personal investment). Founders: Abhishek Bansal (CEO) and Vaibhav Khandelwal (CTO). Listed company post-IPO.",
+        "key_risks": "Delhivery competition (larger scale, lower cost). Gig-worker classification regulatory risk. Client concentration (Meesho + Flipkart = large share of volume). Quick-commerce players building captive fleets (Blinkit, Zepto). Fuel cost and inflation impacting per-delivery economics.",
+        "source": "RHP Dec 2025 + NSE listing data Jan 2026",
     },
     "Urban Company (SEBI Approved)": {
         "overview": "This entry tracks the SEBI-approval milestone for Urban Company's IPO. SEBI approval received April 2025. RHP filed September 2025. Same company as 'Urban Company' — see that entry for full analysis. IPO expected Q3 FY26.",
@@ -750,10 +837,10 @@ KNOWN_FILINGS = [
      "description": "India's No.1 wearable brand with 28% market share. Warburg Pincus invested."},
 
     {"company": "Urban Company",
-     "filing_date": "2025-02", "type": "SEBI Approved", "sector": "consumer tech",
-     "issue_size": "~₹3,000 cr", "brlms": "Kotak, JM Financial, Axis",
+     "filing_date": "2025-09", "type": "Listed ✅", "sector": "consumer tech",
+     "issue_size": "₹1,900 cr", "brlms": "Kotak, JM Financial, Axis",
      "pdf_link": DRHP_LINKS["Urban Company"]["url"], "confidential": False,
-     "description": "SEBI approval received Apr 2025. RHP filed Sep 2025. IPO expected Q3 FY26. Home services marketplace operating in 50+ cities. Accel & Tiger Global backed."},
+     "description": "✅ Listed 17 Sep 2025 @ ₹162.25 NSE (+57.5% vs IPO ₹103). Subscription 103.6×. Issue ₹1,900 cr. NSE: URBANCO."},
 
     {"company": "Rebel Foods (Faasos)",
      "filing_date": "2024-12", "type": "DRHP", "sector": "foodtech",
@@ -833,38 +920,111 @@ KNOWN_FILINGS = [
      "pdf_link": None, "confidential": True,
      "description": "Pre-owned car marketplace. SoftBank, DST Global, Tencent-backed. Confidential DRHP filing."},
 
+    # ── Listed companies ──────────────────────────────────────────────────────
+    {"company": "Ather Energy",
+     "filing_date": "2025-05", "type": "Listed ✅", "sector": "consumer tech",
+     "issue_size": "₹2,981 cr", "brlms": "Axis Capital, Goldman Sachs, IIFL",
+     "pdf_link": None, "confidential": False,
+     "description": "✅ Listed 6 May 2025 @ ₹326.05 NSE (+1.6% vs IPO ₹321). Electric two-wheeler OEM. Backed by Hero MotoCorp & Flipkart. NSE: ATHERENERG."},
+
+    {"company": "BlueStone",
+     "filing_date": "2025-08", "type": "Listed ✅", "sector": "consumer tech",
+     "issue_size": "₹1,000 cr", "brlms": "Axis Capital, Kotak",
+     "pdf_link": None, "confidential": False,
+     "description": "✅ Listed 19 Aug 2025 @ ₹508.80 BSE (-1.6% vs IPO ₹517). Online-first jewellery brand. Backed by Accel & Kalaari. NSE: BLUESTONE."},
+
+    {"company": "Smartworks",
+     "filing_date": "2025-10", "type": "Listed ✅", "sector": "consumer tech",
+     "issue_size": "₹550 cr", "brlms": "JM Financial, Axis",
+     "pdf_link": None, "confidential": False,
+     "description": "✅ Listed Oct 2025 @ ₹435 NSE (+7.1% vs IPO ₹407). Managed co-working space operator. Subscription 13.45×. NSE: SMARTWORKS."},
+
+    {"company": "PhysicsWallah",
+     "filing_date": "2025-11", "type": "Listed ✅", "sector": "edtech",
+     "issue_size": "₹3,480 cr", "brlms": "Goldman Sachs, Kotak, JM Financial",
+     "pdf_link": None, "confidential": False,
+     "description": "✅ Listed 18 Nov 2025 @ ₹143.10 BSE (+31.4% vs IPO ₹109). EdTech unicorn — Alakh Pandey founder. Issue ₹3,480 cr (₹3,100 cr fresh + ₹380 cr OFS). Subscription 1.8×. NSE: PWL."},
+
+    {"company": "Shadowfax",
+     "filing_date": "2026-01", "type": "Listed ✅", "sector": "logistics",
+     "issue_size": "₹1,907 cr", "brlms": "Axis Capital, Kotak, JM Financial",
+     "pdf_link": None, "confidential": False,
+     "description": "✅ Listed 28 Jan 2026 @ ₹124 NSE (flat vs IPO ₹124). Last-mile logistics platform. Issue ₹1,907 cr (₹1,000 cr fresh + ₹907 cr OFS). Subscription 2.72×. NSE: SHADOWFAX."},
+
     # ── RHP filed / recently listed Z47 companies ─────────────────────────────
     {"company": "Pine Labs",
-     "filing_date": "2025-03", "type": "RHP", "sector": "fintech",
-     "issue_size": "~₹6,000 cr", "brlms": "Axis, ICICI Securities, JM Financial",
+     "filing_date": "2025-11", "type": "Listed ✅", "sector": "fintech",
+     "issue_size": "₹3,900 cr", "brlms": "Axis, ICICI Securities, JM Financial",
      "pdf_link": DRHP_LINKS["Pine Labs"]["url"], "confidential": False,
-     "description": "POS and merchant payments platform serving 500K+ merchants. Temasek and Mastercard backed."},
+     "description": "✅ Listed 14 Nov 2025 @ ₹242 NSE (+9.5% vs IPO ₹221). Issue ₹3,900 cr. NSE: PINELABS."},
 
     {"company": "Capillary Technologies",
-     "filing_date": "2025-01", "type": "Listed", "sector": "saas",
+     "filing_date": "2025-02", "type": "Listed ✅", "sector": "saas",
      "issue_size": "₹479 cr", "brlms": "Kotak, Axis",
      "pdf_link": DRHP_LINKS["Capillary Technologies"]["url"], "confidential": False,
-     "description": "Customer loyalty & CRM SaaS for 400+ global brands. Listed Nov 2025. Z47 constituent."},
+     "description": "✅ Listed Feb 2025. Z47 constituent. NSE: CAPILLARY."},
 
     {"company": "Groww (Billionbrains Garage)",
-     "filing_date": "2024-12", "type": "Listed", "sector": "fintech",
+     "filing_date": "2024-12", "type": "Listed ✅", "sector": "fintech",
      "issue_size": "₹6,632 cr", "brlms": "Kotak, JM Financial, Axis",
      "pdf_link": DRHP_LINKS["Groww (Billionbrains Garage)"]["url"], "confidential": False,
-     "description": "India's largest discount broker by active users. Listed Nov 2025. Z47 constituent."},
+     "description": "✅ Listed 14 Nov 2025 @ ₹114 NSE (+50% vs IPO ₹76). Issue ₹6,632 cr. NSE: GROWW."},
 
     {"company": "Aye Finance",
      "filing_date": "2026-02", "type": "Listed ✅", "sector": "fintech",
-     "issue_size": "~₹1,450 cr", "brlms": "Axis Capital, Kotak, IIFL",
+     "issue_size": "₹1,010 cr", "brlms": "Axis Capital, Kotak, IIFL",
      "pdf_link": DRHP_LINKS["Aye Finance"]["url"], "confidential": False,
-     "description": "✅ Listed 16 Feb 2026 on NSE (AYEFIN) / BSE. MSME lending NBFC with cluster-based underwriting. CapitalG, A91 Partners, LGT Lightrock backed. 600K+ loan accounts, ₹4,500 cr+ AUM."},
+     "description": "✅ Listed 16 Feb 2026 @ ₹131 NSE (+1.6% vs IPO ₹129). Issue ₹1,010 cr. NSE: AYE. Subscription 1.04×."},
 
-    {"company": "Kissht",
+    {"company": "Kissht (OnEMI Technology Solutions)",
      "filing_date": "2026-05", "type": "Listed ✅", "sector": "fintech",
-     "issue_size": "~₹2,250 cr", "brlms": "Axis Capital, ICICI Securities, Nuvama",
-     "pdf_link": DRHP_LINKS["Kissht"]["url"], "confidential": False,
-     "description": "✅ Listed 8 May 2026 on NSE (KISSHT) / BSE. Digital consumer-lending BNPL platform. Fosun, Sistema Asia, Vertex Ventures backed. 10M+ users, 10K+ merchant integrations."},
+     "issue_size": "₹926 cr", "brlms": "Axis Capital, ICICI Securities, Nuvama",
+     "pdf_link": DRHP_LINKS["Kissht (OnEMI Technology Solutions)"]["url"], "confidential": False,
+     "description": "✅ Listed 8 May 2026 @ ₹190 NSE (+11.1% vs IPO ₹171). Issue ₹926 cr. NSE: KISSHT."},
 
 ]
+
+
+def _validate_pipeline_stages():
+    """
+    Cross-check pipeline data against yfinance on startup.
+    Logs a warning if a company shows as DRHP/RHP/SEBI Approved
+    but is actually trading on NSE.
+    """
+    import yfinance as yf
+    # Map company name → NSE symbol for non-listed pipeline entries
+    _SYM_MAP = {
+        "Zepto":                    "ZEPTO",
+        "PhonePe":                  "PHONPE",
+        "Lenskart":                 "LENSKART",
+        "Ola Cabs":                 "OLACABS",
+        "Boat (Imagine Marketing)": "IMAGINE",
+        "Shiprocket":               "SHIPROCKET",
+        "MoneyView":                "MONEYVIEW",
+    }
+    warnings = []
+    for f in KNOWN_FILINGS:
+        stage = f.get("type", "")
+        if stage.startswith("Lis"):
+            continue  # already listed — skip
+        company = f["company"]
+        sym = _SYM_MAP.get(company)
+        if not sym:
+            continue
+        try:
+            hist = yf.Ticker(f"{sym}.NS").history(period="5d")
+            if not hist.empty:
+                warnings.append(
+                    f"⚠️ {company} shows as '{stage}' but is TRADING on NSE ({sym}) — should be 'Listed ✅'"
+                )
+        except Exception:
+            pass
+    for w in warnings:
+        print(w)
+    return warnings
+
+# Run on startup
+_validate_pipeline_stages()
 
 
 # ── URL verification helpers ───────────────────────────────────────────────────
@@ -1691,6 +1851,20 @@ def render():
 
     # ── PIPELINE STAGE TRACKER ───────────────────────────────────────────────
     st.markdown("### 🚀 IPO Pipeline — Stage Tracker")
+    _LISTING_DATES = {
+        "Kissht (OnEMI Technology Solutions)": "2026-05-08",
+        "Aye Finance":                          "2026-02-16",
+        "Shadowfax":                            "2026-01-28",
+        "Meesho":                               "2025-12-10",
+        "PhysicsWallah":                        "2025-11-18",
+        "Pine Labs":                            "2025-11-14",
+        "Groww (Billionbrains Garage)":         "2025-11-14",
+        "Smartworks":                           "2025-10-01",
+        "Urban Company":                        "2025-09-17",
+        "BlueStone":                            "2025-08-19",
+        "Ather Energy":                         "2025-05-06",
+        "Capillary Technologies":               "2025-02-18",
+    }
     _STAGES = [
         ("DRHP",          "📋 DRHP Filed",      "#dbeafe", "#1e40af"),
         ("SEBI Approved", "✅ SEBI Approved",    "#dcfce7", "#166534"),
@@ -1705,6 +1879,8 @@ def render():
             in_stage = [f["company"] for f in KNOWN_FILINGS
                         if f.get("type", "").startswith(stage_key[:3])
                         or f.get("type") == stage_key]
+        if stage_key == "Listed":
+            in_stage.sort(key=lambda n: _LISTING_DATES.get(n, "2000-01-01"), reverse=True)
         names_html = "".join(
             f"<div style='font-size:12px;color:#1a0f00;padding:3px 0;"
             f"border-top:1px solid {stage_bg}'>{n}</div>"
