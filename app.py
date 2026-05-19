@@ -63,7 +63,7 @@ _run_startup_health_check()
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Z47 Index",
+    page_title="Z47'47",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -964,25 +964,34 @@ def get_z47_index_takeaway_v2() -> str | None:
     from datetime import date
     week = date.today().isocalendar()[:2]   # (year, week) — forces weekly refresh
     system = (
-        "You are a senior equity research analyst covering the Z47 Index — "
-        "a free-float market-cap weighted index of 47 listed Indian new-age tech companies. "
-        "Constituents include Eternal (Zomato), Swiggy, Paytm, PolicyBazaar, Groww, "
-        "Delhivery, Nykaa, Meesho, Freshworks, PhysicsWallah, and others. "
-        "Write in tight, professional English. Cite specific numbers, sector names, and "
-        "company names. No markdown, no bullet points, no headers. Plain prose only."
+        "You are a sell-side equity research analyst writing a weekly takeaway for Z47'47 — "
+        "the Z47 index of 47 Indian new-age tech and financial services companies. "
+        "Write in tight, professional English. No markdown, no bullet points — plain prose only. "
+        "You cover the INDEX as a whole: sector themes, macro read-throughs, valuation observations. "
+        "Do not go company-by-company. Write at the index and sector-cohort level."
     )
     prompt = (
         f"Week {week[1]}, {week[0]}. "
-        "Search for the latest data and write 5-6 sentences covering: "
-        "(1) Z47 Index level and weekly performance vs Nifty 50 and Sensex. "
-        "(2) Which sector(s) or specific stocks led or lagged this week and why. "
-        "(3) Key macro or policy development affecting Indian internet/tech companies. "
-        "(4) Notable company-level news — earnings, partnerships, regulatory, or funding. "
-        "(5) One forward-looking observation for the next 2-4 weeks (upcoming results, "
-        "macro events, or sector catalysts). "
-        "Be specific with numbers and percentages. No markdown."
+        "Search for latest Z47'47 index performance, Indian new-age tech sector news, "
+        "and macro developments affecting the index this week. "
+        "Write exactly 5-6 lines in this structure: "
+        "(1) Headline: Z47'47's weekly move vs Nifty 50 and what drove the relative performance at the sector level — not company by company. "
+        "(2-4) Mix of: key data points (index level, sector performance, macro event) AND at least 2 analyst insights from: "
+        "variant perception (what consensus has wrong about the index), "
+        "structural vs cyclical distinction (what's a permanent re-rate vs what mean-reverts), "
+        "quality-of-sector-earnings (is the index's outperformance real or multiple expansion without earnings), "
+        "read-through to the index from macro/policy events, "
+        "what the market is missing about Z47'47's composition or risk profile, "
+        "risk-reward asymmetry at current index levels. "
+        "Every numeric must be followed by what it means — not just the number. "
+        "(5) The watch-item: what single event or data release would change the index view. "
+        "(6) Net read: directional view on the index (constructive/cautious/mixed) with one-line rationale. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
+        "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
+        "Do NOT say buy, sell, or hold. Use analytical verdicts only. "
+        "No markdown. Plain prose."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=550)
+    raw = _ai_takeaway(system, prompt, max_tokens=600)
     if raw:
         import re
         raw = re.sub(r"#{1,3}\s*", "", raw)
@@ -1006,18 +1015,24 @@ def get_valuation_multiples_takeaway(ev_revenue: float | None, ev_ebitda: float 
     if ebitda_margin: parts.append(f"EBITDA Margin={ebitda_margin*100:.0f}%")
     metrics_str = ", ".join(parts) if parts else "data unavailable"
     system = (
-        "You are a concise equity research analyst. Write in professional English. "
-        "No hedging phrases. Be direct. No markdown."
+        "You are a sell-side equity research analyst writing a valuation note for Z47'47. "
+        "Write in tight, professional English. No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Z47 Index current valuation: {metrics_str}. "
-        "Write 4-5 sentences: (1) whether Z47's premium to Nifty 50 (~22-24x P/E) is "
-        "justified by its growth profile, (2) which multiple shows the most meaningful "
-        "compression or expansion trend, (3) how the EBITDA margin trajectory shapes the "
-        "EV/EBITDA interpretation, (4) the key variable to watch in the next quarter. "
-        "Use web search for latest Nifty/Sensex valuation context. No markdown."
+        f"Week {week[1]}, {week[0]}. Z47'47 current valuation: {metrics_str}. "
+        "Search for latest Nifty 50 and Sensex valuation context. "
+        "Write exactly 4-5 lines: "
+        "(1) Headline: Is Z47'47's premium to Nifty justified at current multiples — verdict first. "
+        "(2-3) At least 2 analytical insights: is the premium structural (earnings growth differential) or cyclical "
+        "(multiple expansion on hope)? Which specific multiple (EV/Revenue, EV/EBITDA, P/E) is most informative "
+        "right now and why? What is the quality-of-earnings story behind the multiple — is margin expansion real "
+        "or mix/denominator-driven? "
+        "(4) The variable that would cause the premium to compress sharply — be specific. "
+        "(5) Net read: constructive/cautious/mixed on Z47'47's valuation relative to Nifty, with rationale. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'well-positioned'. "
+        "No buy/sell/hold. No markdown."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=500)
+    raw = _ai_takeaway(system, prompt, max_tokens=520)
     if raw:
         import re
         raw = re.sub(r"#{1,3}\s*", "", raw)
@@ -1032,17 +1047,23 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str) -> str | None:
     from datetime import date
     week = date.today().isocalendar()[:2]
     system = (
-        "You are a crisp sector analyst covering Indian listed new-age tech companies. "
-        "Write in professional English. Be specific with data points. No markdown."
+        "You are a sell-side equity research analyst writing a sector note for a Z47'47 sub-cohort. "
+        "Write in tight, professional English. No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Z47 Index sector: {sector}. "
-        f"Top 1-month movers: {top_movers_str}. "
-        "Write 3-4 sentences: sector-level performance narrative, the key driver or "
-        "catalyst this month, and one risk or watch item. "
-        "Use web search for latest data. No markdown."
+        f"Week {week[1]}, {week[0]}. Z47'47 sector: {sector}. "
+        f"1-month top movers: {top_movers_str}. "
+        "Write exactly 3-4 lines: "
+        "(1) Headline: What the sector's 1-month performance actually signals — not a recap of the movers. "
+        "(2-3) Include at least 2 insights: what is consensus getting wrong about this sector's trajectory? "
+        "Is the performance structural (earnings-driven) or cyclical/multiple-expansion? "
+        "What's the read-through from macro or regulatory events specifically for this sector cohort? "
+        "What is the market underweighting in this sector's risk or opportunity profile? "
+        "(4) Net read: directional on the sector with the one variable that changes the view. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'positive momentum', 'well-positioned'. "
+        "No buy/sell/hold. No markdown. Use web search for latest context."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=380)
+    raw = _ai_takeaway(system, prompt, max_tokens=400)
     if raw:
         import re
         raw = re.sub(r"#{1,3}\s*", "", raw)
@@ -1084,28 +1105,29 @@ def get_recent_results(company_name: str, ticker: str, sector: str) -> str | Non
     kpi_hint = _KPI_GUIDE.get(sector, "Use the most relevant financial and operating KPIs for this company type.")
 
     system = (
-        "You are a sell-side equity research analyst writing a quarterly results note "
-        "for a Z47 Index company. Write in tight, professional English. "
-        "Cite actual numbers, percentages, and dates. "
-        "No markdown, no bullet points, no headers — plain prose only."
+        "You are a sell-side equity research analyst writing a quarterly results note for a Z47'47 constituent. "
+        "Write in tight, professional English. Cite actual numbers, dates, and entity names. "
+        "No markdown — plain prose only."
     )
     prompt = (
         f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}, sector: {sector}). "
-        f"Sector KPIs to use: {kpi_hint} "
-        "Search BSE/NSE corporate filings, the company's investor relations page, "
-        "screener.in, trendlyne.com, and moneycontrol.com for the most recent quarterly results. "
-        "Write exactly 5-6 lines in this structure — no skipping steps: "
-        "(1) One-line headline takeaway — what the quarter meant strategically, not just a revenue number. "
-        "(2-3) The 2-3 most important numbers with YoY and QoQ context and exactly what drove them. "
-        "(4) What is improving structurally versus what is noise or a one-off item. "
-        "(5) The key watch-item or risk the market is tracking into the next quarter. "
-        "(6) Net-net: bull, bear, or mixed read on the print with a clear directional view. "
-        "Use sector-appropriate KPIs listed above. Anchor every claim to a specific number. "
-        "Identify the non-obvious insight. "
-        "Never write 'strong performance', 'healthy growth', or other vague adjectives. "
-        "No markdown. Plain prose only."
+        f"Sector KPIs: {kpi_hint} "
+        "Search BSE/NSE corporate filings, investor relations page, screener.in, trendlyne.com, moneycontrol.com "
+        "for the most recent quarterly results. "
+        "Write exactly 5-6 lines: "
+        "(1) Headline takeaway — what the quarter meant strategically, not just a revenue number. A verdict. "
+        "(2-3) The 2-3 most important numbers with YoY/QoQ context PLUS what they mean analytically: "
+        "is the beat/miss real or optical (denominator effect, one-off, mix shift)? "
+        "What is the quality-of-earnings story the headline number doesn't show? "
+        "What is the under-discussed line item or footnote that matters most? "
+        "(4) Structural vs noise: what is genuinely improving in the business model vs what is a one-quarter effect? "
+        "(5) Watch-item: the specific metric or event that would change the view on this company next quarter. "
+        "(6) Net read: constructive/cautious/mixed — one sentence with clear rationale. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
+        "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
+        "No buy/sell/hold. Use sector KPIs listed above. No markdown."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=680)
+    raw = _ai_takeaway(system, prompt, max_tokens=700)
     if raw:
         raw = _re.sub(r"#{1,3}\s*", "", raw)
         raw = _re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
@@ -1120,23 +1142,30 @@ def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
     from datetime import date
     week = date.today().isocalendar()[:2]
     system = (
-        "You are a senior equity research analyst covering listed Indian new-age tech. "
-        "Write in tight, professional English. Be specific — cite actual numbers, dates, "
-        "and company names. Strip all markdown: no ## headers, no ** bold, no bullet points. "
-        "Output plain prose only."
+        "You are a sell-side equity research analyst writing a company note for a Z47'47 constituent. "
+        "Write in tight, professional English. Cite actual numbers, dates, and entity names. "
+        "No markdown — plain prose only."
     )
     prompt = (
         f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}). "
-        "Write exactly 5-6 sentences in this order: "
-        "(1) Recent stock performance in context of Z47 Index and Nifty 50. "
-        "(2) Latest quarterly results — revenue and EBITDA/net profit with YoY change. "
-        "(3) One standout operating metric (GMV, take rate, active users, order volume, etc.). "
-        "(4) What is working in the business right now — a specific strategy or segment. "
-        "(5) The key risk or headwind investors are currently watching. "
-        "(6) Near-term outlook for the next 1-2 quarters or upcoming catalysts. "
-        "Use web search for the latest data. No markdown formatting at all."
+        "Write exactly 5-6 lines: "
+        "(1) Headline: the ONE thing that matters about this company's current situation — a verdict, not a recap. "
+        "(2-4) Mix of data points AND at least 2 analyst insights: "
+        "variant perception (what consensus has wrong), "
+        "quality-of-earnings (is the recent performance real or optical — denominator effects, one-offs, mix shifts), "
+        "structural vs cyclical (what's a permanent re-rate vs what mean-reverts), "
+        "read-through to peers or adjacent Z47'47 names, "
+        "management credibility (guidance track record, tone shift, capital allocation signal), "
+        "what the market is missing (under-discussed line item, footnote that matters), "
+        "risk-reward asymmetry at current price (what's priced in vs what isn't). "
+        "Every number must be followed by what it means, not just stated. "
+        "(5) Watch-item: the specific event or data point that would change the analytical view. "
+        "(6) Net read: constructive/cautious/mixed — one sentence with clear rationale. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
+        "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
+        "No buy/sell/hold. Use web search for latest data. No markdown."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=620)
+    raw = _ai_takeaway(system, prompt, max_tokens=680)
     if raw:
         import re
         raw = re.sub(r"#{1,3}\s*", "", raw)
@@ -1262,7 +1291,7 @@ def render_multiples_line_chart(metrics: dict):
 
     fig = go.Figure()
     for index_name, prefix, color in [
-        ("Z47 Index",  "z47",    "#ff7f0e"),
+        ("Z47'47",  "z47",    "#ff7f0e"),
         ("Nifty 50",   "nifty",  "#1d4ed8"),
         ("BSE Sensex", "sensex", "#15803d"),
     ]:
@@ -2178,7 +2207,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
                     z47_y = (z47_slice["z47_float"] / z47_base * 100).tolist()
                     fig.add_trace(go.Scatter(
                         x=z47_slice["date"].tolist(), y=z47_y,
-                        name="Z47 Index", mode="lines",
+                        name="Z47'47", mode="lines",
                         line=dict(color="#ff7f0e", width=1.8, dash="dash"),
                         hovertemplate="Z47: %{y:.1f}<extra></extra>",
                     ))
@@ -2472,7 +2501,7 @@ def make_perf_chart(df, period):
 
     fig = go.Figure()
     for col, name, color, width in [
-        ("z47_float",      "Z47's 47", "#c2410c", 2.5),   # warm orange for Z47
+        ("z47_float",      "Z47'47", "#c2410c", 2.5),   # warm orange for Z47
         ("nifty_indexed",  "Nifty 50", "#1d4ed8", 2.0),
         ("sensex_indexed", "Sensex",   "#15803d", 2.0),
     ]:
@@ -2538,7 +2567,7 @@ def build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_
         f"1 USD = ₹{usdinr}",
         "",
         "--- INDEX LEVELS ---",
-        f"Z47's 47 Index: {z47_now:.1f} (rebased to 100 on 1 Jan 2024)",
+        f"Z47'47: {z47_now:.1f} (rebased to 100 on 1 Jan 2024)",
         f"Nifty 50 (live): {nifty_live:,.0f}" if nifty_live else "Nifty 50: unavailable",
         f"Sensex (live): {sensex_live:,.0f}" if sensex_live else "Sensex: unavailable",
         "",
@@ -2637,7 +2666,7 @@ def main_mobile():
 
     # ── Header ──────────────────────────────────────────────────────
     st.markdown(
-        f'<div style="color:#1a0f00;font-size:24px;font-weight:800;margin-bottom:2px">Z47 Index</div>'
+        f'<div style="color:#1a0f00;font-size:24px;font-weight:800;margin-bottom:2px">Z47\'47</div>'
         f'<div style="color:#8b6d4a;font-size:11px;margin-bottom:4px">'
         f'Free-float market-cap weighted · 47 Indian internet &amp; tech cos</div>'
         f'<div style="color:#a38060;font-size:11px;margin-bottom:20px">'
@@ -2654,7 +2683,7 @@ def main_mobile():
 
     with c1:
         st.markdown(
-            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47\'s 47</div>'
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47\'47</div>'
             f'<div class="mobile-kpi-value">{last["z47_float"]:.1f}</div>'
             f'{delta_html(z47_ret)}</div>', unsafe_allow_html=True)
         st.markdown(
@@ -2793,7 +2822,7 @@ def _render_top_nav():
 
     # ── Level-1 nav ───────────────────────────────────────────────────────────
     c1, c2, c3, _gap = st.columns([1.6, 0.9, 2.0, 5])
-    with c1: _nav_btn("📊 Z47 Index",       "nav_z47",   "z47")
+    with c1: _nav_btn("📊 Z47'47",       "nav_z47",   "z47")
     with c2: _nav_btn("📈 IPOs",            "nav_ipos",  "ipos")
     with c3: _nav_btn("💼 Block & Bulk Deals","nav_block","block")
 
@@ -2891,7 +2920,7 @@ def render_index_fundamentals(metrics: dict) -> None:
     hdr = (
         f"<tr style='background:{BG_ALT}'>"
         f"<th style='text-align:left;{TH}'>Metric</th>"
-        f"<th style='text-align:right;{TH}'>Z47 Index"
+        f"<th style='text-align:right;{TH}'>Z47'47"
         f"<div style='font-weight:400;font-size:10px;color:#a38060'>median · 47 cos</div></th>"
         f"<th style='text-align:right;{TH}'>Nifty 50"
         f"<div style='font-weight:400;font-size:10px;color:#a38060'>median · 50 cos</div></th>"
@@ -3027,7 +3056,7 @@ def _run_z47_desktop():
     col_h, col_u = st.columns([5, 1])
     with col_h:
         st.markdown(
-            f'<div style="color:#1a0f00;font-size:34px;font-weight:800;margin-bottom:4px">Z47 Index</div>'
+            f'<div style="color:#1a0f00;font-size:34px;font-weight:800;margin-bottom:4px">Z47\'47</div>'
             f'<div style="color:#8b6d4a;font-size:13px;margin-bottom:24px">'
             "Free-float market-cap weighted index of 47 Indian internet &amp; new-age tech companies"
             " &nbsp;·&nbsp; Rebased to 100 on 1 Jan 2024"
@@ -3108,7 +3137,7 @@ def _run_z47_desktop():
 
     c1, c2, c3, c4 = st.columns(4)
     for col, label, value, ret in [
-        (c1, "Z47's 47 Index",  f"{last['z47_float']:.1f}", z47_ret),
+        (c1, "Z47'47",  f"{last['z47_float']:.1f}", z47_ret),
         (c2, "Nifty 50 (Live)", nifty_disp,                  nifty_ret),
         (c3, "Sensex (Live)",   sensex_disp,                 sensex_ret),
     ]:
@@ -3201,7 +3230,7 @@ def _run_z47_desktop():
 
     rb1, rb2, rb3 = st.columns(3)
     with rb1:
-        st.markdown(_rebase_card("Z47's 47 Index", "z47_float",      "#c2410c"), unsafe_allow_html=True)
+        st.markdown(_rebase_card("Z47'47", "z47_float",      "#c2410c"), unsafe_allow_html=True)
     with rb2:
         st.markdown(_rebase_card("Nifty 50",       "nifty_indexed",  "#1d4ed8"), unsafe_allow_html=True)
     with rb3:
@@ -3217,7 +3246,7 @@ def _run_z47_desktop():
     try:
         _z47_tk = get_z47_index_takeaway_v2()
         if _z47_tk:
-            render_takeaway_box(_z47_tk, title="Z47 Index — Weekly Takeaway", icon="✨")
+            render_takeaway_box(_z47_tk, title="Z47'47 — Weekly Takeaway", icon="✨")
     except Exception as _zt_err:
         print(f"[Z47 index takeaway v2] error: {_zt_err}")
 
@@ -3225,7 +3254,7 @@ def _run_z47_desktop():
     st.markdown('<div class="section-header">Returns Summary</div>', unsafe_allow_html=True)
 
     ret_periods = [("1M", 30), ("3M", 90), ("6M", 180), ("1Y", 365)]
-    idx_cols    = [("Z47's 47", "z47_float"),
+    idx_cols    = [("Z47'47", "z47_float"),
                    ("Nifty 50", "nifty_indexed"),
                    ("Sensex",   "sensex_indexed")]
 
@@ -3691,7 +3720,7 @@ def _run_z47_desktop():
         our calculation reflects that correctly. Data sourced from NSE / NYSE via Yahoo Finance.<br><br>
         <b style='color:#1a0f00'>NASDAQ Stocks</b> — MakeMyTrip (MMYT) and Freshworks (FRSH) priced in USD,
         converted to INR at the live exchange rate.<br><br>
-        <b style='color:#1a0f00'>Base Date</b> — 1 January 2024 = 100 for Z47's 47, Nifty 50, and Sensex.
+        <b style='color:#1a0f00'>Base Date</b> — 1 January 2024 = 100 for Z47'47, Nifty 50, and Sensex.
     </div>
     """, unsafe_allow_html=True)
 

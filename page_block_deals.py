@@ -31,27 +31,29 @@ def get_deal_takeaway(company: str, value_cr: float) -> str | None:
             return None
         client = anthropic.Anthropic(api_key=api_key)
         system = (
-            "You are a sell-side equity research analyst writing a block/bulk deal note "
-            "for a Z47 Index company. Write in tight, professional English. "
-            "Be specific — cite actual percentages, stake sizes, prices, and entity names. "
-            "No markdown, no bullet points — plain prose only."
+            "You are a sell-side equity research analyst writing a block/bulk deal note for a Z47'47 constituent. "
+            "Write in tight, professional English. No markdown — plain prose only."
         )
         prompt = (
             f"A block/bulk deal of ₹{value_cr:.0f} crore was transacted in {company}. "
-            "Search for the exact details of this deal — seller identity, buyer identity, "
-            "price per share, shares transacted, and percentage of equity changing hands. "
-            "Write exactly 5-6 lines structured as: "
-            "(1) One-line headline — who sold to whom and what it signals strategically. "
-            "(2) The key numbers: deal size, price, shares, stake %. "
-            "(3) Context on the seller — lock-in expiry, portfolio rebalancing, or strategic exit? "
-            "(4) What the buyer's participation says about institutional conviction at this price. "
-            "(5) Price discovery impact — is the deal price at a discount/premium to market? "
-            "(6) Net read: constructive, cautious, or neutral for the stock going forward. "
-            "No markdown. Plain prose."
+            "Search for the exact deal details — seller, buyer, price per share, shares, stake %. "
+            "Write exactly 5-6 lines: "
+            "(1) Headline: who sold to whom and what it signals — a verdict, not a description. "
+            "(2) Key numbers: deal size, price, shares, stake % — plus whether deal cleared at discount/premium to market "
+            "and what that implies about buyer conviction. "
+            "(3) Seller context: lock-in expiry, portfolio rebalancing, or strategic exit? "
+            "What does the seller's retention (if any) signal? "
+            "(4) Buyer quality: institutional conviction read, is this a thesis-level bet or an arb/liquidity play? "
+            "What does the buyer composition say about the stock's institutional floor? "
+            "(5) What the market is missing about this deal — the read-through to the company's narrative or "
+            "to peers in the Z47'47 universe. "
+            "(6) Net read: constructive/cautious/neutral on the stock post-deal, with one-line rationale. "
+            "Banned phrases: 'strong performance', 'well-positioned', 'positive momentum'. "
+            "No buy/sell/hold. No markdown."
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=550,
+            max_tokens=600,
             system=system,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": prompt}],
@@ -1092,7 +1094,7 @@ def render():
 
     with tab1:
         try:
-            st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
+            st.markdown("**All Block & Bulk Deals Today — Z47'47**")
             _show(all_df, "deals", f"{bsrc}/{usrc}")
             _show_deal_takeaways(all_df)
             st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
