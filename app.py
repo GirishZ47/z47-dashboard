@@ -640,6 +640,9 @@ SENSEX_SYMBOLS = [
 def _get_z47_symbols():
     return [yf_ticker(c) for c in COMPANIES]
 
+# Eagerly evaluated at startup — used in get_total_market_caps()
+Z47_SYMBOLS = _get_z47_symbols()
+
 
 # ── Shared AI takeaway helper ────────────────────────────────────────────────
 def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
@@ -721,75 +724,151 @@ _Z47_FINANCIAL_SYMS = {
 # ── Feature 1: Total Market Cap Blocks ───────────────────────────────────────
 @st.cache_data(ttl=300, show_spinner=False)
 def get_total_market_caps() -> dict:
-    """Sum fast_info.market_cap for Z47, Nifty50, Sensex in parallel."""
-    def _fetch_mcap(sym):
+    """
+    Correct market cap calculation.
+    yfinance marketCap for Indian stocks (.NS) is in INR (rupees).
+    1 crore = 1e7 INR  |  1 lakh crore = 1e12 INR
+
+    Expected ranges (May 2026):
+      Z47 (47 cos):   ~₹8-12 lakh cr  / $100-140B
+      Nifty50 (50):   ~₹250-300 lakh cr / $3.0-3.5T
+      Sensex  (30):   ~₹180-220 lakh cr / $2.0-2.5T
+    """
+    def fetch_mcap(sym):
         try:
-            mc = yf.Ticker(sym).fast_info.market_cap
-            return mc if mc and mc > 0 else 0
-        except Exception:
+            info = yf.Ticker(sym).info
+            # Primary: info.marketCap (in INR for .NS, USD for US-listed)
+            mc = info.get("marketCap")
+            if mc and mc > 1e9:   # sanity: > 1B
+                return float(mc)
+            # Fallback: price × shares
+            price  = (info.get("currentPrice") or
+                      info.get("regularMarketPrice") or 0)
+            shares = info.get("sharesOutstanding") or 0
+            if price > 0 and shares > 0:
+                return float(price * shares)
+            return 0
+        except Exception as _e:
+            print(f"[MCap] {sym}: {_e}")
             return 0
 
-    all_syms = list(dict.fromkeys(
-        _get_z47_symbols() + NIFTY50_SYMBOLS + SENSEX_SYMBOLS
-    ))
-    mcap_map = {}
-    with ThreadPoolExecutor(max_workers=12) as ex:
-        futs = {ex.submit(_fetch_mcap, s): s for s in all_syms}
-        for fut in as_completed(futs, timeout=20):
-            sym = futs[fut]
-            try:
-                mcap_map[sym] = fut.result()
-            except Exception:
-                mcap_map[sym] = 0
+    def sum_mcaps(symbols, label):
+        total, failed = 0, []
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            futs = {ex.submit(fetch_mcap, s): s for s in symbols}
+            for f in as_completed(futs, timeout=25):
+                sym = futs[f]
+                try:
+                    v = f.result()
+                    total += v
+                    if v == 0:
+                        failed.append(sym)
+                except Exception:
+                    failed.append(sym)
+        if failed:
+            print(f"[MCap] {label} missing: {failed}")
+        return total
 
-    z47_syms    = _get_z47_symbols()
-    z47_mc      = sum(mcap_map.get(s, 0) for s in z47_syms)
-    nifty_mc    = sum(mcap_map.get(s, 0) for s in NIFTY50_SYMBOLS)
-    sensex_mc   = sum(mcap_map.get(s, 0) for s in SENSEX_SYMBOLS)
+    z47_inr    = sum_mcaps(Z47_SYMBOLS,     "Z47")
+    nifty_inr  = sum_mcaps(NIFTY50_SYMBOLS, "Nifty50")
+    sensex_inr = sum_mcaps(SENSEX_SYMBOLS,  "Sensex")
 
-    def _fmt(v):
-        """Format rupee market cap in lakh crore ('₹XX.Xk cr')."""
+    # Live USD/INR rate
+    try:
+        usd_inr = yf.Ticker("INR=X").fast_info.last_price
+        if not usd_inr or usd_inr < 70:
+            usd_inr = 84.0
+    except Exception:
+        usd_inr = 84.0
+
+    def fmt_inr(v):
         if v <= 0:
             return "—"
-        lakh_cr = v / 1e12   # 1 lakh crore = 1e12
-        return f"₹{lakh_cr:.1f}k cr"
+        lakh_cr = v / 1e12          # 1 lakh crore = 1e12 INR
+        if lakh_cr >= 100:
+            return f"₹{lakh_cr:.0f}L cr"
+        return f"₹{lakh_cr:.1f}L cr"
 
-    z47_pct_nifty = (z47_mc / nifty_mc * 100) if nifty_mc > 0 else None
+    def fmt_usd(v):
+        if v <= 0:
+            return "—"
+        bn = v / usd_inr / 1e9      # INR → USD billions
+        if bn >= 1000:
+            return f"${bn/1000:.2f}T"
+        if bn >= 100:
+            return f"${bn:.0f}B"
+        return f"${bn:.1f}B"
+
+    # Sanity log
+    print(f"[MCap sanity] Z47={z47_inr/1e12:.1f}L cr  "
+          f"Nifty={nifty_inr/1e12:.0f}L cr  "
+          f"Sensex={sensex_inr/1e12:.0f}L cr  "
+          f"USD/INR={usd_inr:.1f}")
+
     return {
-        "z47":           z47_mc,
-        "nifty":         nifty_mc,
-        "sensex":        sensex_mc,
-        "z47_fmt":       _fmt(z47_mc),
-        "nifty_fmt":     _fmt(nifty_mc),
-        "sensex_fmt":    _fmt(sensex_mc),
-        "z47_pct_nifty": round(z47_pct_nifty, 1) if z47_pct_nifty else None,
+        "z47_inr":        z47_inr,
+        "nifty_inr":      nifty_inr,
+        "sensex_inr":     sensex_inr,
+        "z47_inr_fmt":    fmt_inr(z47_inr),
+        "nifty_inr_fmt":  fmt_inr(nifty_inr),
+        "sensex_inr_fmt": fmt_inr(sensex_inr),
+        "z47_usd_fmt":    fmt_usd(z47_inr),
+        "nifty_usd_fmt":  fmt_usd(nifty_inr),
+        "sensex_usd_fmt": fmt_usd(sensex_inr),
+        "z47_pct_of_nifty": (z47_inr / nifty_inr * 100
+                              if nifty_inr > 0 else 0),
+        "usd_inr_rate":   usd_inr,
     }
 
 
 def render_mcap_blocks():
-    """Render 4 market cap KPI cards: Z47, Nifty50, Sensex, Z47 as % of Nifty."""
+    """Render 4 market cap blocks: Z47, Nifty50, Sensex, Z47 as % of Nifty."""
     mc = get_total_market_caps()
     c1, c2, c3, c4 = st.columns(4)
-    cards = [
-        (c1, "Z47 Total Market Cap",    mc["z47_fmt"],    "#c2410c"),
-        (c2, "Nifty 50 Market Cap",     mc["nifty_fmt"],  "#1d4ed8"),
-        (c3, "Sensex Market Cap",       mc["sensex_fmt"], "#15803d"),
-        (c4, "Z47 as % of Nifty 50",
-             f"{mc['z47_pct_nifty']:.1f}%" if mc["z47_pct_nifty"] else "—",
-             "#7c3aed"),
-    ]
-    for col, label, value, accent in cards:
+
+    _bs = ("background:#f8f9fa;border-radius:12px;padding:18px 20px;"
+           "text-align:center;border-top:3px solid {color}")
+
+    def _block(col, title, inr_fmt, usd_fmt, subtitle, color):
         with col:
             st.markdown(
-                f"<div style='background:{CARD_BG};border:1px solid {accent}40;"
-                f"border-left:4px solid {accent};border-radius:10px;"
-                f"padding:14px 18px;margin-bottom:4px'>"
-                f"<div style='font-size:11px;font-weight:600;color:#8b6d4a;"
-                f"letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px'>{label}</div>"
-                f"<div style='font-size:22px;font-weight:800;color:#1a0f00'>{value}</div>"
+                f"<div style='{_bs.format(color=color)}'>"
+                f"<div style='font-size:10px;color:#888;text-transform:uppercase;"
+                f"letter-spacing:1px;margin-bottom:8px'>{title}</div>"
+                f"<div style='font-size:22px;font-weight:700;color:#1a1a2e;"
+                f"line-height:1.2'>{inr_fmt}</div>"
+                f"<div style='font-size:13px;color:#666;margin-top:4px'>/ {usd_fmt}</div>"
+                f"<div style='font-size:11px;color:#aaa;margin-top:6px'>{subtitle}</div>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
+
+    _block(c1, "Z47 Total Market Cap",
+           mc["z47_inr_fmt"], mc["z47_usd_fmt"],
+           "47 new-age tech companies", "#ff7f0e")
+    _block(c2, "Nifty 50 Market Cap",
+           mc["nifty_inr_fmt"], mc["nifty_usd_fmt"],
+           "50 large-cap companies", "#1f77b4")
+    _block(c3, "Sensex Market Cap",
+           mc["sensex_inr_fmt"], mc["sensex_usd_fmt"],
+           "30 large-cap companies", "#2ca02c")
+
+    pct = mc["z47_pct_of_nifty"]
+    _purple_style = _bs.format(color="#764ba2")
+    with c4:
+        st.markdown(
+            f"<div style='{_purple_style}'>"
+            f"<div style='font-size:10px;color:#888;text-transform:uppercase;"
+            f"letter-spacing:1px;margin-bottom:8px'>Z47 as % of Nifty 50</div>"
+            f"<div style='font-size:28px;font-weight:700;color:#1a7a4a'>"
+            f"{pct:.1f}%</div>"
+            f"<div style='font-size:12px;color:#666;margin-top:6px'>"
+            f"of Nifty total market cap</div>"
+            f"<div style='font-size:10px;color:#aaa;margin-top:4px'>"
+            f"USD/INR: {mc['usd_inr_rate']:.1f}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 
 # ── Feature 3 & 7: Z47 Index weekly takeaway ─────────────────────────────────
