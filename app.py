@@ -92,6 +92,13 @@ CARD_BG = "#f6f9fd"   # cards / charts — barely-there blue tint
 BG_ALT  = "#edf3fa"   # table header rows / alternating rows
 BORDER  = "#ccdaea"   # soft blue-grey border
 
+# ── Canonical chart line colors — use EVERYWHERE for consistency ──────────────
+# Sampled from the Z47'47 overview chart (make_perf_chart) which is the reference
+C_Z47     = "#c2410c"   # Z47'47  — darker red-orange, solid
+C_NIFTY   = "#1d4ed8"   # Nifty 50 — blue, solid
+C_SENSEX  = "#15803d"   # Sensex   — green, solid
+C_COMPANY = "#ff7f0e"   # Individual company — bright orange, dashed
+
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -1439,9 +1446,9 @@ def render_multiples_line_chart(metrics: dict):
 
     fig = go.Figure()
     for index_name, prefix, color in [
-        ("Z47'47",  "z47",    "#ff7f0e"),
-        ("Nifty 50",   "nifty",  "#1d4ed8"),
-        ("BSE Sensex", "sensex", "#15803d"),
+        ("Z47'47",     "z47",    C_Z47),
+        ("Nifty 50",   "nifty",  C_NIFTY),
+        ("BSE Sensex", "sensex", C_SENSEX),
     ]:
         col = f"{prefix}_{col_suffix}"
         series = hdf[["date", col]].dropna(subset=[col])
@@ -2394,10 +2401,11 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
         rebased = close.div(first_valid) * 100
 
         fig = go.Figure()
-        colors = {
-            company_name: "#c2410c",
-            "Nifty 50":   "#1d4ed8",
-            "Sensex":     "#15803d",
+        # Company line: bright orange dashed — distinct from the darker Z47'47 solid line
+        _line_styles = {
+            company_name: dict(color=C_COMPANY, width=2.5, dash="dash"),
+            "Nifty 50":   dict(color=C_NIFTY,   width=2),
+            "Sensex":     dict(color=C_SENSEX,   width=2),
         }
         for col in rebased.columns:
             if col in rebased:
@@ -2406,7 +2414,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
                     fig.add_trace(go.Scatter(
                         x=series.index, y=series.values,
                         mode="lines", name=col,
-                        line=dict(color=colors.get(col, "#6b7a8d"), width=2),
+                        line=_line_styles.get(col, dict(color="#6b7a8d", width=2)),
                         hovertemplate=f"{col}: %{{y:.1f}}<extra></extra>",
                     ))
 
@@ -2434,8 +2442,8 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
                     fig.add_trace(go.Scatter(
                         x=z47_slice["date"].tolist(), y=z47_y,
                         name="Z47'47", mode="lines",
-                        line=dict(color="#ff7f0e", width=1.8, dash="dash"),
-                        hovertemplate="Z47: %{y:.1f}<extra></extra>",
+                        line=dict(color=C_Z47, width=2),
+                        hovertemplate="Z47'47: %{y:.1f}<extra></extra>",
                     ))
         except Exception as _z47e:
             print(f"[Performance chart Z47 line] {ticker_sym}: {_z47e}")
@@ -2762,9 +2770,9 @@ def make_perf_chart(df, period):
 
     fig = go.Figure()
     for col, name, color, width in [
-        ("z47_float",      "Z47'47", "#c2410c", 2.5),   # warm orange for Z47
-        ("nifty_indexed",  "Nifty 50", "#1d4ed8", 2.0),
-        ("sensex_indexed", "Sensex",   "#15803d", 2.0),
+        ("z47_float",      "Z47'47",  C_Z47,    2.5),
+        ("nifty_indexed",  "Nifty 50", C_NIFTY, 2.0),
+        ("sensex_indexed", "Sensex",   C_SENSEX, 2.0),
     ]:
         fig.add_trace(go.Scatter(
             x=plot["date"], y=plot[col], name=name,
@@ -3515,7 +3523,7 @@ def _run_z47_desktop():
 
     rb1, rb2, rb3 = st.columns(3)
     with rb1:
-        st.markdown(_rebase_card("Z47'47", "z47_float",      "#c2410c"), unsafe_allow_html=True)
+        st.markdown(_rebase_card("Z47'47", "z47_float",      C_Z47), unsafe_allow_html=True)
     with rb2:
         st.markdown(_rebase_card("Nifty 50",       "nifty_indexed",  "#1d4ed8"), unsafe_allow_html=True)
     with rb3:
