@@ -726,23 +726,28 @@ _NO_PREAMBLE = (
     "'Let me synthesize', 'Here is the takeaway', 'I'll write', 'Based on my research', "
     "or any similar lead-in. The UI renders the section header separately — "
     "do not repeat it. Start directly with the first analytical sentence of your content. "
+    "CRITICAL: Output the COMPLETE takeaway. Do not abbreviate, do not cut off mid-sentence. "
+    "Every sentence must be fully written and terminated with a period. "
+    "The final sentence must end with a period — not mid-word or mid-clause. "
 )
 
 
 # ── Shared AI takeaway helper ────────────────────────────────────────────────
-def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
+def _ai_takeaway(system: str, prompt: str, max_tokens: int = 1500):
     """
     Call Claude with web search and return a cleaned text takeaway, or None on failure.
     Concatenates ALL text blocks (not just first) to capture post-search content.
     Strips model preamble via _clean_takeaway_output().
+    max_tokens default raised to 1500 — a 5-6 sentence analyst note needs ~700-1200 tokens.
     """
-    try:
+    _COMPLETE_ENDINGS = ('.', '!', '?', '"', '’', ')', '”')
+
+    def _call_api():
         api_key = (st.secrets.get("ANTHROPIC_API_KEY", "")
                    or os.environ.get("ANTHROPIC_API_KEY", ""))
         if not api_key or api_key.startswith("sk-ant-..."):
             return None
         client = anthropic.Anthropic(api_key=api_key)
-        # Append the quality-bar few-shot examples to every system prompt
         system_with_qb = system + "\n" + QUALITY_BAR_FEW_SHOT
         resp = client.messages.create(
             model="claude-sonnet-4-6",
@@ -753,21 +758,34 @@ def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
             extra_headers={"anthropic-beta": "web-search-2025-03-05"},
             timeout=45,
         )
-        # Collect ALL text blocks — the model often emits a preamble in block 1
-        # and the actual takeaway in a later block after tool use
         text_blocks = [
             b.text.strip() for b in resp.content
             if hasattr(b, "text") and b.text.strip()
         ]
         if not text_blocks:
-            print(f"[_ai_takeaway] no text blocks in response (stop_reason={resp.stop_reason})")
+            print(f"[_ai_takeaway] no text blocks (stop_reason={resp.stop_reason})")
             return None
         raw = '\n'.join(text_blocks)
-        print(f"[_ai_takeaway] raw response: {len(raw)} chars, {len(text_blocks)} text block(s)")
-        cleaned = _clean_takeaway_output(raw)
-        if not cleaned:
-            print(f"[_ai_takeaway] cleaned result empty/too short — returning None")
-        return cleaned
+        print(f"[_ai_takeaway] raw: {len(raw)} chars, {len(text_blocks)} block(s), "
+              f"stop={resp.stop_reason}")
+        return _clean_takeaway_output(raw)
+
+    try:
+        result = _call_api()
+        if result is None:
+            return None
+        # Completeness check — warn if truncated, retry once
+        if not result.rstrip().endswith(_COMPLETE_ENDINGS):
+            print(f"[_ai_takeaway] INCOMPLETE — ends with: {result.rstrip()[-60:]!r} — retrying")
+            retry = _call_api()
+            if retry and retry.rstrip().endswith(_COMPLETE_ENDINGS):
+                print(f"[_ai_takeaway] retry succeeded ({len(retry)} chars)")
+                return retry
+            # Retry also incomplete — return whichever is longer
+            if retry and len(retry) > len(result):
+                result = retry
+            print(f"[_ai_takeaway] retry still incomplete — returning best available")
+        return result
     except Exception as _e:
         print(f"[_ai_takeaway] error: {_e}")
         return None
@@ -1112,7 +1130,7 @@ def get_z47_index_takeaway_v2(monday_key: str = "") -> str | None:
         "'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. No markdown. Plain prose. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=600)
+    return _ai_takeaway(system, prompt, max_tokens=1500)
 
 
 # ── Valuation multiples takeaway (v2) ────────────────────────────────────────
@@ -1161,7 +1179,7 @@ def get_valuation_multiples_takeaway(ev_revenue: float | None, ev_ebitda: float 
         "'well-positioned', 'execution remains key', 'positive momentum'. "
         "No buy/sell/hold. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=600)
+    return _ai_takeaway(system, prompt, max_tokens=1500)
 
 
 # ── Sector takeaway v2 ────────────────────────────────────────────────────────
@@ -1232,7 +1250,7 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str,
         "'broadly stable', 'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=500)
+    return _ai_takeaway(system, prompt, max_tokens=1500)
 
 
 # ── Recent Results — sell-side quarterly summary ──────────────────────────────
@@ -1292,7 +1310,7 @@ def get_recent_results(company_name: str, ticker: str, sector: str) -> str | Non
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=700)
+    return _ai_takeaway(system, prompt, max_tokens=1500)
 
 
 # ── Company takeaway v2 ────────────────────────────────────────────────────────
@@ -1326,7 +1344,7 @@ def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. Use web search for latest data. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=680)
+    return _ai_takeaway(system, prompt, max_tokens=1500)
 
 
 # ── Valuation multiples line chart with JSON persistence ──────────────────────

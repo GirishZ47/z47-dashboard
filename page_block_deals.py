@@ -99,7 +99,7 @@ def get_deal_takeaway(company: str, value_cr: float) -> str | None:
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=600,
+            max_tokens=1500,
             system=system,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": prompt}],
@@ -931,7 +931,7 @@ def get_top3_deal_takeaway_cached(company: str, value_cr: float,
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=650,
+            max_tokens=1500,
             system=system,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": prompt}],
