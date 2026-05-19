@@ -39,6 +39,33 @@ except Exception as _tc_err:
     HARDCODED_SECTOR_TAKEAWAYS  = {}
     QUALITY_BAR_FEW_SHOT        = ""
 
+# ── Persistent disk cache (survives container restarts) ───────────────────────
+# Falls back gracefully if /tmp is read-only or pickle fails — no crash.
+import pickle as _pickle
+
+_DISK_CACHE_DIR = "/tmp/z47_cache"
+
+def _dcache_get(key: str, ttl_secs: int):
+    """Return cached value if present and not expired, else None."""
+    try:
+        _path = f"{_DISK_CACHE_DIR}/{key}.pkl"
+        if os.path.exists(_path):
+            if time.time() - os.path.getmtime(_path) < ttl_secs:
+                with open(_path, "rb") as _f:
+                    return _pickle.load(_f)
+    except Exception as _dce:
+        print(f"[DiskCache] read error {key}: {_dce}")
+    return None
+
+def _dcache_set(key: str, value) -> None:
+    """Write value to disk cache."""
+    try:
+        os.makedirs(_DISK_CACHE_DIR, exist_ok=True)
+        with open(f"{_DISK_CACHE_DIR}/{key}.pkl", "wb") as _f:
+            _pickle.dump(value, _f, protocol=4)
+    except Exception as _dce:
+        print(f"[DiskCache] write error {key}: {_dce}")
+
 # ── Startup health check ──────────────────────────────────────────────────────
 def _run_startup_health_check() -> None:
     """
@@ -611,23 +638,39 @@ def fetch_all_analyst_data() -> dict:
 
 @st.cache_data(ttl=86400, show_spinner=False)  # financial statements are quarterly — refresh daily
 def fetch_company_financials(yf_tk: str) -> dict:
-    """Income statement, balance sheet, cash flow — slow-changing data."""
+    """Income statement, balance sheet, cash flow — fetched in parallel. Disk-cached 24h."""
+    # ── Disk cache (survives container restarts) ──────────────────────────────
+    _dc_key = f"fins_{yf_tk.replace('.', '_').replace('=', '_')}"
+    _cached = _dcache_get(_dc_key, ttl_secs=86400)
+    if _cached is not None:
+        print(f"[PERF] fetch_company_financials({yf_tk}): disk cache hit")
+        return _cached
+
+    _t0 = time.time()
+    _attrs = [
+        ("income_annual",      "financials"),
+        ("income_quarterly",   "quarterly_financials"),
+        ("balance_annual",     "balance_sheet"),
+        ("balance_quarterly",  "quarterly_balance_sheet"),
+        ("cashflow_annual",    "cashflow"),
+        ("cashflow_quarterly", "quarterly_cashflow"),
+    ]
+
+    def _fetch_one(item):
+        _key, _attr = item
+        try:    return _key, getattr(yf.Ticker(yf_tk), _attr)
+        except: return _key, pd.DataFrame()
+
+    result = {}
     try:
-        t = yf.Ticker(yf_tk)
-        result = {}
-        for key, attr in [
-            ("income_annual",      "financials"),
-            ("income_quarterly",   "quarterly_financials"),
-            ("balance_annual",     "balance_sheet"),
-            ("balance_quarterly",  "quarterly_balance_sheet"),
-            ("cashflow_annual",    "cashflow"),
-            ("cashflow_quarterly", "quarterly_cashflow"),
-        ]:
-            try:    result[key] = getattr(t, attr)
-            except: result[key] = pd.DataFrame()
-        return result
+        with ThreadPoolExecutor(max_workers=6) as _ex:
+            for _k, _df in _ex.map(_fetch_one, _attrs):
+                result[_k] = _df
     except Exception:
-        return {}
+        result = {}
+    print(f"[PERF] fetch_company_financials({yf_tk}): live fetch {time.time()-_t0:.1f}s")
+    _dcache_set(_dc_key, result)
+    return result
 
 
 # ── Index Fundamentals — constituent lists ────────────────────────────────────
@@ -1256,10 +1299,17 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str,
 # ── Recent Results — sell-side quarterly summary ──────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_recent_results(company_name: str, ticker: str, sector: str) -> str | None:
-    """Sell-side quality 5-6 line quarterly results note. Cached 7 days."""
+    """Sell-side quality 5-6 line quarterly results note. Cached 7 days + disk cache."""
     import re as _re
     from datetime import date as _date
     week = _date.today().isocalendar()[:2]
+
+    # ── Disk cache (survives container restarts) ──────────────────────────────
+    _dc_key = f"rr_{ticker.replace('.', '_').replace('=', '_')}_{week[0]}_{week[1]}"
+    _rr_cached = _dcache_get(_dc_key, ttl_secs=604800)
+    if _rr_cached is not None:
+        print(f"[PERF] get_recent_results({company_name}): disk cache hit")
+        return _rr_cached
 
     # Sector-aware KPI guidance injected into the prompt
     _KPI_GUIDE = {
@@ -1310,15 +1360,26 @@ def get_recent_results(company_name: str, ticker: str, sector: str) -> str | Non
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=1500)
+    _rr_result = _ai_takeaway(system, prompt, max_tokens=1500)
+    if _rr_result:
+        _dcache_set(_dc_key, _rr_result)
+    return _rr_result
 
 
 # ── Company takeaway v2 ────────────────────────────────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
-    """Structured 5-6 sentence analyst note for a Z47 company. Cached 1 week."""
+    """Structured 5-6 sentence analyst note for a Z47 company. Cached 1 week + disk cache."""
     from datetime import date
     week = date.today().isocalendar()[:2]
+
+    # ── Disk cache (survives container restarts) ──────────────────────────────
+    _dc_key = f"co_tk_{ticker.replace('.', '_').replace('=', '_')}_{week[0]}_{week[1]}"
+    _co_cached = _dcache_get(_dc_key, ttl_secs=604800)
+    if _co_cached is not None:
+        print(f"[PERF] get_company_takeaway_v2({company_name}): disk cache hit")
+        return _co_cached
+
     system = (
         "You are a sell-side equity research analyst writing a company note for a Z47'47 constituent. "
         "Write in tight, professional English. Cite actual numbers, dates, and entity names. "
@@ -1344,7 +1405,10 @@ def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
         "No buy/sell/hold. Use web search for latest data. No markdown. No preamble."
     )
-    return _ai_takeaway(system, prompt, max_tokens=1500)
+    _co_result = _ai_takeaway(system, prompt, max_tokens=1500)
+    if _co_result:
+        _dcache_set(_dc_key, _co_result)
+    return _co_result
 
 
 # ── Valuation multiples line chart with JSON persistence ──────────────────────
@@ -2393,8 +2457,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
         "Period", ["1M", "3M", "6M", "1Y", "All"],
         horizontal=True, key=f"perf_period_{ticker_sym}"
     )
-    with st.spinner("Loading price history…"):
-        raw = _fetch_company_price_data(ticker_sym, period)
+    raw = _fetch_company_price_data(ticker_sym, period)
     if raw is None or raw.empty:
         st.info("Price data not available for this company.")
         return
@@ -2417,6 +2480,11 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
         # Rebase to 100 from first valid observation
         first_valid = close.bfill().iloc[0]
         rebased = close.div(first_valid) * 100
+
+        # Downsample to ≤500 points for faster Plotly render
+        if len(rebased) > 500:
+            _step = max(1, len(rebased) // 500)
+            rebased = rebased.iloc[::_step]
 
         fig = go.Figure()
         # Company line: bright orange dashed — distinct from the darker Z47'47 solid line
@@ -2478,6 +2546,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
             xaxis=dict(showgrid=False, tickfont=dict(size=11), color="#a38060"),
             font=dict(family="Inter, sans-serif"),
             hovermode="x unified",
+            transition_duration=0,    # disable animations for instant render
         )
         st.markdown('<div class="card-wrap" style="padding:16px">', unsafe_allow_html=True)
         st.plotly_chart(fig, use_container_width=True)
@@ -2640,8 +2709,7 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
             else:
                 _rep_fq, _rep_fyr = _fq - 1, _fyr
             _qstr = f"Q{_rep_fq} FY{str(_rep_fyr)[2:]}"
-            with st.spinner(f"Analysing {c['name']} latest results…"):
-                _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
+            _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
             if _rr_text:
                 st.markdown(
                     f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
@@ -2812,6 +2880,7 @@ def make_perf_chart(df, period):
                    tickfont=dict(size=11), linecolor=BORDER, linewidth=1),
         margin=dict(l=0, r=0, t=0, b=0),
         hovermode="x unified",
+        transition_duration=0,
     )
     return fig
 
@@ -3058,11 +3127,14 @@ def main_mobile():
     )
     with st.spinner("Fetching prices…"):
         price_cache = {}
-        for c in COMPANIES:
+        def _fetch_price_one(c):
             if c["exchange"] == "NSE":
-                price_cache[c["ticker"]] = fetch_nse_price(c["ticker"])
+                return c["ticker"], fetch_nse_price(c["ticker"])
             else:
-                price_cache[c["ticker"]] = fetch_nasdaq_price(c["ticker"])
+                return c["ticker"], fetch_nasdaq_price(c["ticker"])
+        with ThreadPoolExecutor(max_workers=12) as _px:
+            for _tk, _pd in _px.map(_fetch_price_one, COMPANIES):
+                price_cache[_tk] = _pd
 
     for c in COMPANIES:
         q   = price_cache.get(c["ticker"], {})
@@ -3126,19 +3198,35 @@ def _render_top_nav():
 
 def _prewarm_recent_results_bg() -> None:
     """
-    Background thread: pre-populate the get_recent_results cache for the top 20
-    companies so the Recent Results tab renders instantly for the most-viewed names.
-    Called once per process (guarded by session_state flag per-session).
+    Background thread: pre-populate all company caches for the top 20 companies:
+    - fetch_company_financials (yfinance, parallel-fetched, disk-cached)
+    - get_company_takeaway_v2 (Claude API, disk-cached)
+    - get_recent_results (Claude API, disk-cached)
+    Called once per session (guarded by session_state flag).
     """
     import threading as _threading
 
     def _worker():
         _TOP20 = COMPANIES[:20]
+        print(f"[PREWARM] Starting prewarm for {len(_TOP20)} companies…")
         for _c in _TOP20:
+            _tk = yf_ticker(_c)
+            # 1. Financials (parallel yfinance — fast, disk-cached)
             try:
-                get_recent_results(_c["name"], yf_ticker(_c), _c["sector"])
+                fetch_company_financials(_tk)
+            except Exception as _e:
+                print(f"[PREWARM FINS] {_c['name']}: {_e}")
+            # 2. Company analyst note (Claude API — disk-cached)
+            try:
+                get_company_takeaway_v2(_c["name"], _tk)
+            except Exception as _e:
+                print(f"[PREWARM TKWY] {_c['name']}: {_e}")
+            # 3. Recent Results (Claude API — disk-cached)
+            try:
+                get_recent_results(_c["name"], _tk, _c["sector"])
             except Exception as _e:
                 print(f"[PREWARM RR] {_c['name']}: {_e}")
+        print("[PREWARM] Done.")
 
     _threading.Thread(target=_worker, daemon=True).start()
 
@@ -3715,11 +3803,14 @@ def _run_z47_desktop():
 
     with st.spinner("Fetching live prices…"):
         price_cache = {}
-        for c in COMPANIES:
+        def _fetch_price_desktop(c):
             if c["exchange"] == "NSE":
-                price_cache[c["ticker"]] = fetch_nse_price(c["ticker"])
+                return c["ticker"], fetch_nse_price(c["ticker"])
             else:
-                price_cache[c["ticker"]] = fetch_nasdaq_price(c["ticker"])
+                return c["ticker"], fetch_nasdaq_price(c["ticker"])
+        with ThreadPoolExecutor(max_workers=12) as _px2:
+            for _tk2, _pd2 in _px2.map(_fetch_price_desktop, COMPANIES):
+                price_cache[_tk2] = _pd2
 
     th2 = f"padding:10px 12px;color:#8b6d4a;font-weight:600;font-size:12px"
     tbl = (
@@ -3813,8 +3904,8 @@ def _run_z47_desktop():
     if selected != "— Select a company —":
         idx = company_options.index(selected) - 1
         chosen = COMPANIES[idx]
-        with st.spinner(f"Loading {chosen['name']} details…"):
-            details = fetch_company_details(yf_ticker(chosen))
+        # Disk-cached + parallel fetch — no blocking spinner needed
+        details = fetch_company_details(yf_ticker(chosen))
         # Enrich with pre-fetched analyst data (fills gaps — never overwrites with None)
         pre = all_analyst.get(chosen["ticker"], {})
         if pre:
