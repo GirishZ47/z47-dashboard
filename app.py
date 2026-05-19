@@ -635,6 +635,57 @@ SENSEX_SYMBOLS = [
     "DRREDDY.NS", "ADANIPORTS.NS", "NTPC.NS",
 ]
 
+# Module-level Z47 symbols list (derived from COMPANIES at import time)
+# Used by MCap blocks and performance chart features
+def _get_z47_symbols():
+    return [yf_ticker(c) for c in COMPANIES]
+
+
+# ── Shared AI takeaway helper ────────────────────────────────────────────────
+def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
+    """
+    Call Claude with web search and return a text takeaway string, or None on failure.
+    Returns None immediately if no API key configured.
+    """
+    try:
+        api_key = (st.secrets.get("ANTHROPIC_API_KEY", "")
+                   or os.environ.get("ANTHROPIC_API_KEY", ""))
+        if not api_key or api_key.startswith("sk-ant-..."):
+            return None
+        client = anthropic.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=max_tokens,
+            system=system,
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={"anthropic-beta": "web-search-2025-03-05"},
+        )
+        text = next(
+            (b.text for b in resp.content if hasattr(b, "text") and len(b.text) > 80),
+            None,
+        )
+        return text
+    except Exception as _e:
+        print(f"[_ai_takeaway] error: {_e}")
+        return None
+
+
+# ── Shared takeaway box renderer ──────────────────────────────────────────────
+def render_takeaway_box(text: str, title: str = "Z47 Takeaway", icon: str = "✨"):
+    """Render a purple-gradient takeaway box."""
+    st.markdown(
+        f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+        border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+        margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+        <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+        text-transform:uppercase;margin-bottom:8px'>{icon} {title}</div>
+        <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{text}</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+
 # Financial companies — EV/EBITDA excluded; EV/Revenue uses P/S (MCap/Rev) proxy
 # Covers Nifty50 + Sensex30 banks, NBFCs, insurance + asset management
 _FINANCIAL_SYMS = {
@@ -665,6 +716,229 @@ _Z47_FINANCIAL_SYMS = {
     "MOBIKWIK.NS", "MEDIASSIST.NS", "AYE.NS", "KISSHT.NS",
     "MMYT",       # US-listed, no EV data anyway
 }
+
+
+# ── Feature 1: Total Market Cap Blocks ───────────────────────────────────────
+@st.cache_data(ttl=300, show_spinner=False)
+def get_total_market_caps() -> dict:
+    """Sum fast_info.market_cap for Z47, Nifty50, Sensex in parallel."""
+    def _fetch_mcap(sym):
+        try:
+            mc = yf.Ticker(sym).fast_info.market_cap
+            return mc if mc and mc > 0 else 0
+        except Exception:
+            return 0
+
+    all_syms = list(dict.fromkeys(
+        _get_z47_symbols() + NIFTY50_SYMBOLS + SENSEX_SYMBOLS
+    ))
+    mcap_map = {}
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        futs = {ex.submit(_fetch_mcap, s): s for s in all_syms}
+        for fut in as_completed(futs, timeout=20):
+            sym = futs[fut]
+            try:
+                mcap_map[sym] = fut.result()
+            except Exception:
+                mcap_map[sym] = 0
+
+    z47_syms    = _get_z47_symbols()
+    z47_mc      = sum(mcap_map.get(s, 0) for s in z47_syms)
+    nifty_mc    = sum(mcap_map.get(s, 0) for s in NIFTY50_SYMBOLS)
+    sensex_mc   = sum(mcap_map.get(s, 0) for s in SENSEX_SYMBOLS)
+
+    def _fmt(v):
+        """Format rupee market cap in lakh crore ('₹XX.Xk cr')."""
+        if v <= 0:
+            return "—"
+        lakh_cr = v / 1e12   # 1 lakh crore = 1e12
+        return f"₹{lakh_cr:.1f}k cr"
+
+    z47_pct_nifty = (z47_mc / nifty_mc * 100) if nifty_mc > 0 else None
+    return {
+        "z47":           z47_mc,
+        "nifty":         nifty_mc,
+        "sensex":        sensex_mc,
+        "z47_fmt":       _fmt(z47_mc),
+        "nifty_fmt":     _fmt(nifty_mc),
+        "sensex_fmt":    _fmt(sensex_mc),
+        "z47_pct_nifty": round(z47_pct_nifty, 1) if z47_pct_nifty else None,
+    }
+
+
+def render_mcap_blocks():
+    """Render 4 market cap KPI cards: Z47, Nifty50, Sensex, Z47 as % of Nifty."""
+    mc = get_total_market_caps()
+    c1, c2, c3, c4 = st.columns(4)
+    cards = [
+        (c1, "Z47 Total Market Cap",    mc["z47_fmt"],    "#c2410c"),
+        (c2, "Nifty 50 Market Cap",     mc["nifty_fmt"],  "#1d4ed8"),
+        (c3, "Sensex Market Cap",       mc["sensex_fmt"], "#15803d"),
+        (c4, "Z47 as % of Nifty 50",
+             f"{mc['z47_pct_nifty']:.1f}%" if mc["z47_pct_nifty"] else "—",
+             "#7c3aed"),
+    ]
+    for col, label, value, accent in cards:
+        with col:
+            st.markdown(
+                f"<div style='background:{CARD_BG};border:1px solid {accent}40;"
+                f"border-left:4px solid {accent};border-radius:10px;"
+                f"padding:14px 18px;margin-bottom:4px'>"
+                f"<div style='font-size:11px;font-weight:600;color:#8b6d4a;"
+                f"letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px'>{label}</div>"
+                f"<div style='font-size:22px;font-weight:800;color:#1a0f00'>{value}</div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+
+# ── Feature 3 & 7: Z47 Index weekly takeaway ─────────────────────────────────
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_z47_index_takeaway() -> str | None:
+    """Weekly AI takeaway on Z47 Index performance. Cached 1 week."""
+    from datetime import date
+    week = date.today().isocalendar()[:2]   # (year, week) — forces refresh each week
+    system = (
+        "You are a crisp, data-driven financial analyst covering the Z47 Index — "
+        "a custom index of 47 listed Indian new-age tech companies including Zomato, "
+        "Swiggy, Paytm, PolicyBazaar, Groww, Delhivery, Nykaa, and others. "
+        "Write in clear, professional English. Be specific; avoid filler phrases."
+    )
+    prompt = (
+        f"Week {week[1]}, {week[0]}. "
+        "Write 4-5 crisp sentences on Z47 Index performance this week: "
+        "which sectors or stocks led/lagged, key macro/policy developments affecting "
+        "new-age tech companies, and one forward-looking observation. "
+        "Use web search for latest data."
+    )
+    return _ai_takeaway(system, prompt, max_tokens=450)
+
+
+# ── Feature 6: IPO / Valuation takeaway ──────────────────────────────────────
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_valuation_takeaway(ev_revenue: float | None, ev_ebitda: float | None,
+                           pe: float | None, rev_growth: float | None,
+                           ebitda_margin: float | None) -> str | None:
+    """Weekly AI takeaway on Z47 valuation vs Nifty. Cached 1 week."""
+    from datetime import date
+    week = date.today().isocalendar()[:2]
+    metrics_str = (
+        f"EV/Revenue={ev_revenue:.1f}x, " if ev_revenue else ""
+    ) + (
+        f"EV/EBITDA={ev_ebitda:.1f}x, " if ev_ebitda else ""
+    ) + (
+        f"P/E={pe:.1f}x, " if pe else ""
+    ) + (
+        f"Revenue Growth={rev_growth*100:.0f}%, " if rev_growth else ""
+    ) + (
+        f"EBITDA Margin={ebitda_margin*100:.0f}%" if ebitda_margin else ""
+    )
+    system = (
+        "You are a concise equity research analyst. Write in professional English. "
+        "No hedging phrases like 'it's worth noting'. Be direct and specific."
+    )
+    prompt = (
+        f"Week {week[1]}, {week[0]}. Z47 Index current valuation: {metrics_str}. "
+        "In 4-5 sentences, assess whether Z47's premium valuation to Nifty 50 is justified "
+        "given these growth rates and margins. Compare to Nifty 50 P/E (~22-24x). "
+        "Use web search for latest context."
+    )
+    return _ai_takeaway(system, prompt, max_tokens=450)
+
+
+# ── Feature 4: Sector takeaways ───────────────────────────────────────────────
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_sector_takeaway(sector: str, companies: list) -> str | None:
+    """Weekly AI takeaway for a Z47 sector. Cached 1 week."""
+    from datetime import date
+    week = date.today().isocalendar()[:2]
+    cos_str = ", ".join(companies)
+    system = (
+        "You are a crisp sector analyst covering Indian listed new-age tech companies. "
+        "Write in professional English. Be specific with data points."
+    )
+    prompt = (
+        f"Week {week[1]}, {week[0]}. "
+        f"Z47 Index sector: {sector}. Key companies: {cos_str}. "
+        "Write 3-4 sentences: recent performance/news for this sector, "
+        "key catalysts or headwinds, and outlook. Use web search for latest data."
+    )
+    return _ai_takeaway(system, prompt, max_tokens=350)
+
+
+# ── Feature 5: Company-level takeaway ─────────────────────────────────────────
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_company_takeaway(company_name: str, ticker: str) -> str | None:
+    """Weekly AI takeaway for a specific Z47 company. Cached 1 week."""
+    from datetime import date
+    week = date.today().isocalendar()[:2]
+    system = (
+        "You are a concise equity research analyst covering listed Indian new-age tech. "
+        "Write in professional English. Be specific with data points and avoid filler."
+    )
+    prompt = (
+        f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}). "
+        "Write 5-6 sentences covering: latest quarterly results, stock performance, "
+        "key management actions or guidance, and investment outlook. "
+        "Use web search for the latest data."
+    )
+    return _ai_takeaway(system, prompt, max_tokens=500)
+
+
+# ── Feature 9: Valuation multiples comparison chart ───────────────────────────
+def render_multiples_comparison_chart(metrics: dict):
+    """Bar chart comparing EV/Rev, EV/EBITDA, P/E for Z47 vs Nifty vs Sensex."""
+    import plotly.graph_objects as go
+
+    z47    = metrics.get("z47",    {})
+    nifty  = metrics.get("nifty",  {})
+    sensex = metrics.get("sensex", {})
+
+    labels   = ["EV/Revenue", "EV/EBITDA", "P/E"]
+    z47_vals = [z47.get("ev_revenue"), z47.get("ev_ebitda"), z47.get("pe")]
+    n_vals   = [nifty.get("ev_revenue"), nifty.get("ev_ebitda"), nifty.get("pe")]
+    s_vals   = [sensex.get("ev_revenue"), sensex.get("ev_ebitda"), sensex.get("pe")]
+
+    def _clean(vals):
+        return [v if (v and v > 0 and v < 300) else None for v in vals]
+
+    z47_clean = _clean(z47_vals)
+    n_clean   = _clean(n_vals)
+    s_clean   = _clean(s_vals)
+
+    # Only render if we have at least some data
+    has_data = any(v is not None for v in z47_clean + n_clean + s_clean)
+    if not has_data:
+        return
+
+    fig = go.Figure()
+    for name, vals, color in [
+        ("Z47 Index",  z47_clean, "#c2410c"),
+        ("Nifty 50",   n_clean,   "#1d4ed8"),
+        ("BSE Sensex", s_clean,   "#15803d"),
+    ]:
+        fig.add_trace(go.Bar(
+            name=name, x=labels, y=vals,
+            marker_color=color, opacity=0.85,
+            text=[f"{v:.1f}x" if v else "—" for v in vals],
+            textposition="outside",
+            textfont=dict(size=11),
+        ))
+    fig.update_layout(
+        barmode="group",
+        height=300,
+        paper_bgcolor=CARD_BG,
+        plot_bgcolor=CARD_BG,
+        margin=dict(l=0, r=0, t=20, b=0),
+        legend=dict(orientation="h", y=1.12),
+        yaxis=dict(title="Multiple (x)", showgrid=True,
+                   gridcolor=BORDER, zeroline=False),
+        xaxis=dict(showgrid=False),
+        font=dict(family="Inter, sans-serif", size=12),
+    )
+    st.markdown('<div class="card-wrap" style="padding:16px">', unsafe_allow_html=True)
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def _fetch_constituent_fundamentals(symbols: list, fin_syms: set) -> list:
@@ -1384,6 +1658,93 @@ def _render_analyst_insights(details, info, sym):
             st.info("Recommendation data not available.")
 
 
+# ── Feature 2: Company Performance Chart ─────────────────────────────────────
+@st.cache_data(ttl=3600, show_spinner=False)
+def _fetch_company_price_data(ticker_sym: str, period: str) -> pd.DataFrame:
+    """Fetch historical price data for a company vs Nifty/Sensex benchmarks."""
+    period_map = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365, "All": 900}
+    days = period_map.get(period, 900)
+    start = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
+    try:
+        df = yf.download(
+            [ticker_sym, "^NSEI", "^BSESN"],
+            start=start,
+            auto_adjust=True,
+            progress=False,
+        )
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
+def render_company_performance_chart(company_name: str, ticker_sym: str):
+    """Performance chart tab for company deep dive — vs Nifty 50 and Sensex."""
+    period = st.radio(
+        "Period", ["1M", "3M", "6M", "1Y", "All"],
+        horizontal=True, key=f"perf_period_{ticker_sym}"
+    )
+    with st.spinner("Loading price history…"):
+        raw = _fetch_company_price_data(ticker_sym, period)
+    if raw is None or raw.empty:
+        st.info("Price data not available for this company.")
+        return
+    try:
+        # Extract Close prices — yf.download returns MultiIndex cols when multiple tickers
+        if isinstance(raw.columns, pd.MultiIndex):
+            close = raw["Close"] if "Close" in raw.columns.get_level_values(0) else None
+        else:
+            close = raw[["Close"]] if "Close" in raw.columns else None
+
+        if close is None or close.empty:
+            st.info("Price data unavailable.")
+            return
+
+        # Rename columns for clarity
+        col_map = {ticker_sym: company_name, "^NSEI": "Nifty 50", "^BSESN": "Sensex"}
+        close = close.rename(columns=col_map)
+        close = close.dropna(how="all")
+
+        # Rebase to 100
+        first_valid = close.bfill().iloc[0]
+        rebased = close.div(first_valid) * 100
+
+        fig = go.Figure()
+        colors = {
+            company_name: "#c2410c",
+            "Nifty 50":   "#1d4ed8",
+            "Sensex":     "#15803d",
+        }
+        for col in rebased.columns:
+            if col in rebased:
+                series = rebased[col].dropna()
+                if not series.empty:
+                    fig.add_trace(go.Scatter(
+                        x=series.index, y=series.values,
+                        mode="lines", name=col,
+                        line=dict(color=colors.get(col, "#6b7a8d"), width=2),
+                        hovertemplate=f"{col}: %{{y:.1f}}<extra></extra>",
+                    ))
+        fig.update_layout(
+            paper_bgcolor=CARD_BG,
+            plot_bgcolor=CARD_BG,
+            height=320,
+            margin=dict(l=0, r=0, t=20, b=0),
+            legend=dict(orientation="h", y=1.08, font=dict(size=12)),
+            yaxis=dict(title="Rebased to 100", showgrid=True,
+                       gridcolor=BORDER, tickfont=dict(size=11)),
+            xaxis=dict(showgrid=False, tickfont=dict(size=11)),
+            font=dict(family="Inter, sans-serif"),
+            hovermode="x unified",
+        )
+        st.markdown('<div class="card-wrap" style="padding:16px">', unsafe_allow_html=True)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.caption(f"Performance rebased to 100 | {period} period | Source: Yahoo Finance")
+    except Exception as _pe:
+        st.info("Could not render performance chart.")
+        print(f"[Performance chart] {ticker_sym}: {_pe}")
+
+
 def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
     info       = details.get("info", {})
     sym        = "₹" if c["exchange"] == "NSE" else "$"
@@ -1451,6 +1812,14 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
         ],
     ]
 
+    # ── Feature 5: Company takeaway banner ───────────────────────────────────
+    try:
+        _co_takeaway = get_company_takeaway(c["name"], yf_ticker(c))
+        if _co_takeaway:
+            render_takeaway_box(_co_takeaway, title=f"{c['name']} — Z47 Takeaway", icon="💡")
+    except Exception as _ct_err:
+        print(f"[Company takeaway] {c['name']}: {_ct_err}")
+
     cols = st.columns(3)
     for col, stats in zip(cols, stat_groups):
         with col:
@@ -1467,7 +1836,9 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
             )
 
     st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
-    tab_is, tab_bs, tab_cf, tab_earn, tab_analyst, tab_news = st.tabs([
+    # ── Feature 2: Performance tab added as first tab ─────────────────────────
+    tab_perf, tab_is, tab_bs, tab_cf, tab_earn, tab_analyst, tab_news = st.tabs([
+        "📈 Performance",
         "📊 Income Statement",
         "🏦 Balance Sheet",
         "💸 Cash Flow",
@@ -1477,6 +1848,13 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
     ])
 
     tk = c["ticker"]
+    with tab_perf:
+        try:
+            render_company_performance_chart(c["name"], yf_ticker(c))
+        except Exception as _pf_err:
+            st.info("Performance chart temporarily unavailable.")
+            print(f"[Performance tab] {c['name']}: {_pf_err}")
+
     with tab_is:
         freq = st.radio("", ["Annual", "Quarterly"], horizontal=True, key=f"is_{tk}")
         df = details.get("income_annual" if freq=="Annual" else "income_quarterly", pd.DataFrame())
@@ -2213,6 +2591,13 @@ def _run_z47_desktop():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── Feature 1: Market Cap Blocks ─────────────────────────────────────────
+    try:
+        render_mcap_blocks()
+    except Exception as _mcap_err:
+        print(f"[MCap blocks] error: {_mcap_err}")
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # ── KPI cards (live values) ──────────────────────────────────────────────
     z47_ret    = pct_since(df, "z47_float")
     nifty_ret  = pct_since(df, "nifty_indexed")
@@ -2363,6 +2748,7 @@ def _run_z47_desktop():
     )
 
     # ── Index Fundamentals ────────────────────────────────────────────────────
+    _all_fund = None
     try:
         with st.spinner("Loading index fundamentals… (first load fetches ~130 stocks, ~15–25 s)"):
             _all_fund = get_all_index_fundamentals()
@@ -2370,6 +2756,39 @@ def _run_z47_desktop():
     except Exception as _fund_err:
         st.info("📊 Index fundamentals temporarily unavailable.")
         print(f"[Fundamentals section] {type(_fund_err).__name__}: {_fund_err}")
+
+    # ── Feature 7: Valuation Takeaway ────────────────────────────────────────
+    if _all_fund:
+        try:
+            _z47m = _all_fund.get("z47", {})
+            _val_tk = get_valuation_takeaway(
+                _z47m.get("ev_revenue"),
+                _z47m.get("ev_ebitda"),
+                _z47m.get("pe"),
+                _z47m.get("rev_growth"),
+                _z47m.get("ebitda_margin"),
+            )
+            if _val_tk:
+                render_takeaway_box(_val_tk, title="Z47 Valuation Perspective", icon="📊")
+        except Exception as _vt_err:
+            print(f"[Valuation takeaway] error: {_vt_err}")
+
+    # ── Feature 9: Valuation Multiples Comparison Chart ──────────────────────
+    if _all_fund:
+        try:
+            st.markdown('<div class="section-header">Valuation Multiples — Z47 vs Nifty vs Sensex</div>',
+                        unsafe_allow_html=True)
+            render_multiples_comparison_chart(_all_fund)
+        except Exception as _mc_err:
+            print(f"[Multiples chart] error: {_mc_err}")
+
+    # ── Feature 3: Z47 Index Weekly Takeaway ─────────────────────────────────
+    try:
+        _z47_tk = get_z47_index_takeaway()
+        if _z47_tk:
+            render_takeaway_box(_z47_tk, title="Z47 Index — Weekly Takeaway", icon="✨")
+    except Exception as _zt_err:
+        print(f"[Z47 index takeaway] error: {_zt_err}")
 
     # ── Top 5 gainers / losers ───────────────────────────────────────────────
     st.markdown('<div class="section-header">Top 5 Gainers &amp; Losers — Last Month</div>',
@@ -2408,6 +2827,22 @@ def _run_z47_desktop():
                 )
     else:
         st.info("1-month data unavailable — try again shortly.")
+
+    # ── Feature 4: Sector Breakdown & Takeaways ───────────────────────────────
+    with st.expander("🏭 Sector Breakdown & Takeaways", expanded=False):
+        _SECTOR_COMPANIES = {
+            "Fintech":         ["Groww", "Paytm", "PolicyBazaar", "MobiKwik"],
+            "Consumer Tech":   ["Zomato", "Swiggy", "Nykaa", "Meesho"],
+            "B2B / Logistics": ["Delhivery", "BlackBuck", "TBO Tek", "IndiaMart"],
+            "SaaS":            ["Unicommerce", "Pine Labs", "RateGain", "Nazara"],
+        }
+        for _sec_name, _sec_cos in _SECTOR_COMPANIES.items():
+            try:
+                _sec_tk = get_sector_takeaway(_sec_name, _sec_cos)
+                if _sec_tk:
+                    render_takeaway_box(_sec_tk, title=f"{_sec_name} Takeaway", icon="🏭")
+            except Exception as _st_err:
+                print(f"[Sector takeaway] [{_sec_name}]: {_st_err}")
 
     # ── 1-Month bar chart — all constituents ─────────────────────────────────
     st.markdown('<div class="section-header">1-Month Price Movement — All Constituents</div>',

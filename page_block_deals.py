@@ -1,5 +1,6 @@
 """Block & Bulk Deals module — called by app.py routing."""
 import re
+import os
 import urllib.parse
 import streamlit as st
 import requests
@@ -11,9 +12,65 @@ from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from companies import COMPANIES
 from z47_assistant import render_z47_assistant
+import anthropic
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
+
+
+# ── Feature 8: Deal Takeaway ──────────────────────────────────────────────────
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_deal_takeaway(company: str, value_cr: float) -> str | None:
+    """AI takeaway for a high-value (>50 cr) block/bulk deal. Cached 24 hours."""
+    if value_cr <= 50:
+        return None
+    try:
+        api_key = (st.secrets.get("ANTHROPIC_API_KEY", "")
+                   or os.environ.get("ANTHROPIC_API_KEY", ""))
+        if not api_key or api_key.startswith("sk-ant-..."):
+            return None
+        client = anthropic.Anthropic(api_key=api_key)
+        system = (
+            "You are a concise equity research analyst covering Indian new-age tech stocks. "
+            "Write in professional English. Be specific and avoid filler. "
+            "Focus on what the block deal signals about the company and investor sentiment."
+        )
+        prompt = (
+            f"A block/bulk deal of ₹{value_cr:.0f} crore was transacted in {company}. "
+            "In 4-5 sentences, explain what this deal likely signals: "
+            "is this an insider/promoter exit, institutional accumulation, or lock-in expiry? "
+            "What does it mean for the stock price outlook? Use web search for context."
+        )
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=400,
+            system=system,
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={"anthropic-beta": "web-search-2025-03-05"},
+        )
+        text = next(
+            (b.text for b in resp.content if hasattr(b, "text") and len(b.text) > 80),
+            None,
+        )
+        return text
+    except Exception as _e:
+        print(f"[Deal takeaway] {company}: {_e}")
+        return None
+
+
+def _render_deal_takeaway_box(text: str, company: str):
+    """Render a deal takeaway box below a high-value deal."""
+    st.markdown(
+        f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+        border:1px solid #c4b5fd;border-radius:10px;padding:14px 18px;
+        margin:8px 0 4px 0;box-shadow:0 1px 4px rgba(124,58,237,.10)'>
+        <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+        text-transform:uppercase;margin-bottom:6px'>💡 Deal Takeaway — {company}</div>
+        <div style='color:#3b1f7a;font-size:13px;line-height:1.6'>{text}</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 Z47_SYMBOLS  = {c["ticker"] for c in COMPANIES if c["exchange"] == "NSE"}
 Z47_NAME_MAP = {c["ticker"]: c["name"] for c in COMPANIES}
@@ -967,10 +1024,33 @@ def render():
 
     tab1, tab2, tab3, tab4 = st.tabs(["🗓️ All Deals Today", "📦 Block Deals", "📊 Bulk Deals", "📚 History (60–90 Days)"])
 
+    def _show_deal_takeaways(df):
+        """Show AI takeaways for high-value deals (>50 cr) in the displayed dataframe."""
+        if df is None or df.empty or "Value (₹ Cr)" not in df.columns:
+            return
+        _applied = _apply(df)
+        if _applied.empty:
+            return
+        _high_val = _applied[_applied["Value (₹ Cr)"] > 50].copy()
+        if _high_val.empty:
+            return
+        # Show takeaway for the single biggest deal to avoid too many API calls
+        _biggest = _high_val.loc[_high_val["Value (₹ Cr)"].idxmax()]
+        _co   = str(_biggest.get("Company", ""))
+        _val  = float(_biggest.get("Value (₹ Cr)", 0))
+        if _co and _val > 50:
+            try:
+                _tk = get_deal_takeaway(_co, _val)
+                if _tk:
+                    _render_deal_takeaway_box(_tk, _co)
+            except Exception as _dte:
+                print(f"[Deal takeaway render] {_co}: {_dte}")
+
     with tab1:
         try:
             st.markdown("**All Block & Bulk Deals Today — Z47 Index**")
             _show(all_df, "deals", f"{bsrc}/{usrc}")
+            _show_deal_takeaways(all_df)
             st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">Updated: {_now_ist()}</div>',
                         unsafe_allow_html=True)
         except Exception as _e:
@@ -981,6 +1061,7 @@ def render():
         try:
             st.markdown("**Block Deals for Z47 Index Companies**")
             _show(block_df, "block deals", bsrc)
+            _show_deal_takeaways(block_df)
             st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {bts.strftime("%d-%m-%Y %H:%M IST") if bts else "N/A"}</div>',
                         unsafe_allow_html=True)
         except Exception as _e:
@@ -991,6 +1072,7 @@ def render():
         try:
             st.markdown("**Bulk Deals for Z47 Index Companies**")
             _show(bulk_df, "bulk deals", usrc)
+            _show_deal_takeaways(bulk_df)
             st.markdown(f'<div style="color:#a38060;font-size:11px;text-align:right">As of: {uts.strftime("%d-%m-%Y %H:%M IST") if uts else "N/A"}</div>',
                         unsafe_allow_html=True)
         except Exception as _e:

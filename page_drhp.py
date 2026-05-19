@@ -11,6 +11,36 @@ from streamlit_autorefresh import st_autorefresh
 from bs4 import BeautifulSoup
 from z47_assistant import render_z47_assistant
 
+# ── Feature 6: Hardcoded IPO Takeaways ───────────────────────────────────────
+HARDCODED_IPO_TAKEAWAYS = {
+    "Kissht (OnEMI Technology Solutions)": (
+        "Kissht's debut marks a watershed moment — the first BFSI IPO of FY2027 and a significant "
+        "re-rating of how public markets view digital NBFCs. Listed at an 11.1% premium to its ₹171 "
+        "issue price, the stock reflected genuine demand rather than speculative froth, with QIB books "
+        "oversubscribed ~26× against overall 9.96× subscription. The market rewarded Kissht's "
+        "differentiated positioning — an operationally profitable digital lender serving digitally-native, "
+        "underserved borrowers — rather than penalising it for unsecured exposure as seen with some earlier "
+        "fintech listings. The shift toward longer-tenure, higher-yield loans and a growing AUM with a "
+        "scalable lending engine gave institutional investors the conviction to price it at 1.4× P/B vs "
+        "pre-IPO expectations of 1–1.1×. At ₹926 cr raise (92% primary), the size was calibrated well "
+        "— large enough for price discovery, small enough to avoid supply overhang."
+    ),
+}
+
+
+def _render_ipo_takeaway_box(text: str, title: str = "Z47 Takeaway", icon: str = "💡"):
+    """Render a purple-gradient IPO takeaway box in page_drhp context."""
+    st.markdown(
+        f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+        border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+        margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+        <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+        text-transform:uppercase;margin-bottom:8px'>{icon} {title}</div>
+        <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{text}</div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
 
@@ -652,6 +682,11 @@ def _show_company_summary(company_name: str):
     st.markdown(f"## {company_name}")
     src_label = s.get("source", "DRHP / RHP + public disclosures") if s else "DRHP / RHP + public disclosures"
     st.caption(f"Source: {src_label}")
+
+    # ── Feature 6: IPO Takeaway (hardcoded, shown before divider) ────────────
+    _ipo_tk = HARDCODED_IPO_TAKEAWAYS.get(company_name)
+    if _ipo_tk:
+        _render_ipo_takeaway_box(_ipo_tk, title="Z47 Takeaway", icon="💡")
 
     # Document link at the very top for quick access
     if doc_type == "CONFIDENTIAL":
