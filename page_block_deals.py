@@ -18,6 +18,47 @@ CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
 
 
+# ── Preamble-stripping helper (mirrors app.py version) ───────────────────────
+def _clean_takeaway_output(raw: str) -> str | None:
+    """Strip model preamble from raw AI response. Returns cleaned text or None if too short."""
+    if not raw or not raw.strip():
+        return None
+    lines = raw.split('\n')
+    _PREAMBLE_STARTS = (
+        "now i", "let me", "here is", "here's", "i'll", "i will", "i've",
+        "based on", "i have", "sure,", "sure.", "okay,", "certainly,",
+        "certainly.", "of course", "absolutely", "great,", "the following",
+        "below is", "below are", "i'll now", "i need to",
+    )
+    cleaned = []
+    for line in lines:
+        s = line.strip()
+        sl = s.lower()
+        if not s:
+            if cleaned:
+                cleaned.append(line)
+            continue
+        if any(sl.startswith(p) for p in _PREAMBLE_STARTS):
+            print(f"[deal _clean] stripped preamble: {s[:60]!r}")
+            continue
+        cleaned.append(line)
+    while cleaned and not cleaned[0].strip():
+        cleaned.pop(0)
+    while cleaned and not cleaned[-1].strip():
+        cleaned.pop()
+    result = '\n'.join(cleaned).strip()
+    if len(result) < 150:
+        return None
+    return result
+
+
+_NO_PREAMBLE_DEAL = (
+    "Output ONLY the final takeaway text. Do not write any preamble, introduction, "
+    "meta-commentary, or header. Do not say 'Now I have', 'Let me synthesize', "
+    "'Here is', or similar. Start directly with the first analytical sentence. "
+)
+
+
 # ── Feature 8: Deal Takeaway ──────────────────────────────────────────────────
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_deal_takeaway(company: str, value_cr: float) -> str | None:
@@ -35,21 +76,22 @@ def get_deal_takeaway(company: str, value_cr: float) -> str | None:
             "Write in tight, professional English. No markdown — plain prose only."
         )
         prompt = (
-            f"A block/bulk deal of ₹{value_cr:.0f} crore was transacted in {company}. "
+            _NO_PREAMBLE_DEAL
+            + f"A block/bulk deal of ₹{value_cr:.0f} crore was transacted in {company}. "
             "Search for the exact deal details — seller, buyer, price per share, shares, stake %. "
             "Write exactly 5-6 lines: "
             "(1) Headline: who sold to whom and what it signals — a verdict, not a description. "
-            "(2) Key numbers: deal size, price, shares, stake % — plus whether deal cleared at discount/premium to market "
-            "and what that implies about buyer conviction. "
+            "(2) Key numbers: deal size, price, shares, stake % — plus whether deal cleared at "
+            "discount/premium to market and what that implies about buyer conviction. "
             "(3) Seller context: lock-in expiry, portfolio rebalancing, or strategic exit? "
             "What does the seller's retention (if any) signal? "
-            "(4) Buyer quality: institutional conviction read, is this a thesis-level bet or an arb/liquidity play? "
-            "What does the buyer composition say about the stock's institutional floor? "
-            "(5) What the market is missing about this deal — the read-through to the company's narrative or "
-            "to peers in the Z47'47 universe. "
+            "(4) Buyer quality: institutional conviction read — is this a thesis-level bet or an "
+            "arb/liquidity play? What does the buyer composition say about the stock's institutional floor? "
+            "(5) What the market is missing about this deal — the read-through to the company's narrative "
+            "or to peers in the Z47'47 universe. "
             "(6) Net read: constructive/cautious/neutral on the stock post-deal, with one-line rationale. "
             "Banned phrases: 'strong performance', 'well-positioned', 'positive momentum'. "
-            "No buy/sell/hold. No markdown."
+            "No buy/sell/hold. No markdown. No preamble."
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
@@ -60,15 +102,17 @@ def get_deal_takeaway(company: str, value_cr: float) -> str | None:
             extra_headers={"anthropic-beta": "web-search-2025-03-05"},
             timeout=45,
         )
-        import re as _re
-        text = next(
-            (b.text for b in resp.content if hasattr(b, "text") and len(b.text) > 80),
-            None,
-        )
-        if text:
-            text = _re.sub(r"#{1,3}\s*", "", text)
-            text = _re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", text)
-        return text
+        # Concatenate ALL text blocks — preamble often lands in block 1, content in later blocks
+        text_blocks = [
+            b.text.strip() for b in resp.content
+            if hasattr(b, "text") and b.text.strip()
+        ]
+        raw = '\n'.join(text_blocks) if text_blocks else None
+        if not raw:
+            print(f"[Deal takeaway] {company}: no text blocks")
+            return None
+        print(f"[Deal takeaway] {company}: {len(raw)} chars raw, {len(text_blocks)} block(s)")
+        return _clean_takeaway_output(raw)
     except Exception as _e:
         print(f"[Deal takeaway] {company}: {_e}")
         return None
@@ -681,6 +725,14 @@ _FALLBACK_DEALS = [
     {"Date":"2026-04-28","Deal Type":"Block","Symbol":"UNIECOM","Company":"Unicommerce","Client / Party":"SoftBank (seller)","Buy/Sell":"SELL","Quantity":3200000,"Price (₹)":198.40,"Value (₹ Cr)":63.5},
     {"Date":"2026-03-14","Deal Type":"Bulk","Symbol":"UNIECOM","Company":"Unicommerce","Client / Party":"SBI MF","Buy/Sell":"BUY","Quantity":1100000,"Price (₹)":182.60,"Value (₹ Cr)":20.1},
     # MobiKwik
+    # Peak XV exit — late April / early May 2026 (₹130 cr block, 60.6 lakh shares @ ₹214/sh)
+    # Buyers: Florintree Advisors, Viridian Asset Management, Dymon Asia, Karma Capital
+    {"Date":"2026-05-02","Deal Type":"Block","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Peak XV Partners (Sequoia India — seller)","Buy/Sell":"SELL","Quantity":6060000,"Price (₹)":214.00,"Value (₹ Cr)":129.7},
+    {"Date":"2026-05-02","Deal Type":"Block","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Florintree Advisors (buyer)","Buy/Sell":"BUY","Quantity":2500000,"Price (₹)":214.00,"Value (₹ Cr)":53.5},
+    {"Date":"2026-05-02","Deal Type":"Block","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Viridian Asset Management (buyer)","Buy/Sell":"BUY","Quantity":1500000,"Price (₹)":214.00,"Value (₹ Cr)":32.1},
+    {"Date":"2026-05-02","Deal Type":"Block","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Dymon Asia Capital (buyer)","Buy/Sell":"BUY","Quantity":1000000,"Price (₹)":214.00,"Value (₹ Cr)":21.4},
+    {"Date":"2026-05-02","Deal Type":"Block","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Karma Capital (buyer)","Buy/Sell":"BUY","Quantity":1060000,"Price (₹)":214.00,"Value (₹ Cr)":22.7},
+    # MobiKwik — earlier deals
     {"Date":"2026-04-11","Deal Type":"Bulk","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Bajaj Finance (seller)","Buy/Sell":"SELL","Quantity":980000,"Price (₹)":524.80,"Value (₹ Cr)":51.4},
     {"Date":"2026-03-21","Deal Type":"Bulk","Symbol":"MOBIKWIK","Company":"MobiKwik","Client / Party":"Nippon India MF","Buy/Sell":"BUY","Quantity":760000,"Price (₹)":498.20,"Value (₹ Cr)":37.9},
     # Groww — 2026-05-12 anchor T1 lock-in expiry (massive block deals)
@@ -826,6 +878,137 @@ def _load_history_cache():
     return df, src_label
 
 
+def _get_monday_key() -> str:
+    """ISO date of Monday of the current week — used as cache key for weekly-refresh items."""
+    today = datetime.now(IST).date()
+    monday = today - timedelta(days=today.weekday())
+    return monday.isoformat()
+
+
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_top3_deal_takeaway_cached(company: str, value_cr: float,
+                                  deal_type: str, date_str: str,
+                                  monday_key: str = "") -> str | None:
+    """
+    Analyst-quality 5-6 line takeaway for a specific deal.
+    Cached 7 days, keyed by monday so it refreshes every Monday.
+    """
+    try:
+        api_key = (st.secrets.get("ANTHROPIC_API_KEY", "")
+                   or os.environ.get("ANTHROPIC_API_KEY", ""))
+        if not api_key or api_key.startswith("sk-ant-..."):
+            return None
+        client = anthropic.Anthropic(api_key=api_key)
+        system = (
+            "You are a sell-side equity research analyst writing a block/bulk deal note "
+            "for a Z47'47 constituent. Write in tight, professional English. "
+            "No markdown — plain prose only."
+        )
+        prompt = (
+            _NO_PREAMBLE_DEAL
+            + f"A {deal_type} deal of ₹{value_cr:.0f} crore was transacted in {company} "
+            f"on {date_str}. "
+            "Search for the exact deal details — seller identity, buyer identity, price per share, "
+            "number of shares, approximate stake %. "
+            "Write exactly 5-6 lines: "
+            "(1) One-line verdict: what this deal signals about the company's institutional ownership story. "
+            "(2) Who sold to whom, at what price, how many shares, what % of equity — "
+            "and whether the deal cleared at a discount or premium to the prevailing market price; "
+            "what that discount/premium implies about buyer conviction vs seller urgency. "
+            "(3) Why now: recent results, lock-in expiry, fund-level portfolio rebalancing, or strategic exit? "
+            "What does the seller's residual holding (if any) signal about their continued conviction? "
+            "(4) Read-through: what does this deal signal for other names with similar cap-table profiles, "
+            "VC backers in the same vintage fund, or companies in the same sector of Z47'47? "
+            "(5) Supply overhang vs institutional anchor: is there more stock to come (remaining lock-in shares), "
+            "or does the buyer base suggest a new institutional floor is forming? "
+            "(6) Net read: constructive/cautious/mixed on the stock post-deal — one line with clear rationale. "
+            "Banned phrases: 'strong performance', 'well-positioned', 'positive momentum', 'healthy growth'. "
+            "No buy/sell/hold. No markdown. No preamble."
+        )
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=650,
+            system=system,
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={"anthropic-beta": "web-search-2025-03-05"},
+            timeout=45,
+        )
+        text_blocks = [
+            b.text.strip() for b in resp.content
+            if hasattr(b, "text") and b.text.strip()
+        ]
+        raw = '\n'.join(text_blocks) if text_blocks else None
+        if not raw:
+            return None
+        return _clean_takeaway_output(raw)
+    except Exception as _e:
+        print(f"[Top3 deal takeaway] {company}: {_e}")
+        return None
+
+
+def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
+    """
+    Below the history table, render takeaway boxes for the top 3 deals by value
+    in the trailing 30 days. Monday-keyed cache (stable for 7 days, refreshes Monday).
+    """
+    if df_h is None or df_h.empty:
+        return
+    try:
+        from datetime import date as _date, timedelta as _td
+        cutoff = (_date.today() - _td(days=30)).strftime("%Y-%m-%d")
+        _df = df_h.copy()
+        _df["_dt"] = pd.to_datetime(_df["Date"], errors="coerce")
+        _df = _df[_df["_dt"] >= pd.Timestamp(cutoff)]
+        if _df.empty:
+            return
+        # Group by company + date to get biggest single deal per event
+        # Take top 3 SELL-side deals by value (SELL = the meaningful signal)
+        _sells = _df[_df["Buy/Sell"] == "SELL"].copy()
+        if _sells.empty:
+            _sells = _df.copy()
+        _sells = _sells.sort_values("Value (₹ Cr)", ascending=False).drop_duplicates(
+            subset=["Symbol", "Date"], keep="first"
+        ).head(3)
+        if _sells.empty:
+            return
+
+        mk = _get_monday_key()
+        st.markdown(
+            f"""<div style='margin-top:28px;margin-bottom:8px;font-size:15px;font-weight:700;
+            color:#1a0f00'>💡 Z47'47 Takeaway — Top 3 Deals (Last 30 Days)</div>""",
+            unsafe_allow_html=True,
+        )
+        for _, row in _sells.iterrows():
+            co    = str(row.get("Company", ""))
+            sym   = str(row.get("Symbol", ""))
+            val   = float(row.get("Value (₹ Cr)", 0))
+            dtype = str(row.get("Deal Type", "Deal"))
+            date  = str(row.get("Date", ""))[:10]
+            if not co or val <= 0:
+                continue
+            with st.spinner(f"Generating takeaway for {co}…"):
+                tk = get_top3_deal_takeaway_cached(co, val, dtype, date, monday_key=mk)
+            if tk:
+                st.markdown(
+                    f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+                    border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+                    margin:10px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+                    <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+                    text-transform:uppercase;margin-bottom:8px'>
+                    💡 Z47'47 TAKEAWAY — {sym} {dtype.upper()} · {date}</div>
+                    <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{tk}</div>
+                    <div style='font-size:11px;color:#9ca3af;margin-top:8px'>
+                    Value: ₹{val:,.0f} Cr · Refreshes every Monday</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption(f"💡 Takeaway for {co} ({dtype}, {date}) — generating, reload in a moment.")
+    except Exception as _e:
+        print(f"[Top3 deal takeaways render] {_e}")
+
+
 def _render_history_tab():
     """Render the 60-90 day block/bulk deal history tab."""
     import plotly.graph_objects as go
@@ -943,6 +1126,9 @@ def _render_history_tab():
         st.info("No deals match the selected filters in the date range.")
 
     st.caption(f"Source: {src_label} | Cached at: {_now_ist()}")
+
+    # ── Top 3 Deal Takeaways (rolling 30-day, Monday-keyed cache) ────────────
+    _render_top3_deal_takeaways(df_h)
 
 
 # ── Render ─────────────────────────────────────────────────────────────────────

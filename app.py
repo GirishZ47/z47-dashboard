@@ -644,11 +644,73 @@ def _get_z47_symbols():
 Z47_SYMBOLS = _get_z47_symbols()
 
 
+# ── Preamble-stripping helper ─────────────────────────────────────────────────
+def _clean_takeaway_output(raw: str) -> str | None:
+    """
+    Strip model preamble/meta-commentary from a raw AI response.
+    Returns cleaned text or None if the result is too short to be useful.
+    Centralised here so every takeaway generator uses the same logic.
+    """
+    if not raw or not raw.strip():
+        return None
+    import re as _re
+    lines = raw.split('\n')
+    _PREAMBLE_STARTS = (
+        "now i", "let me", "here is", "here's", "i'll", "i will", "i've",
+        "based on", "i have", "sure,", "sure.", "okay,", "certainly,",
+        "certainly.", "of course", "absolutely", "great,", "the following",
+        "below is", "below are", "i'll now", "i need to", "i'll write",
+        "i'll provide", "i'll analyze", "i'll search",
+    )
+    # Header-label lines like "Z47'47 WEEKLY TAKEAWAY — WEEK 21, 2026"
+    _HEADER_PAT = _re.compile(
+        r"^(z47'?47|z47)\s+(weekly|monthly|takeaway|valuation|sector|—|index)",
+        _re.IGNORECASE,
+    )
+    cleaned = []
+    for line in lines:
+        s = line.strip()
+        sl = s.lower()
+        if not s:
+            # Keep blank lines only after content has started
+            if cleaned:
+                cleaned.append(line)
+            continue
+        if any(sl.startswith(p) for p in _PREAMBLE_STARTS):
+            print(f"[_clean_takeaway] stripped preamble line: {s[:60]!r}")
+            continue
+        if _HEADER_PAT.match(s):
+            print(f"[_clean_takeaway] stripped header line: {s[:60]!r}")
+            continue
+        cleaned.append(line)
+    # Remove leading/trailing blank lines
+    while cleaned and not cleaned[0].strip():
+        cleaned.pop(0)
+    while cleaned and not cleaned[-1].strip():
+        cleaned.pop()
+    result = '\n'.join(cleaned).strip()
+    if len(result) < 150:
+        print(f"[_clean_takeaway] result too short ({len(result)} chars) — returning None")
+        return None
+    return result
+
+
+# ── No-preamble instruction prefix (injected into every takeaway prompt) ─────
+_NO_PREAMBLE = (
+    "Output ONLY the final takeaway text. Do not write any preamble, introduction, "
+    "meta-commentary, or header label. Do not say 'Now I have sufficient data', "
+    "'Let me synthesize', 'Here is the takeaway', 'I'll write', 'Based on my research', "
+    "or any similar lead-in. The UI renders the section header separately — "
+    "do not repeat it. Start directly with the first analytical sentence of your content. "
+)
+
+
 # ── Shared AI takeaway helper ────────────────────────────────────────────────
 def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
     """
-    Call Claude with web search and return a text takeaway string, or None on failure.
-    Returns None immediately if no API key configured.
+    Call Claude with web search and return a cleaned text takeaway, or None on failure.
+    Concatenates ALL text blocks (not just first) to capture post-search content.
+    Strips model preamble via _clean_takeaway_output().
     """
     try:
         api_key = (st.secrets.get("ANTHROPIC_API_KEY", "")
@@ -663,12 +725,23 @@ def _ai_takeaway(system: str, prompt: str, max_tokens: int = 450):
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": prompt}],
             extra_headers={"anthropic-beta": "web-search-2025-03-05"},
+            timeout=45,
         )
-        text = next(
-            (b.text for b in resp.content if hasattr(b, "text") and len(b.text) > 80),
-            None,
-        )
-        return text
+        # Collect ALL text blocks — the model often emits a preamble in block 1
+        # and the actual takeaway in a later block after tool use
+        text_blocks = [
+            b.text.strip() for b in resp.content
+            if hasattr(b, "text") and b.text.strip()
+        ]
+        if not text_blocks:
+            print(f"[_ai_takeaway] no text blocks in response (stop_reason={resp.stop_reason})")
+            return None
+        raw = '\n'.join(text_blocks)
+        print(f"[_ai_takeaway] raw response: {len(raw)} chars, {len(text_blocks)} text block(s)")
+        cleaned = _clean_takeaway_output(raw)
+        if not cleaned:
+            print(f"[_ai_takeaway] cleaned result empty/too short — returning None")
+        return cleaned
     except Exception as _e:
         print(f"[_ai_takeaway] error: {_e}")
         return None
@@ -957,118 +1030,183 @@ def render_mcap_blocks():
         )
 
 
-# ── Feature 3 & 7: Z47 Index weekly takeaway (v2) ────────────────────────────
+# ── Monthly rolling-window helper ─────────────────────────────────────────────
+def _monthly_window():
+    """
+    Return (monday_key, start_label, end_label, start_date_str, end_date_str) for
+    monthly rolling takeaway caching.
+    Cache key = ISO date of Monday of current week → refreshes every Monday.
+    Window = trailing 30 days from today.
+    """
+    from datetime import date as _d, timedelta as _td
+    today = _d.today()
+    monday = today - _td(days=today.weekday())   # Monday of current week
+    start  = today - _td(days=30)
+    return (
+        monday.isoformat(),
+        f"{start.day} {start.strftime('%b')}",          # e.g. "19 Apr"
+        f"{today.day} {today.strftime('%b %Y')}",        # e.g. "19 May 2026"
+        start.strftime("%Y-%m-%d"),
+        today.strftime("%Y-%m-%d"),
+    )
+
+
+# ── Feature 3 & 7: Z47'47 Monthly takeaway (v2) ──────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
-def get_z47_index_takeaway_v2() -> str | None:
-    """Analyst-quality 5-6 sentence weekly takeaway on Z47 Index. Cached 1 week."""
-    from datetime import date
-    week = date.today().isocalendar()[:2]   # (year, week) — forces weekly refresh
+def get_z47_index_takeaway_v2(monday_key: str = "") -> str | None:
+    """Analyst-quality 5-6 sentence monthly takeaway on Z47'47 index. Cached 1 week (Monday-keyed)."""
+    _mk, _sl, _el, _sd, _ed = _monthly_window()
     system = (
-        "You are a sell-side equity research analyst writing a weekly takeaway for Z47'47 — "
+        "You are a sell-side equity research analyst writing a monthly takeaway for Z47'47 — "
         "the Z47 index of 47 Indian new-age tech and financial services companies. "
         "Write in tight, professional English. No markdown, no bullet points — plain prose only. "
         "You cover the INDEX as a whole: sector themes, macro read-throughs, valuation observations. "
         "Do not go company-by-company. Write at the index and sector-cohort level."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. "
-        "Search for latest Z47'47 index performance, Indian new-age tech sector news, "
-        "and macro developments affecting the index this week. "
+        _NO_PREAMBLE
+        + f"Analyze the rolling 30-day period from {_sd} to {_ed}. "
+        "Search for Z47'47 index performance, Indian new-age tech sector news, "
+        "and macro developments over this period. "
         "Write exactly 5-6 lines in this structure: "
-        "(1) Headline: Z47'47's weekly move vs Nifty 50 and what drove the relative performance at the sector level — not company by company. "
-        "(2-4) Mix of: key data points (index level, sector performance, macro event) AND at least 2 analyst insights from: "
-        "variant perception (what consensus has wrong about the index), "
-        "structural vs cyclical distinction (what's a permanent re-rate vs what mean-reverts), "
-        "quality-of-sector-earnings (is the index's outperformance real or multiple expansion without earnings), "
+        "(1) Headline: Z47'47's 30-day move vs Nifty 50 and what drove the relative performance "
+        "at the sector-cohort level — not company-by-company. "
+        "(2-4) Mix of key data points (index level, sector performance, macro event) AND at least "
+        "2 analyst insights from: variant perception (what consensus has wrong about the index), "
+        "structural vs cyclical distinction (permanent re-rate vs mean-reversion), "
+        "quality-of-sector-earnings (real outperformance or just multiple expansion without earnings), "
         "read-through to the index from macro/policy events, "
         "what the market is missing about Z47'47's composition or risk profile, "
         "risk-reward asymmetry at current index levels. "
-        "Every numeric must be followed by what it means — not just the number. "
+        "Every number must be followed by what it means — not just the number. "
         "(5) The watch-item: what single event or data release would change the index view. "
-        "(6) Net read: directional view on the index (constructive/cautious/mixed) with one-line rationale. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
-        "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
-        "Do NOT say buy, sell, or hold. Use analytical verdicts only. "
-        "No markdown. Plain prose."
+        "(6) Net read: constructive/cautious/mixed on the index with one-line rationale. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
+        "'positive momentum', 'in line with expectations', 'broadly stable', "
+        "'well-positioned', 'execution remains key'. "
+        "No buy/sell/hold. No markdown. Plain prose. No preamble."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=600)
-    if raw:
-        import re
-        raw = re.sub(r"#{1,3}\s*", "", raw)
-        raw = re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
-    return raw
+    return _ai_takeaway(system, prompt, max_tokens=600)
 
 
 # ── Valuation multiples takeaway (v2) ────────────────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_valuation_multiples_takeaway(ev_revenue: float | None, ev_ebitda: float | None,
                                      pe: float | None, rev_growth: float | None,
-                                     ebitda_margin: float | None) -> str | None:
-    """4-5 sentence takeaway on Z47 premium valuation vs Nifty. Cached 1 week."""
-    from datetime import date
-    week = date.today().isocalendar()[:2]
+                                     ebitda_margin: float | None,
+                                     monday_key: str = "") -> str | None:
+    """4-5 sentence research-quality valuation note on Z47'47 vs Nifty. Monday-keyed, cached 1 week."""
+    _mk, _sl, _el, _sd, _ed = _monthly_window()
     parts = []
-    if ev_revenue:   parts.append(f"EV/Revenue={ev_revenue:.1f}x")
-    if ev_ebitda:    parts.append(f"EV/EBITDA={ev_ebitda:.1f}x")
-    if pe:           parts.append(f"P/E={pe:.1f}x")
-    if rev_growth:   parts.append(f"Rev Growth={rev_growth*100:.0f}%")
-    if ebitda_margin: parts.append(f"EBITDA Margin={ebitda_margin*100:.0f}%")
+    if ev_revenue:    parts.append(f"Z47 EV/Revenue={ev_revenue:.1f}x")
+    if ev_ebitda:     parts.append(f"Z47 EV/EBITDA={ev_ebitda:.1f}x")
+    if pe:            parts.append(f"Z47 P/E={pe:.1f}x")
+    if rev_growth:    parts.append(f"Z47 Rev Growth={rev_growth*100:.0f}%")
+    if ebitda_margin: parts.append(f"Z47 EBITDA Margin={ebitda_margin*100:.0f}%")
     metrics_str = ", ".join(parts) if parts else "data unavailable"
     system = (
-        "You are a sell-side equity research analyst writing a valuation note for Z47'47. "
-        "Write in tight, professional English. No markdown — plain prose only."
+        "You are a sell-side equity research analyst writing a valuation deep-dive note for Z47'47 — "
+        "the index of 47 Indian new-age tech and financial-services companies. "
+        "Write in tight, professional English. Cite actual numbers. No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Z47'47 current valuation: {metrics_str}. "
-        "Search for latest Nifty 50 and Sensex valuation context. "
-        "Write exactly 4-5 lines: "
-        "(1) Headline: Is Z47'47's premium to Nifty justified at current multiples — verdict first. "
-        "(2-3) At least 2 analytical insights: is the premium structural (earnings growth differential) or cyclical "
-        "(multiple expansion on hope)? Which specific multiple (EV/Revenue, EV/EBITDA, P/E) is most informative "
-        "right now and why? What is the quality-of-earnings story behind the multiple — is margin expansion real "
-        "or mix/denominator-driven? "
-        "(4) The variable that would cause the premium to compress sharply — be specific. "
-        "(5) Net read: constructive/cautious/mixed on Z47'47's valuation relative to Nifty, with rationale. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'well-positioned'. "
-        "No buy/sell/hold. No markdown."
+        _NO_PREAMBLE
+        + f"Rolling 30-day window: {_sd} to {_ed}. Z47'47 current multiples: {metrics_str}. "
+        "Search for the latest Nifty 50 P/E, EV/EBITDA, P/B and Sensex valuation data "
+        "from screener.in, NSE, or financial news. "
+        "Write exactly 4-5 lines — build the valuation case analytically, not just state conclusions: "
+        "(1) Where Z47'47 trades vs Nifty 50 right now on P/E (or P/B for the NBFC cohort) and "
+        "EV/EBITDA — cite the actual numbers for both indices, and state whether the premium has "
+        "expanded or compressed over the rolling 30-day period. "
+        "(2) The case FOR the premium: earnings growth differential between Z47'47 and Nifty, "
+        "business-mix advantages (tech-forward, asset-light, high gross-margin SaaS vs old-economy "
+        "Nifty), structural tailwinds (TAM expansion, formalization, digital adoption rate) — "
+        "anchored to specific data points, not assertions. "
+        "(3) The case AGAINST: where the multiple is stretched vs 3-year history or global comps; "
+        "which sub-segments within Z47'47 (e.g., loss-making consumer tech, pre-profit NBFCs) are "
+        "at peak multiples; what consensus is over-extrapolating in the growth assumption. "
+        "(4) The non-obvious insight: what is underpriced or overpriced within Z47'47 that the "
+        "headline index P/E conceals — e.g., cross-sector dispersion, quality differences in the "
+        "earnings mix (real margin expansion vs denominator effect), or a re-rating catalyst the "
+        "market hasn't priced. "
+        "(5) Net read: risk-reward at current levels — constructive/cautious/mixed — with the one "
+        "variable that would sharply change the premium direction. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
+        "'well-positioned', 'execution remains key', 'positive momentum'. "
+        "No buy/sell/hold. No markdown. No preamble."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=520)
-    if raw:
-        import re
-        raw = re.sub(r"#{1,3}\s*", "", raw)
-        raw = re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
-    return raw
+    return _ai_takeaway(system, prompt, max_tokens=600)
 
 
 # ── Sector takeaway v2 ────────────────────────────────────────────────────────
+# Sector-specific KPI guidance injected into each sector prompt
+_SECTOR_KPI_MAP = {
+    "Consumer / Consumer Tech": (
+        "GMV, take-rate, contribution margin, adj-EBITDA margin, monthly transacting users (MTU), "
+        "AOV, dark-store or kitchen count, cohort retention, CAC payback."
+    ),
+    "Fintech / Financial Services": (
+        "AUM/disbursement growth, NIM, GNPA/NNPA bps, credit cost, opex-to-AUM, CIR, RoA, "
+        "capital adequacy, secured-vs-unsecured mix; for brokers: active clients, ADTO, "
+        "F&O share, blended yield; for insurance: NBM, renewal rate."
+    ),
+    "SaaS / AI": (
+        "ARR growth, net dollar retention (NDR), gross margin, Rule of 40 score, "
+        "customer count, CAC payback period, churn."
+    ),
+    "EdTech": (
+        "Paid user growth, ARPU, cohort economics, gross margin, operating leverage, "
+        "blended subscription vs one-time revenue mix."
+    ),
+    "HealthTech / Diagnostics": (
+        "Same-clinic/same-lab revenue growth, prescription volume, EBITDA margin, "
+        "B2C vs B2B revenue split, test portfolio mix."
+    ),
+    "Gaming / Media": (
+        "Segment revenue mix (mobile/PC/esports), organic vs inorganic growth, "
+        "EBITDA margin, paying-user count, ARPU, churn."
+    ),
+    "Logistics / Mobility": (
+        "GTV, shipment volume, revenue-per-shipment, contribution margin, "
+        "unit economics, utilisation rate, B2C vs B2B mix."
+    ),
+}
+
 @st.cache_data(ttl=604800, show_spinner=False)
-def get_sector_takeaway_v2(sector: str, top_movers_str: str) -> str | None:
-    """3-4 sentence sector takeaway with performance context. Cached 1 week."""
-    from datetime import date
-    week = date.today().isocalendar()[:2]
+def get_sector_takeaway_v2(sector: str, top_movers_str: str,
+                            monday_key: str = "") -> str | None:
+    """5-6 line analyst-quality sector note. Monday-keyed rolling-30-day window, cached 1 week."""
+    _mk, _sl, _el, _sd, _ed = _monthly_window()
+    kpi_hint = _SECTOR_KPI_MAP.get(sector, "Use the most relevant financial and operating KPIs for this sector.")
     system = (
-        "You are a sell-side equity research analyst writing a sector note for a Z47'47 sub-cohort. "
+        f"You are a sell-side equity research analyst writing a monthly sector note for the "
+        f"'{sector}' cohort within Z47'47 — the index of 47 Indian new-age tech and financial-services companies. "
         "Write in tight, professional English. No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Z47'47 sector: {sector}. "
-        f"1-month top movers: {top_movers_str}. "
-        "Write exactly 3-4 lines: "
-        "(1) Headline: What the sector's 1-month performance actually signals — not a recap of the movers. "
-        "(2-3) Include at least 2 insights: what is consensus getting wrong about this sector's trajectory? "
-        "Is the performance structural (earnings-driven) or cyclical/multiple-expansion? "
-        "What's the read-through from macro or regulatory events specifically for this sector cohort? "
-        "What is the market underweighting in this sector's risk or opportunity profile? "
-        "(4) Net read: directional on the sector with the one variable that changes the view. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'positive momentum', 'well-positioned'. "
-        "No buy/sell/hold. No markdown. Use web search for latest context."
+        _NO_PREAMBLE
+        + f"Analyze the rolling 30-day period from {_sd} to {_ed}. "
+        f"Z47'47 sector: {sector}. 30-day top movers: {top_movers_str}. "
+        f"Key sector KPIs to reference where available: {kpi_hint} "
+        "Search for the latest news, results, or regulatory developments in this sector. "
+        "Write exactly 5-6 lines: "
+        "(1) One-line verdict on the sector for the rolling 30-day period — what the performance actually signals, "
+        "not a recap of the movers list. "
+        "(2-3) What is driving the dispersion between winners and laggards — cite specific names and % moves "
+        "where relevant; do not just list them, interpret WHY the top performer outperformed (quality of earnings? "
+        "re-rating catalyst? regulatory tailwind?). Include at least 2 of: consensus mispricing, "
+        "structural vs cyclical distinction, regulatory or macro read-through, what the market is underweighting "
+        "in this sector's risk or opportunity profile. "
+        "(4) Structural vs noise: is this performance a permanent re-rating or mean-reversion from an extreme? "
+        "What is the earnings-quality story behind the sector's 30-day move? "
+        "(5) Read-through: what does this sector's print signal for adjacent sectors, supply-chain, "
+        "or the upcoming IPO pipeline in the Z47'47 universe? "
+        "(6) Net read: constructive/cautious/mixed — one line with the one variable that would change the view. "
+        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
+        "'broadly stable', 'well-positioned', 'execution remains key'. "
+        "No buy/sell/hold. No markdown. No preamble."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=400)
-    if raw:
-        import re
-        raw = re.sub(r"#{1,3}\s*", "", raw)
-        raw = re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
-    return raw
+    return _ai_takeaway(system, prompt, max_tokens=500)
 
 
 # ── Recent Results — sell-side quarterly summary ──────────────────────────────
@@ -1110,29 +1248,25 @@ def get_recent_results(company_name: str, ticker: str, sector: str) -> str | Non
         "No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}, sector: {sector}). "
-        f"Sector KPIs: {kpi_hint} "
-        "Search BSE/NSE corporate filings, investor relations page, screener.in, trendlyne.com, moneycontrol.com "
-        "for the most recent quarterly results. "
+        _NO_PREAMBLE
+        + f"Quarter: most recent for {company_name} (ticker: {ticker}, sector: {sector}). "
+        f"Sector KPIs to reference: {kpi_hint} "
+        "Search BSE/NSE corporate filings, investor relations page, screener.in, trendlyne.com, "
+        "moneycontrol.com for the most recent quarterly results. "
         "Write exactly 5-6 lines: "
-        "(1) Headline takeaway — what the quarter meant strategically, not just a revenue number. A verdict. "
+        "(1) Headline — what the quarter meant strategically, not just a revenue number. A verdict. "
         "(2-3) The 2-3 most important numbers with YoY/QoQ context PLUS what they mean analytically: "
         "is the beat/miss real or optical (denominator effect, one-off, mix shift)? "
         "What is the quality-of-earnings story the headline number doesn't show? "
         "What is the under-discussed line item or footnote that matters most? "
-        "(4) Structural vs noise: what is genuinely improving in the business model vs what is a one-quarter effect? "
-        "(5) Watch-item: the specific metric or event that would change the view on this company next quarter. "
+        "(4) Structural vs noise: what is genuinely improving in the business model vs what is one-quarter? "
+        "(5) Watch-item: the specific metric or event that would change the view next quarter. "
         "(6) Net read: constructive/cautious/mixed — one sentence with clear rationale. "
         "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
-        "No buy/sell/hold. Use sector KPIs listed above. No markdown."
+        "No buy/sell/hold. No markdown. No preamble."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=700)
-    if raw:
-        raw = _re.sub(r"#{1,3}\s*", "", raw)
-        raw = _re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
-        raw = _re.sub(r"^[\-\*]\s+", "", raw, flags=_re.MULTILINE)
-    return raw
+    return _ai_takeaway(system, prompt, max_tokens=700)
 
 
 # ── Company takeaway v2 ────────────────────────────────────────────────────────
@@ -1147,13 +1281,14 @@ def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
         "No markdown — plain prose only."
     )
     prompt = (
-        f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}). "
+        _NO_PREAMBLE
+        + f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}). "
         "Write exactly 5-6 lines: "
         "(1) Headline: the ONE thing that matters about this company's current situation — a verdict, not a recap. "
         "(2-4) Mix of data points AND at least 2 analyst insights: "
         "variant perception (what consensus has wrong), "
         "quality-of-earnings (is the recent performance real or optical — denominator effects, one-offs, mix shifts), "
-        "structural vs cyclical (what's a permanent re-rate vs what mean-reverts), "
+        "structural vs cyclical (permanent re-rate vs mean-reversion), "
         "read-through to peers or adjacent Z47'47 names, "
         "management credibility (guidance track record, tone shift, capital allocation signal), "
         "what the market is missing (under-discussed line item, footnote that matters), "
@@ -1163,15 +1298,9 @@ def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
         "(6) Net read: constructive/cautious/mixed — one sentence with clear rationale. "
         "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
         "'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key'. "
-        "No buy/sell/hold. Use web search for latest data. No markdown."
+        "No buy/sell/hold. Use web search for latest data. No markdown. No preamble."
     )
-    raw = _ai_takeaway(system, prompt, max_tokens=680)
-    if raw:
-        import re
-        raw = re.sub(r"#{1,3}\s*", "", raw)
-        raw = re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
-        raw = re.sub(r"^[\-\*]\s+", "", raw, flags=re.MULTILINE)
-    return raw
+    return _ai_takeaway(system, prompt, max_tokens=680)
 
 
 # ── Valuation multiples line chart with JSON persistence ──────────────────────
@@ -1391,9 +1520,16 @@ def render_sector_breakdown_with_takeaways(returns_1m: dict) -> None:
 
         # AI takeaway
         try:
-            _sec_tk = get_sector_takeaway_v2(sector_name, movers_str)
+            _mk, _sl, _el, _sd, _ed = _monthly_window()
+            _sec_tk = get_sector_takeaway_v2(sector_name, movers_str, monday_key=_mk)
             if _sec_tk:
-                render_takeaway_box(_sec_tk, title=f"{sector_name} — Takeaway", icon="📊")
+                render_takeaway_box(
+                    _sec_tk,
+                    title=f"{sector_name} — Monthly Takeaway · {_sl} to {_el}",
+                    icon="📊",
+                )
+            else:
+                st.caption(f"💡 Sector takeaway generating — reload in a moment.")
         except Exception as _se:
             print(f"[Sector takeaway v2] {sector_name}: {_se}")
 
@@ -3242,11 +3378,17 @@ def _run_z47_desktop():
     st.plotly_chart(make_perf_chart(df, period), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Z47 Index Weekly Takeaway (Change 1) ─────────────────────────────────
+    # ── Z47'47 Monthly Takeaway (rolling 30-day window) ──────────────────────
     try:
-        _z47_tk = get_z47_index_takeaway_v2()
+        _mk, _sl, _el, _sd, _ed = _monthly_window()
+        _z47_tk = get_z47_index_takeaway_v2(monday_key=_mk)
         if _z47_tk:
-            render_takeaway_box(_z47_tk, title="Z47'47 — Weekly Takeaway", icon="✨")
+            render_takeaway_box(
+                _z47_tk,
+                title=f"Z47'47 — Monthly Takeaway · {_sl} to {_el}",
+                icon="✨",
+            )
+            st.caption(f"Last updated: {_el} · Refreshes every Monday · 30-day rolling window")
     except Exception as _zt_err:
         print(f"[Z47 index takeaway v2] error: {_zt_err}")
 
@@ -3304,6 +3446,7 @@ def _run_z47_desktop():
     # ── Valuation Multiples Takeaway (Change 4) ──────────────────────────────
     if _all_fund:
         try:
+            _mk, _sl, _el, _sd, _ed = _monthly_window()
             _z47m = _all_fund.get("z47", {})
             _vm_tk = get_valuation_multiples_takeaway(
                 _z47m.get("ev_revenue"),
@@ -3311,9 +3454,15 @@ def _run_z47_desktop():
                 _z47m.get("pe"),
                 _z47m.get("rev_growth"),
                 _z47m.get("ebitda_margin"),
+                monday_key=_mk,
             )
             if _vm_tk:
-                render_takeaway_box(_vm_tk, title="Z47 Valuation Perspective", icon="📊")
+                render_takeaway_box(
+                    _vm_tk,
+                    title=f"Z47'47 Valuation Perspective · {_sl} to {_el}",
+                    icon="📊",
+                )
+                st.caption(f"Last updated: {_el} · Refreshes every Monday · 30-day rolling window")
         except Exception as _vt_err:
             print(f"[Valuation multiples takeaway] error: {_vt_err}")
 
@@ -3356,7 +3505,7 @@ def _run_z47_desktop():
         st.info("1-month data unavailable — try again shortly.")
 
     # ── Sector Breakdown & Takeaways (Change 5) ──────────────────────────────
-    with st.expander("🏭 Sector Breakdown & Takeaways", expanded=False):
+    with st.expander("🏭 Sector Breakdown & Takeaways", expanded=True):
         if returns_1m:
             render_sector_breakdown_with_takeaways(returns_1m)
         else:
