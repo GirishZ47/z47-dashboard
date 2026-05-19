@@ -722,58 +722,39 @@ _Z47_FINANCIAL_SYMS = {
 
 
 # ── Feature 1: Total Market Cap Blocks ───────────────────────────────────────
+
+# Build a static fallback map: yf_symbol → INR value from companies.py
+# Covers unlisted companies (LENSKART, WAKEFIT) and NASDAQ-USD companies
+# that need conversion. Values in INR (mkt_cap_mn * 1e6).
+_Z47_STATIC_MCAP_INR: dict[str, float] = {
+    yf_ticker(c): c["mkt_cap_mn"] * 1e6
+    for c in COMPANIES
+}
+# NASDAQ companies (MMYT, FRSH) have mkt_cap_mn stored in INR Mn already,
+# so no extra conversion needed for the static fallback.
+
+# Set of NASDAQ-listed Z47 tickers (yfinance returns USD for these)
+_Z47_NASDAQ_SYMS: set[str] = {
+    yf_ticker(c) for c in COMPANIES if c["exchange"] == "NASDAQ"
+}
+
 @st.cache_data(ttl=300, show_spinner=False)
 def get_total_market_caps() -> dict:
     """
-    Correct market cap calculation.
-    yfinance marketCap for Indian stocks (.NS) is in INR (rupees).
-    1 crore = 1e7 INR  |  1 lakh crore = 1e12 INR
+    Robust market cap calculation for Z47, Nifty50, and Sensex.
+
+    Key fixes vs prior version:
+    - NASDAQ symbols (MMYT, FRSH): yfinance returns USD → multiply by usd_inr
+    - Unlisted symbols (LENSKART, WAKEFIT): yfinance returns 0 → fall back to
+      static mkt_cap_mn from companies.py (INR, March 2026 basis)
+    - 4-method fetch per symbol (fast_info → info → price×shares → history×shares)
 
     Expected ranges (May 2026):
-      Z47 (47 cos):   ~₹8-12 lakh cr  / $100-140B
-      Nifty50 (50):   ~₹250-300 lakh cr / $3.0-3.5T
-      Sensex  (30):   ~₹180-220 lakh cr / $2.0-2.5T
+      Z47  (47):  ~₹15-22 lakh cr  / $175-260B
+      Nifty50:    ~₹180-250 lakh cr / $2.1-3.0T
+      Sensex30:   ~₹140-200 lakh cr / $1.7-2.4T
     """
-    def fetch_mcap(sym):
-        try:
-            info = yf.Ticker(sym).info
-            # Primary: info.marketCap (in INR for .NS, USD for US-listed)
-            mc = info.get("marketCap")
-            if mc and mc > 1e9:   # sanity: > 1B
-                return float(mc)
-            # Fallback: price × shares
-            price  = (info.get("currentPrice") or
-                      info.get("regularMarketPrice") or 0)
-            shares = info.get("sharesOutstanding") or 0
-            if price > 0 and shares > 0:
-                return float(price * shares)
-            return 0
-        except Exception as _e:
-            print(f"[MCap] {sym}: {_e}")
-            return 0
-
-    def sum_mcaps(symbols, label):
-        total, failed = 0, []
-        with ThreadPoolExecutor(max_workers=12) as ex:
-            futs = {ex.submit(fetch_mcap, s): s for s in symbols}
-            for f in as_completed(futs, timeout=25):
-                sym = futs[f]
-                try:
-                    v = f.result()
-                    total += v
-                    if v == 0:
-                        failed.append(sym)
-                except Exception:
-                    failed.append(sym)
-        if failed:
-            print(f"[MCap] {label} missing: {failed}")
-        return total
-
-    z47_inr    = sum_mcaps(Z47_SYMBOLS,     "Z47")
-    nifty_inr  = sum_mcaps(NIFTY50_SYMBOLS, "Nifty50")
-    sensex_inr = sum_mcaps(SENSEX_SYMBOLS,  "Sensex")
-
-    # Live USD/INR rate
+    # Live USD/INR rate — fetch first so fetch_mcap can use it
     try:
         usd_inr = yf.Ticker("INR=X").fast_info.last_price
         if not usd_inr or usd_inr < 70:
@@ -781,10 +762,120 @@ def get_total_market_caps() -> dict:
     except Exception:
         usd_inr = 84.0
 
+    def fetch_mcap_inr(sym: str) -> float:
+        """Return market cap in INR. Uses 4 methods + static fallback."""
+        try:
+            t = yf.Ticker(sym)
+            is_usd = sym in _Z47_NASDAQ_SYMS   # NASDAQ → USD
+
+            # Method 1: fast_info (fastest)
+            try:
+                mc = t.fast_info.market_cap
+                if mc and mc > 1e9:
+                    return float(mc) * (usd_inr if is_usd else 1)
+            except Exception:
+                pass
+
+            # Method 2: info dict
+            try:
+                info = t.info
+                mc = info.get("marketCap")
+                if mc and mc > 1e9:
+                    return float(mc) * (usd_inr if is_usd else 1)
+
+                # Method 3: currentPrice × shares
+                price  = (info.get("currentPrice") or
+                          info.get("regularMarketPrice") or 0)
+                shares = info.get("sharesOutstanding") or 0
+                if price > 0 and shares > 0:
+                    calc = float(price * shares)
+                    if calc > 1e9:
+                        return calc * (usd_inr if is_usd else 1)
+            except Exception:
+                pass
+
+            # Method 4: last history close × shares
+            try:
+                info   = t.info
+                hist   = t.history(period="1d")
+                shares = info.get("sharesOutstanding") or 0
+                if not hist.empty and shares > 0:
+                    price = float(hist["Close"].iloc[-1])
+                    calc  = price * shares
+                    if calc > 1e9:
+                        return calc * (usd_inr if is_usd else 1)
+            except Exception:
+                pass
+
+        except Exception as _e:
+            print(f"[MCap] {sym}: {_e}")
+
+        # Static fallback: mkt_cap_mn from companies.py (already INR)
+        static = _Z47_STATIC_MCAP_INR.get(sym, 0)
+        if static > 0:
+            print(f"[MCap] {sym}: using static fallback ₹{static/1e12:.2f}L cr")
+            return static
+        return 0
+
+    def fetch_mcap_nse(sym: str) -> float:
+        """Fetch MCap for NSE-only (Nifty/Sensex) symbols — always INR."""
+        try:
+            t = yf.Ticker(sym)
+            try:
+                mc = t.fast_info.market_cap
+                if mc and mc > 1e9:
+                    return float(mc)
+            except Exception:
+                pass
+            info = t.info
+            mc   = info.get("marketCap")
+            if mc and mc > 1e9:
+                return float(mc)
+            price  = (info.get("currentPrice") or
+                      info.get("regularMarketPrice") or 0)
+            shares = info.get("sharesOutstanding") or 0
+            if price > 0 and shares > 0:
+                return float(price * shares)
+        except Exception as _e:
+            print(f"[MCap] {sym}: {_e}")
+        return 0
+
+    def sum_parallel(symbols, fetch_fn, label):
+        total, zero = 0, []
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            futs = {ex.submit(fetch_fn, s): s for s in symbols}
+            for f in as_completed(futs, timeout=30):
+                sym = futs[f]
+                try:
+                    v = f.result()
+                    total += v
+                    if v == 0:
+                        zero.append(sym)
+                except Exception:
+                    zero.append(sym)
+        if zero:
+            print(f"[MCap] {label} zeros: {zero}")
+        return total
+
+    z47_inr    = sum_parallel(Z47_SYMBOLS,     fetch_mcap_inr, "Z47")
+    nifty_inr  = sum_parallel(NIFTY50_SYMBOLS, fetch_mcap_nse, "Nifty50")
+    sensex_inr = sum_parallel(SENSEX_SYMBOLS,  fetch_mcap_nse, "Sensex")
+
+    # Sanity validation
+    _RANGES = {
+        "Z47":    (10e12,  30e12,  "₹10-30L cr"),
+        "Nifty":  (140e12, 350e12, "₹140-350L cr"),
+        "Sensex": (110e12, 280e12, "₹110-280L cr"),
+    }
+    for label, val in [("Z47", z47_inr), ("Nifty", nifty_inr), ("Sensex", sensex_inr)]:
+        lo, hi, exp = _RANGES[label]
+        ok = "PASS" if lo <= val <= hi else "FAIL"
+        print(f"[MCap {ok}] {label}=₹{val/1e12:.1f}L cr  expected {exp}  USD/INR={usd_inr:.1f}")
+
     def fmt_inr(v):
         if v <= 0:
             return "—"
-        lakh_cr = v / 1e12          # 1 lakh crore = 1e12 INR
+        lakh_cr = v / 1e12      # 1 lakh crore = 1e12 INR
         if lakh_cr >= 100:
             return f"₹{lakh_cr:.0f}L cr"
         return f"₹{lakh_cr:.1f}L cr"
@@ -792,32 +883,27 @@ def get_total_market_caps() -> dict:
     def fmt_usd(v):
         if v <= 0:
             return "—"
-        bn = v / usd_inr / 1e9      # INR → USD billions
-        if bn >= 1000:
-            return f"${bn/1000:.2f}T"
-        if bn >= 100:
-            return f"${bn:.0f}B"
-        return f"${bn:.1f}B"
-
-    # Sanity log
-    print(f"[MCap sanity] Z47={z47_inr/1e12:.1f}L cr  "
-          f"Nifty={nifty_inr/1e12:.0f}L cr  "
-          f"Sensex={sensex_inr/1e12:.0f}L cr  "
-          f"USD/INR={usd_inr:.1f}")
+        usd = v / usd_inr
+        if usd >= 1e12:
+            return f"${usd/1e12:.2f}T"
+        if usd >= 1e11:
+            return f"${usd/1e9:.0f}B"
+        if usd >= 1e9:
+            return f"${usd/1e9:.1f}B"
+        return f"${usd/1e6:.0f}M"
 
     return {
-        "z47_inr":        z47_inr,
-        "nifty_inr":      nifty_inr,
-        "sensex_inr":     sensex_inr,
-        "z47_inr_fmt":    fmt_inr(z47_inr),
-        "nifty_inr_fmt":  fmt_inr(nifty_inr),
-        "sensex_inr_fmt": fmt_inr(sensex_inr),
-        "z47_usd_fmt":    fmt_usd(z47_inr),
-        "nifty_usd_fmt":  fmt_usd(nifty_inr),
-        "sensex_usd_fmt": fmt_usd(sensex_inr),
-        "z47_pct_of_nifty": (z47_inr / nifty_inr * 100
-                              if nifty_inr > 0 else 0),
-        "usd_inr_rate":   usd_inr,
+        "z47_inr":          z47_inr,
+        "nifty_inr":        nifty_inr,
+        "sensex_inr":       sensex_inr,
+        "z47_inr_fmt":      fmt_inr(z47_inr),
+        "nifty_inr_fmt":    fmt_inr(nifty_inr),
+        "sensex_inr_fmt":   fmt_inr(sensex_inr),
+        "z47_usd_fmt":      fmt_usd(z47_inr),
+        "nifty_usd_fmt":    fmt_usd(nifty_inr),
+        "sensex_usd_fmt":   fmt_usd(sensex_inr),
+        "z47_pct_of_nifty": (z47_inr / nifty_inr * 100 if nifty_inr > 0 else 0),
+        "usd_inr_rate":     usd_inr,
     }
 
 
@@ -846,12 +932,12 @@ def render_mcap_blocks():
     _block(c1, "Z47 Total Market Cap",
            mc["z47_inr_fmt"], mc["z47_usd_fmt"],
            "47 new-age tech companies", "#ff7f0e")
-    _block(c2, "Nifty 50 Market Cap",
+    _block(c2, "Nifty 50 — Constituent MCap Sum",
            mc["nifty_inr_fmt"], mc["nifty_usd_fmt"],
-           "50 large-cap companies", "#1f77b4")
-    _block(c3, "Sensex Market Cap",
+           "50 cos · full MCap, not free-float", "#1f77b4")
+    _block(c3, "Sensex 30 — Constituent MCap Sum",
            mc["sensex_inr_fmt"], mc["sensex_usd_fmt"],
-           "30 large-cap companies", "#2ca02c")
+           "30 cos · full MCap, not free-float", "#2ca02c")
 
     pct = mc["z47_pct_of_nifty"]
     _purple_style = _bs.format(color="#764ba2")
