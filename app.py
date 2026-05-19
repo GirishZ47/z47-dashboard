@@ -25,6 +25,7 @@ from takeaway_constants import (
     HARDCODED_INDEX_TAKEAWAY,
     HARDCODED_VALUATION_TAKEAWAY,
     HARDCODED_FUNDAMENTALS,
+    HARDCODED_SECTOR_TAKEAWAYS,
     QUALITY_BAR_FEW_SHOT,
 )
 
@@ -1526,42 +1527,49 @@ def render_sector_breakdown_with_takeaways(returns_1m: dict) -> None:
             unsafe_allow_html=True,
         )
 
-        # AI takeaway — with factual fallback if API returns nothing
+        # Sector takeaway — hardcoded dict first (instant, no API); API fallback if not found
         try:
             _mk, _sl, _el, _sd, _ed = _monthly_window()
-            _sec_tk = get_sector_takeaway_v2(sector_name, movers_str, monday_key=_mk)
-            if _sec_tk:
+            _hardcoded_sec = HARDCODED_SECTOR_TAKEAWAYS.get(sector_name)
+            if _hardcoded_sec:
+                # Instant render — no API call
                 render_takeaway_box(
-                    _sec_tk,
-                    title=f"{sector_name} — Monthly Takeaway · {_sl} to {_el}",
-                    icon="📊",
+                    _hardcoded_sec["text"],
+                    title=f"{sector_name} — Monthly Takeaway · {_hardcoded_sec['window']}",
+                    icon="\U0001f4ca",
                 )
             else:
-                # Compute factual fallback from available data — NEVER show bare "generating"
-                _cos_with_data = [
-                    c for c in cos if c["ticker"] in returns_1m
-                ]
-                _rets = [returns_1m[c["ticker"]] for c in _cos_with_data]
-                _avg  = round(sum(_rets) / len(_rets), 1) if _rets else None
-                _top  = sorted(_cos_with_data,
-                               key=lambda c: returns_1m.get(c["ticker"], -999),
-                               reverse=True)
-                _top_str = (
-                    f"Top performer: {_top[0]['name']} "
-                    f"({returns_1m[_top[0]['ticker']]:+.1f}%)"
-                    if _top else ""
-                )
-                _avg_str = f"Avg 1M: {_avg:+.1f}%" if _avg is not None else ""
-                _fallback = (
-                    f"{sector_name}: {_avg_str}, {len(cos)} companies. "
-                    f"{_top_str}. "
-                    f"Analyst commentary refreshing — last update: {_sl}."
-                ).strip(". ")
-                render_takeaway_box(
-                    _fallback,
-                    title=f"{sector_name} — Sector Snapshot · {_sl} to {_el}",
-                    icon="📊",
-                )
+                # Sector not in hardcoded dict — try API
+                _sec_tk = get_sector_takeaway_v2(sector_name, movers_str, monday_key=_mk)
+                if _sec_tk:
+                    render_takeaway_box(
+                        _sec_tk,
+                        title=f"{sector_name} — Monthly Takeaway · {_sl} to {_el}",
+                        icon="\U0001f4ca",
+                    )
+                else:
+                    # Factual fallback — NEVER show bare "generating"
+                    _cos_with_data = [c for c in cos if c["ticker"] in returns_1m]
+                    _rets = [returns_1m[c["ticker"]] for c in _cos_with_data]
+                    _avg  = round(sum(_rets) / len(_rets), 1) if _rets else None
+                    _top  = sorted(_cos_with_data,
+                                   key=lambda c: returns_1m.get(c["ticker"], -999),
+                                   reverse=True)
+                    _top_str = (
+                        f"Top performer: {_top[0]['name']} "
+                        f"({returns_1m[_top[0]['ticker']]:+.1f}%)"
+                        if _top else ""
+                    )
+                    _avg_str = f"Avg 1M: {_avg:+.1f}%" if _avg is not None else ""
+                    _fallback = (
+                        f"{sector_name}: {_avg_str}, {len(cos)} companies. "
+                        f"{_top_str}."
+                    ).strip(". ")
+                    render_takeaway_box(
+                        _fallback,
+                        title=f"{sector_name} — Sector Snapshot · {_sl} to {_el}",
+                        icon="\U0001f4ca",
+                    )
         except Exception as _se:
             print(f"[Sector takeaway v2] {sector_name}: {_se}")
 
@@ -2589,7 +2597,13 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
             _m = _today.month
             _fq  = (_m - 4) // 3 + 1 if _m >= 4 else (_m + 8) // 3
             _fyr = _today.year + 1 if _m >= 4 else _today.year
-            _qstr = f"Q{_fq} FY{str(_fyr)[2:]}"
+            # Most recently REPORTED quarter = one quarter behind the current quarter
+            # e.g. May 2026 is Q1 FY27 → reported quarter is Q4 FY26
+            if _fq == 1:
+                _rep_fq, _rep_fyr = 4, _fyr - 1
+            else:
+                _rep_fq, _rep_fyr = _fq - 1, _fyr
+            _qstr = f"Q{_rep_fq} FY{str(_rep_fyr)[2:]}"
             with st.spinner(f"Analysing {c['name']} latest results…"):
                 _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
             if _rr_text:
@@ -3074,12 +3088,36 @@ def _render_top_nav():
         st.markdown("<hr style='border-color:#ccdaea;margin:6px 0 14px 0'>", unsafe_allow_html=True)
 
 
+def _prewarm_recent_results_bg() -> None:
+    """
+    Background thread: pre-populate the get_recent_results cache for the top 20
+    companies so the Recent Results tab renders instantly for the most-viewed names.
+    Called once per process (guarded by session_state flag per-session).
+    """
+    import threading as _threading
+
+    def _worker():
+        _TOP20 = COMPANIES[:20]
+        for _c in _TOP20:
+            try:
+                get_recent_results(_c["name"], yf_ticker(_c), _c["sector"])
+            except Exception as _e:
+                print(f"[PREWARM RR] {_c['name']}: {_e}")
+
+    _threading.Thread(target=_worker, daemon=True).start()
+
+
 def main():
     # Session state defaults
     if "nav_page" not in st.session_state:
         st.session_state.nav_page = "z47"
     if "ipo_tab" not in st.session_state:
         st.session_state.ipo_tab = "recent"
+
+    # Pre-warm Recent Results cache for top 20 companies on first load
+    if "rr_prewarm_triggered" not in st.session_state:
+        st.session_state.rr_prewarm_triggered = True
+        _prewarm_recent_results_bg()
 
     _render_top_nav()
 

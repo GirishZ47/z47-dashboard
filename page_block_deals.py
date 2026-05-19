@@ -13,6 +13,7 @@ from streamlit_autorefresh import st_autorefresh
 from companies import COMPANIES
 from z47_assistant import render_z47_assistant
 import anthropic
+from takeaway_constants import HARDCODED_DEAL_TAKEAWAYS
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
@@ -987,8 +988,18 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
             date  = str(row.get("Date", ""))[:10]
             if not co or val <= 0:
                 continue
-            with st.spinner(f"Generating takeaway for {co}…"):
+
+            # Check hardcoded dict first (instant, no API) — key: "SYMBOL|YYYY-MM-DD"
+            _hc_key = f"{sym}|{date}"
+            _hc = HARDCODED_DEAL_TAKEAWAYS.get(_hc_key)
+            if _hc:
+                tk = _hc["text"]
+                _title = _hc.get("header", f"Z47's TAKEAWAY — {sym} {dtype.upper()} · {date}")
+            else:
+                # API path — only if not hardcoded
                 tk = get_top3_deal_takeaway_cached(co, val, dtype, date, monday_key=mk)
+                _title = f"Z47's TAKEAWAY — {sym} {dtype.upper()} · {date}"
+
             if tk:
                 st.markdown(
                     f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
@@ -996,15 +1007,15 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
                     margin:10px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
                     <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
                     text-transform:uppercase;margin-bottom:8px'>
-                    💡 Z47'47 TAKEAWAY — {sym} {dtype.upper()} · {date}</div>
+                    💡 {_title}</div>
                     <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{tk}</div>
                     <div style='font-size:11px;color:#9ca3af;margin-top:8px'>
-                    Value: ₹{val:,.0f} Cr · Refreshes every Monday</div>
+                    Value: ₹{val:,.0f} Cr · Updated {_hc.get("updated", date) if _hc else date}</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
             else:
-                # Factual fallback — never show bare "generating"
+                # Factual fallback — NEVER show bare "generating"
                 print(f"[FAIL] Top3 deal takeaway for {co} ({dtype}, {date}) returned empty")
                 _bside = str(row.get("Buy/Sell", "SELL"))
                 _action = "Exit" if _bside == "SELL" else "Accumulation"
@@ -1015,8 +1026,7 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
                     text-transform:uppercase;margin-bottom:6px'>
                     💡 {sym} {dtype.upper()} · {date}</div>
                     <div style='color:#4a3520;font-size:13px;line-height:1.6'>
-                    {co} — ₹{val:,.0f} Cr {_action.lower()} deal on {date}.
-                    Analyst commentary is being generated — reload the History tab to check for an update.</div>
+                    {co} — ₹{val:,.0f} Cr {_action.lower()} deal on {date}.</div>
                     </div>""",
                     unsafe_allow_html=True,
                 )
