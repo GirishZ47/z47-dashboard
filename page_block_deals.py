@@ -13,7 +13,10 @@ from streamlit_autorefresh import st_autorefresh
 from companies import COMPANIES
 from z47_assistant import render_z47_assistant
 import anthropic
-from takeaway_constants import HARDCODED_DEAL_TAKEAWAYS
+try:
+    from takeaway_constants import HARDCODED_DEAL_TAKEAWAYS
+except Exception:
+    HARDCODED_DEAL_TAKEAWAYS = {}
 
 CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")

@@ -21,13 +21,23 @@ import page_upcoming_ipos
 import page_block_deals
 import page_drhp
 from z47_assistant import render_z47_assistant, ask_z47_with_search, SYSTEM_PROMPTS
-from takeaway_constants import (
-    HARDCODED_INDEX_TAKEAWAY,
-    HARDCODED_VALUATION_TAKEAWAY,
-    HARDCODED_FUNDAMENTALS,
-    HARDCODED_SECTOR_TAKEAWAYS,
-    QUALITY_BAR_FEW_SHOT,
-)
+try:
+    from takeaway_constants import (
+        HARDCODED_INDEX_TAKEAWAY,
+        HARDCODED_VALUATION_TAKEAWAY,
+        HARDCODED_FUNDAMENTALS,
+        HARDCODED_SECTOR_TAKEAWAYS,
+        QUALITY_BAR_FEW_SHOT,
+    )
+except Exception as _tc_err:
+    import traceback as _tb
+    print(f"[WARN] takeaway_constants failed to import: {_tc_err}")
+    _tb.print_exc()
+    HARDCODED_INDEX_TAKEAWAY    = {"text": "", "window": "", "icon": "✨", "header": "", "updated": ""}
+    HARDCODED_VALUATION_TAKEAWAY = {"text": "", "window": "", "icon": "📊", "header": "", "updated": ""}
+    HARDCODED_FUNDAMENTALS      = {}
+    HARDCODED_SECTOR_TAKEAWAYS  = {}
+    QUALITY_BAR_FEW_SHOT        = ""
 
 # ── Startup health check ──────────────────────────────────────────────────────
 def _run_startup_health_check() -> None:
