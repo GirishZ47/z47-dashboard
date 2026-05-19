@@ -1004,7 +1004,22 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
                     unsafe_allow_html=True,
                 )
             else:
-                st.caption(f"💡 Takeaway for {co} ({dtype}, {date}) — generating, reload in a moment.")
+                # Factual fallback — never show bare "generating"
+                print(f"[FAIL] Top3 deal takeaway for {co} ({dtype}, {date}) returned empty")
+                _bside = str(row.get("Buy/Sell", "SELL"))
+                _action = "Exit" if _bside == "SELL" else "Accumulation"
+                st.markdown(
+                    f"""<div style='background:#f9f9f9;border:1px solid #ccdaea;
+                    border-radius:10px;padding:14px 18px;margin:8px 0'>
+                    <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.05em;
+                    text-transform:uppercase;margin-bottom:6px'>
+                    💡 {sym} {dtype.upper()} · {date}</div>
+                    <div style='color:#4a3520;font-size:13px;line-height:1.6'>
+                    {co} — ₹{val:,.0f} Cr {_action.lower()} deal on {date}.
+                    Analyst commentary is being generated — reload the History tab to check for an update.</div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
     except Exception as _e:
         print(f"[Top3 deal takeaways render] {_e}")
 
