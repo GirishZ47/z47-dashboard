@@ -14,16 +14,19 @@ from z47_assistant import render_z47_assistant
 # ── Feature 6: Hardcoded IPO Takeaways ───────────────────────────────────────
 HARDCODED_IPO_TAKEAWAYS = {
     "Kissht (OnEMI Technology Solutions)": (
-        "Kissht's debut marks a watershed moment — the first BFSI IPO of FY2027 and a significant "
-        "re-rating of how public markets view digital NBFCs. Listed at an 11.1% premium to its ₹171 "
-        "issue price, the stock reflected genuine demand rather than speculative froth, with QIB books "
-        "oversubscribed ~26× against overall 9.96× subscription. The market rewarded Kissht's "
-        "differentiated positioning — an operationally profitable digital lender serving digitally-native, "
-        "underserved borrowers — rather than penalising it for unsecured exposure as seen with some earlier "
-        "fintech listings. The shift toward longer-tenure, higher-yield loans and a growing AUM with a "
-        "scalable lending engine gave institutional investors the conviction to price it at 1.4× P/B vs "
-        "pre-IPO expectations of 1–1.1×. At ₹926 cr raise (92% primary), the size was calibrated well "
-        "— large enough for price discovery, small enough to avoid supply overhang."
+        "Kissht's debut marks a watershed moment — the first BFSI IPO of FY2027 and a meaningful "
+        "re-rating of how public markets view digital NBFCs. "
+        "Listed at an 11.1% premium to its ₹171 issue price, the stock reflected genuine institutional "
+        "demand rather than speculative froth, with QIB books oversubscribed ~26× against overall 9.96× subscription. "
+        "Critically, exposure to unsecured loans turned out to be a POSITIVE — investors saw growth potential "
+        "and higher return metrics rather than pricing in the unsecured-book penalty applied to earlier fintech "
+        "listings; the market clearly distinguished Kissht as a digital NBFC play with real unit economics, "
+        "not a cash-burning new-economy story. "
+        "The shift toward longer-tenure, higher-yield loans and a growing AUM on a scalable lending engine "
+        "gave institutions the conviction to price the book at 1.4× P/B versus pre-IPO expectations of 1.0–1.1×. "
+        "At a ₹926 cr raise (92% primary), the deal was calibrated well — large enough for real price discovery, "
+        "small enough to avoid supply overhang. "
+        "The read-across for Aye, InCred, and the upcoming digital-lender pipeline is unambiguously constructive."
     ),
 }
 

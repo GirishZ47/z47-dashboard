@@ -2542,6 +2542,32 @@ def render():
 
     with t1:
         try:
+            # ── IPO Takeaway box — shared with DRHP page (single source of truth) ──
+            try:
+                from page_drhp import HARDCODED_IPO_TAKEAWAYS as _IPO_TK
+                # Match by substring — Recent IPOs may use shorter name than DRHP dict key
+                _co_key = ipo["company"]
+                _tk_text = _IPO_TK.get(_co_key)
+                if not _tk_text:
+                    # Try partial match (e.g. "Kissht (OnEMI Technology)" → "Kissht (OnEMI Technology Solutions)")
+                    for _k, _v in _IPO_TK.items():
+                        if ipo["company"].split("(")[0].strip().lower() in _k.lower():
+                            _tk_text = _v
+                            break
+                if _tk_text:
+                    st.markdown(
+                        f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+                        border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+                        margin:0 0 16px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+                        <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+                        text-transform:uppercase;margin-bottom:8px'>💡 Z47 Takeaway</div>
+                        <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{_tk_text}</div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+            except Exception as _tk_err:
+                print(f"[Recent IPOs takeaway] {ipo.get('company','?')}: {_tk_err}")
+
             a, b = st.columns(2)
             with a:
                 st.markdown(f"**Company:** {ipo['company']}")

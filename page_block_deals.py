@@ -21,7 +21,7 @@ IST = pytz.timezone("Asia/Kolkata")
 # ── Feature 8: Deal Takeaway ──────────────────────────────────────────────────
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_deal_takeaway(company: str, value_cr: float) -> str | None:
-    """AI takeaway for a high-value (>50 cr) block/bulk deal. Cached 24 hours."""
+    """Sell-side quality 5-6 line takeaway for high-value block/bulk deals (>50 cr). Cached 24 hrs."""
     if value_cr <= 50:
         return None
     try:
@@ -31,28 +31,41 @@ def get_deal_takeaway(company: str, value_cr: float) -> str | None:
             return None
         client = anthropic.Anthropic(api_key=api_key)
         system = (
-            "You are a concise equity research analyst covering Indian new-age tech stocks. "
-            "Write in professional English. Be specific and avoid filler. "
-            "Focus on what the block deal signals about the company and investor sentiment."
+            "You are a sell-side equity research analyst writing a block/bulk deal note "
+            "for a Z47 Index company. Write in tight, professional English. "
+            "Be specific — cite actual percentages, stake sizes, prices, and entity names. "
+            "No markdown, no bullet points — plain prose only."
         )
         prompt = (
             f"A block/bulk deal of ₹{value_cr:.0f} crore was transacted in {company}. "
-            "In 4-5 sentences, explain what this deal likely signals: "
-            "is this an insider/promoter exit, institutional accumulation, or lock-in expiry? "
-            "What does it mean for the stock price outlook? Use web search for context."
+            "Search for the exact details of this deal — seller identity, buyer identity, "
+            "price per share, shares transacted, and percentage of equity changing hands. "
+            "Write exactly 5-6 lines structured as: "
+            "(1) One-line headline — who sold to whom and what it signals strategically. "
+            "(2) The key numbers: deal size, price, shares, stake %. "
+            "(3) Context on the seller — lock-in expiry, portfolio rebalancing, or strategic exit? "
+            "(4) What the buyer's participation says about institutional conviction at this price. "
+            "(5) Price discovery impact — is the deal price at a discount/premium to market? "
+            "(6) Net read: constructive, cautious, or neutral for the stock going forward. "
+            "No markdown. Plain prose."
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=400,
+            max_tokens=550,
             system=system,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": prompt}],
             extra_headers={"anthropic-beta": "web-search-2025-03-05"},
+            timeout=45,
         )
+        import re as _re
         text = next(
             (b.text for b in resp.content if hasattr(b, "text") and len(b.text) > 80),
             None,
         )
+        if text:
+            text = _re.sub(r"#{1,3}\s*", "", text)
+            text = _re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", text)
         return text
     except Exception as _e:
         print(f"[Deal takeaway] {company}: {_e}")
@@ -683,6 +696,14 @@ _FALLBACK_DEALS = [
     {"Date":"2026-05-05","Deal Type":"Block","Symbol":"FIRSTCRY","Company":"FirstCry","Client / Party":"SoftBank (seller)","Buy/Sell":"SELL","Quantity":7200000,"Price (₹)":584.30,"Value (₹ Cr)":420.7},
     {"Date":"2026-05-05","Deal Type":"Block","Symbol":"FIRSTCRY","Company":"FirstCry","Client / Party":"HDFC MF (buyer)","Buy/Sell":"BUY","Quantity":3600000,"Price (₹)":584.30,"Value (₹ Cr)":210.3},
     {"Date":"2026-03-26","Deal Type":"Bulk","Symbol":"FIRSTCRY","Company":"FirstCry","Client / Party":"TPG Growth (seller)","Buy/Sell":"SELL","Quantity":3800000,"Price (₹)":548.60,"Value (₹ Cr)":208.5},
+    # ── Deals added 19 May 2026 ────────────────────────────────────────────────
+    # Nazara Technologies — 15 May 2026 (₹486 cr block)
+    # Seller: Mitter Infotech LLP (promoter Nitish Mittersain, ~4.9% stake)
+    # Buyers: Nikhil Kamath / Zerodha Broking Ltd + Axana Estates LLP
+    # 1.826 cr shares at ₹266/share; Source: BSE bulk-deal disclosures 15 May 2026
+    {"Date":"2026-05-15","Deal Type":"Block","Symbol":"NAZARA","Company":"Nazara Technologies","Client / Party":"Mitter Infotech LLP (promoter — seller)","Buy/Sell":"SELL","Quantity":18260000,"Price (₹)":266.00,"Value (₹ Cr)":485.7},
+    {"Date":"2026-05-15","Deal Type":"Block","Symbol":"NAZARA","Company":"Nazara Technologies","Client / Party":"Zerodha Broking Ltd / Nikhil Kamath (buyer)","Buy/Sell":"BUY","Quantity":9130000,"Price (₹)":266.00,"Value (₹ Cr)":242.9},
+    {"Date":"2026-05-15","Deal Type":"Block","Symbol":"NAZARA","Company":"Nazara Technologies","Client / Party":"Axana Estates LLP (buyer)","Buy/Sell":"BUY","Quantity":9130000,"Price (₹)":266.00,"Value (₹ Cr)":242.9},
 ]
 
 
@@ -749,26 +770,49 @@ def _fetch_nse_csv_history(days=90):
 
 
 def _load_history_cache():
-    """Load or refresh the 90-day deal history — live CSV first, fallback to curated data."""
+    """
+    Load or refresh the 90-day deal history.
+    Strategy: always include curated fallback; merge live NSE data on top
+    (live takes precedence for the same date so duplicates are removed).
+    This ensures curated records (incl. Nazara 15 May etc.) are never lost
+    when the NSE archive fetch partially succeeds.
+    """
     now_ts = time.time()
     last   = st.session_state.get("bd_hist_ts", 0)
     if now_ts - last < _HIST_TTL and "bd_hist_df" in st.session_state:
         return st.session_state["bd_hist_df"], st.session_state.get("bd_hist_src", "cache")
 
-    # Try NSE CSV archives (CDN — more reliable than the API)
+    # Start with the full curated fallback (always safe)
+    fallback_rows = list(_FALLBACK_DEALS)   # copy to avoid mutating the constant
+
+    # Attempt live NSE CSV archive fetch; merge rather than replace
     live_rows = _fetch_nse_csv_history(days=90)
+    src_label = "Curated Z47 deals (NSE/BSE filings)"
 
     if live_rows:
-        all_rows = live_rows
-        src_label = "NSE Archives (CSV)"
+        # Build a set of (date, symbol, client) from live data so we can deduplicate
+        live_keys = set()
+        for r in live_rows:
+            live_keys.add((
+                str(r.get("Date", ""))[:10],
+                str(r.get("Symbol", "")).upper().strip(),
+                str(r.get("Client / Party", "")).strip()[:30],
+            ))
+        # Only keep fallback rows that are NOT already in the live data
+        merged_fallback = [
+            r for r in fallback_rows
+            if (str(r.get("Date", ""))[:10],
+                str(r.get("Symbol", "")).upper().strip(),
+                str(r.get("Client / Party", "")).strip()[:30]) not in live_keys
+        ]
+        all_rows  = live_rows + merged_fallback
+        src_label = f"NSE Archives + curated ({len(live_rows)} live, {len(merged_fallback)} curated)"
     else:
-        # Always-available curated fallback: real Z47 block/bulk deals (last 90 days)
-        all_rows = list(_FALLBACK_DEALS)   # copy so we don't mutate the constant
-        src_label = "Curated Z47 deals (NSE/BSE filings — last 90 days)"
+        all_rows = fallback_rows
 
     df = pd.DataFrame(all_rows)
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-    df = df.dropna(subset=["Date"]).sort_values("Date", ascending=False)
+    df = df.dropna(subset=["Date"]).sort_values("Date", ascending=False).reset_index(drop=True)
     df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
 
     # Fast yfinance-only enrichment for zero-price rows (no news, won't hang)

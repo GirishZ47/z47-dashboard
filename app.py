@@ -1050,6 +1050,69 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str) -> str | None:
     return raw
 
 
+# ── Recent Results — sell-side quarterly summary ──────────────────────────────
+@st.cache_data(ttl=604800, show_spinner=False)
+def get_recent_results(company_name: str, ticker: str, sector: str) -> str | None:
+    """Sell-side quality 5-6 line quarterly results note. Cached 7 days."""
+    import re as _re
+    from datetime import date as _date
+    week = _date.today().isocalendar()[:2]
+
+    # Sector-aware KPI guidance injected into the prompt
+    _KPI_GUIDE = {
+        "Fintech / Financial Services": (
+            "For lenders/NBFCs: AUM growth, disbursement run-rate, NIM, GNPA/NNPA bps, "
+            "credit cost (bps), opex-to-AUM, CIR, RoA, capital adequacy, "
+            "secured-vs-unsecured mix. For brokers: active clients, ADTO, F&O share, "
+            "blended yield, cost-to-income, ARPU. For insurance: premium accreted, "
+            "new business margin, renewal rate, insurance EBITDA."
+        ),
+        "Consumer / Consumer Tech": (
+            "GMV growth, take-rate, contribution margin, adj. EBITDA margin, "
+            "monthly transacting users (MTU), average order value (AOV), "
+            "dark store or kitchen count, cohort retention."
+        ),
+        "B2B": (
+            "Revenue growth, order/shipment volume, capacity utilisation, "
+            "service-level metrics, EBITDA margin, working capital days."
+        ),
+        "SaaS / AI": (
+            "ARR growth, net dollar retention (NDR), gross margin, "
+            "Rule of 40 score, customer count, CAC payback period."
+        ),
+    }
+    kpi_hint = _KPI_GUIDE.get(sector, "Use the most relevant financial and operating KPIs for this company type.")
+
+    system = (
+        "You are a sell-side equity research analyst writing a quarterly results note "
+        "for a Z47 Index company. Write in tight, professional English. "
+        "Cite actual numbers, percentages, and dates. "
+        "No markdown, no bullet points, no headers — plain prose only."
+    )
+    prompt = (
+        f"Week {week[1]}, {week[0]}. Company: {company_name} (ticker: {ticker}, sector: {sector}). "
+        f"Sector KPIs to use: {kpi_hint} "
+        "Search BSE/NSE corporate filings, the company's investor relations page, "
+        "screener.in, trendlyne.com, and moneycontrol.com for the most recent quarterly results. "
+        "Write exactly 5-6 lines in this structure — no skipping steps: "
+        "(1) One-line headline takeaway — what the quarter meant strategically, not just a revenue number. "
+        "(2-3) The 2-3 most important numbers with YoY and QoQ context and exactly what drove them. "
+        "(4) What is improving structurally versus what is noise or a one-off item. "
+        "(5) The key watch-item or risk the market is tracking into the next quarter. "
+        "(6) Net-net: bull, bear, or mixed read on the print with a clear directional view. "
+        "Use sector-appropriate KPIs listed above. Anchor every claim to a specific number. "
+        "Identify the non-obvious insight. "
+        "Never write 'strong performance', 'healthy growth', or other vague adjectives. "
+        "No markdown. Plain prose only."
+    )
+    raw = _ai_takeaway(system, prompt, max_tokens=680)
+    if raw:
+        raw = _re.sub(r"#{1,3}\s*", "", raw)
+        raw = _re.sub(r"\*{1,2}(.+?)\*{1,2}", r"\1", raw)
+        raw = _re.sub(r"^[\-\*]\s+", "", raw, flags=_re.MULTILINE)
+    return raw
+
+
 # ── Company takeaway v2 ────────────────────────────────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_company_takeaway_v2(company_name: str, ticker: str) -> str | None:
@@ -2235,13 +2298,14 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
             )
 
     st.markdown("<div style='margin-top:20px'></div>", unsafe_allow_html=True)
-    # ── Feature 2: Performance tab added as first tab ─────────────────────────
-    tab_perf, tab_is, tab_bs, tab_cf, tab_earn, tab_analyst, tab_news = st.tabs([
+    # ── Tabs: Performance | IS | BS | CF | Earnings | Recent Results | Analyst | News ──
+    tab_perf, tab_is, tab_bs, tab_cf, tab_earn, tab_rr, tab_analyst, tab_news = st.tabs([
         "📈 Performance",
         "📊 Income Statement",
         "🏦 Balance Sheet",
         "💸 Cash Flow",
         "📈 Earnings Trends",
+        "📋 Recent Results",
         "🎯 Analyst Insights",
         "📰 Recent News",
     ])
@@ -2274,6 +2338,41 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
 
     with tab_earn:
         _render_earnings_trends(details, sym)
+
+    with tab_rr:
+        _rr_col, _rr_btn_col = st.columns([9, 1])
+        with _rr_btn_col:
+            if st.button("🔄 Refresh", key=f"rr_refresh_{tk}"):
+                get_recent_results.clear()
+                st.rerun()
+        try:
+            from datetime import date as _dt
+            _today = _dt.today()
+            # Indian fiscal quarter: Apr-Jun = Q1, Jul-Sep = Q2, Oct-Dec = Q3, Jan-Mar = Q4
+            _m = _today.month
+            _fq  = (_m - 4) // 3 + 1 if _m >= 4 else (_m + 8) // 3
+            _fyr = _today.year + 1 if _m >= 4 else _today.year
+            _qstr = f"Q{_fq} FY{str(_fyr)[2:]}"
+            with st.spinner(f"Analysing {c['name']} latest results…"):
+                _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
+            if _rr_text:
+                st.markdown(
+                    f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+                    border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+                    margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+                    <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+                    text-transform:uppercase;margin-bottom:8px'>💡 RECENT RESULTS — {_qstr}</div>
+                    <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{_rr_text}</div>
+                    <div style='font-size:11px;color:#9ca3af;margin-top:10px'>
+                    Last updated: {_today.strftime('%d %b %Y')} &nbsp;·&nbsp; Powered by Claude + web search
+                    </div></div>""",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info("Results summary generating — click Refresh to retry or check back shortly.")
+        except Exception as _rr_err:
+            st.info("Results summary unavailable — click Refresh to retry.")
+            print(f"[Recent Results] {c['name']}: {_rr_err}")
 
     with tab_analyst:
         _render_analyst_insights(details, info, sym)
