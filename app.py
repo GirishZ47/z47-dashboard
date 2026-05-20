@@ -27,6 +27,7 @@ try:
         HARDCODED_VALUATION_TAKEAWAY,
         HARDCODED_FUNDAMENTALS,
         HARDCODED_SECTOR_TAKEAWAYS,
+        HARDCODED_RECENT_RESULTS,
         QUALITY_BAR_FEW_SHOT,
     )
 except Exception as _tc_err:
@@ -37,6 +38,7 @@ except Exception as _tc_err:
     HARDCODED_VALUATION_TAKEAWAY = {"text": "", "window": "", "icon": "📊", "header": "", "updated": ""}
     HARDCODED_FUNDAMENTALS      = {}
     HARDCODED_SECTOR_TAKEAWAYS  = {}
+    HARDCODED_RECENT_RESULTS    = {}
     QUALITY_BAR_FEW_SHOT        = ""
 
 # ── Persistent disk cache (survives container restarts) ───────────────────────
@@ -2783,7 +2785,6 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
                 st.rerun()
 
         import re as _rr_re
-        import concurrent.futures as _rr_cf
         from datetime import date as _dt
 
         _today = _dt.today()
@@ -2804,33 +2805,34 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
         _rr_updated = _today.strftime('%d %b %Y')
 
         try:
-            # ── Fast path: disk cache (survives container restarts) ───────────
-            _rr_dk  = f"rr_{yf_ticker(c).replace('.', '_').replace('=', '_')}"
-            _rr_text = _dcache_get(_rr_dk, ttl_secs=604800)
-            if _rr_text is not None:
-                _rr_source = "disk"
-                # Update display timestamp from file mtime
-                try:
-                    import datetime as _rr_dt
-                    _mtime = os.path.getmtime(f"{_DISK_CACHE_DIR}/{_rr_dk}.pkl")
-                    _rr_updated = _rr_dt.datetime.fromtimestamp(_mtime).strftime('%d %b %Y')
-                except Exception:
-                    pass
+            # ── Priority 0: hardcoded gold-standard content (instant, no API) ─
+            _hc_rr = HARDCODED_RECENT_RESULTS.get(c["ticker"])
+            if _hc_rr:
+                _rr_text    = _hc_rr["body"]
+                _rr_source  = "hardcoded"
+                _rr_updated = _hc_rr.get("updated", _today.strftime('%d %b %Y'))
+                _qstr       = _hc_rr.get("header_quarter", _qstr)
             else:
-                # ── Slow path: call Claude with 15s timeout ───────────────────
-                with _rr_cf.ThreadPoolExecutor(max_workers=1) as _rr_ex:
-                    _rr_fut = _rr_ex.submit(
-                        get_recent_results, c["name"], yf_ticker(c), c["sector"]
-                    )
+                # ── Fast path: disk cache (survives container restarts) ───────
+                _rr_dk   = f"rr_{yf_ticker(c).replace('.', '_').replace('=', '_')}"
+                _rr_text = _dcache_get(_rr_dk, ttl_secs=604800)
+                if _rr_text is not None:
+                    _rr_source = "disk"
                     try:
-                        _rr_text = _rr_fut.result(timeout=15)
-                        _rr_source = "api"
-                    except _rr_cf.TimeoutError:
-                        _rr_text = None
-                        print(f"[RR TIMEOUT] {c['name']} timed out after 15s — showing factual fallback")
-                    except Exception as _rr_ex_err:
-                        _rr_text = None
-                        print(f"[RR ERR] {c['name']}: {_rr_ex_err}")
+                        import datetime as _rr_dt
+                        _mtime = os.path.getmtime(f"{_DISK_CACHE_DIR}/{_rr_dk}.pkl")
+                        _rr_updated = _rr_dt.datetime.fromtimestamp(_mtime).strftime('%d %b %Y')
+                    except Exception:
+                        pass
+                else:
+                    # ── Slow path: call Claude directly in main thread ────────
+                    # NOTE: no ThreadPoolExecutor wrapper — background threads
+                    # cannot reliably access st.secrets, and any timeout shorter
+                    # than the API's ~20-40s always produces false fallbacks.
+                    # @st.cache_data + disk cache ensure all subsequent loads
+                    # are instant after the first successful API call.
+                    _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
+                    _rr_source = "api"
 
         except Exception as _rr_outer_err:
             _rr_text = None

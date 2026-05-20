@@ -253,6 +253,119 @@ HARDCODED_DEAL_TAKEAWAYS = {
     },
 }
 
+# ── Hardcoded Recent Results (instant render, no API dependency) ──────────────
+# Key = company ticker (matches COMPANIES ticker field).
+# Update each quarter after results season. Checked BEFORE any API call.
+HARDCODED_RECENT_RESULTS = {
+    "SWIGGY": {
+        "header_quarter": "Q4 FY26",
+        "updated": "20 May 2026",
+        "body": (
+            "Swiggy's Q4 FY26 print was a revenue-growth story with a profitability gap still "
+            "to close: revenue of ₹61.5B (+54% YoY) confirmed the top-line trajectory, but EBITDA "
+            "loss of -₹7.0B and net loss of -₹10.7B show that Instamart dark-store expansion and "
+            "the build-out of Snacc are absorbing the contribution-margin gains Swiggy has highlighted "
+            "at the segment level. The 54% YoY revenue acceleration outpaces Blinkit's growth in the "
+            "same quarter, suggesting market-share recovery in urban core, but at an 11.4% EBITDA loss "
+            "margin, Swiggy is burning faster than its IPO-era projections implied. The non-obvious "
+            "issue is assortment depth: Swiggy's capital-light dark-store model controls capex but "
+            "constrains SKU coverage relative to Blinkit's inventory-dense stores, which limits AOV "
+            "expansion and makes the contribution-margin story harder to close quickly. The structural "
+            "positive is scale — at ₹61.5B quarterly revenue, incremental margin conversion becomes "
+            "the central investment thesis; the only debate is speed. Watch-item: Q1 FY27 EBITDA — "
+            "if the loss narrows sequentially despite the seasonally weaker summer quarter, the "
+            "profitability inflection narrative gains real traction. Net read: cautious on near-term "
+            "FCF, constructive on the revenue trajectory; re-rating requires a credible and sequential "
+            "EBITDA direction shift, which Q1 FY27 will either confirm or defer."
+        ),
+    },
+    "ETERNAL": {
+        "header_quarter": "Q4 FY26",
+        "updated": "20 May 2026",
+        "body": (
+            "Eternal (formerly Zomato) delivered Q4 FY26 as a continued proof of the India "
+            "quick-commerce thesis: Blinkit crossed 1,000 dark stores during the quarter and is "
+            "on track for EBITDA breakeven at the segment level by H1 FY27, while Zomato's food "
+            "delivery business sustained adjusted EBITDA margins in the mid-single digits. The "
+            "rebrand to Eternal is not cosmetic — it signals the board's intent to position the "
+            "company as a multi-vertical platform (food, grocery, dining, going-out) rather than "
+            "a food-delivery app with a quick-commerce adjacency. The quality-of-earnings story is "
+            "improving: GOV growth in food delivery is being driven by higher AOV (premiumisation) "
+            "rather than pure order-volume growth, which is a better indicator of structural "
+            "demand than discounting-led volume. The risk to re-rating is concentration: Blinkit's "
+            "capex programme requires consistent execution across 1,000+ locations, and any "
+            "supply-chain or regulatory disruption in the hyperlocal delivery network creates "
+            "operational drag at scale. Watch-item: Blinkit EBITDA breakeven timing — a Q1 or "
+            "Q2 FY27 breakeven would be a meaningful positive surprise. Net read: constructive "
+            "on the multi-vertical platform thesis; the market is appropriately pricing growth "
+            "but may be underweighting the operating leverage kicker from Blinkit's scale."
+        ),
+    },
+    "GROWW": {
+        "header_quarter": "Q4 FY26",
+        "updated": "20 May 2026",
+        "body": (
+            "Groww (Billionbrains Garage Ventures) reported its first full year as a listed entity "
+            "with Q4 FY26 reflecting both the strength of India's retail investor boom and the "
+            "structural shift in revenue mix: F&O continues to drive the majority of broking revenue, "
+            "but SEBI's circular restricting weekly options expiries (effective Nov 2024) compressed "
+            "F&O turnover across discount brokers in Q4. The critical number is active client growth "
+            "— Groww crossed 12M+ funded accounts and maintained the #1 position by active user "
+            "count on NSE, which is the moat metric the market pays for. The non-obvious risk is "
+            "the blended yield per client: as the F&O regulatory headwind persists, revenue per "
+            "active client is compressing even as client count grows, creating a scenario where "
+            "top-line growth masks yield dilution. The structural positive is AMC: Groww's mutual "
+            "fund distribution business is scaling and provides a recurring-fee complement to "
+            "transaction-driven broking revenue. Watch-item: the pace of non-broking revenue "
+            "(AMC, insurance, lending) as a percentage of total revenue — a meaningful shift above "
+            "20% would change the quality-of-earnings narrative. Net read: constructive on the "
+            "client franchise, cautious on near-term yield compression from the F&O regulatory "
+            "reset; the re-rating catalyst is product-mix diversification."
+        ),
+    },
+    "PAYTM": {
+        "header_quarter": "Q4 FY26",
+        "updated": "20 May 2026",
+        "body": (
+            "Paytm's Q4 FY26 was its fourth consecutive profitable quarter — FY26 PAT of ₹552 Cr "
+            "marked a definitive exit from the loss era triggered by the RBI action on Paytm "
+            "Payments Bank in early 2024. The profitability is real but the composition matters: "
+            "the recovery has been driven primarily by a cost rationalisation (headcount down ~30% "
+            "since FY24 peak) and a pivot to high-margin financial services (loan distribution, "
+            "insurance, devices) rather than a GMV-led top-line re-acceleration. Financial services "
+            "revenue grew 52% YoY in FY26, which is the structural tailwind — but the GMV "
+            "run-rate remains below pre-RBI-action levels as the merchant base rebuild takes time. "
+            "Antfin's continued disposal (most recently ₹572.9 Cr at ₹842.50/share on May 7) is "
+            "creating an overhang that will persist until the Chinese investor's position is "
+            "substantially reduced or fully exited. Watch-item: GMV trajectory and merchant "
+            "re-activation rate — if GMV returns to pre-action levels by Q2 FY27, the financial "
+            "services attach rate re-accelerates on a larger base. Net read: cautious-to-neutral; "
+            "the profitability milestone is investable, the Antfin overhang is not resolved, and "
+            "the market needs GMV confirmation before re-rating to pre-crisis multiples."
+        ),
+    },
+    "POLICYBZR": {
+        "header_quarter": "Q4 FY26",
+        "updated": "20 May 2026",
+        "body": (
+            "PB Fintech (PolicyBazaar/PaisaBazaar) sustained its insurance aggregation leadership "
+            "in Q4 FY26, with new business margin on the proprietary insurance products (Posp and "
+            "PB Partners) continuing to expand as the company shifts from pure comparison to "
+            "product manufacturing. The critical shift to track is the PB Plus and term-life own "
+            "products — these carry materially higher margins than the aggregation business and "
+            "represent the long-term margin re-rating story. The revenue quality is improving: "
+            "renewal premiums as a share of total collected premiums is growing, which reduces "
+            "the CAC-intensity of revenue and improves LTV/CAC. The risk is regulatory: insurance "
+            "distribution norms, digital KYC requirements, and direct-channel competition from "
+            "insurers remain overhangs that can compress take-rate without warning. Watch-item: "
+            "own-product (PB Plus, term-life) premium as a percentage of total premium — crossing "
+            "20% would be a meaningful structural milestone. Net read: constructive on the "
+            "product-manufacturing transition thesis; current valuation prices in aggregation "
+            "but may not fully reflect the margin uplift from own products at scale."
+        ),
+    },
+}
+
 # ── Hardcoded Index Fundamentals fallback ─────────────────────────────────────
 # Used when yfinance returns < 30% coverage on any metric.
 # Values as of approximately 19 May 2026 from published market data.
