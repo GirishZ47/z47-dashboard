@@ -1300,12 +1300,8 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str,
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_recent_results(company_name: str, ticker: str, sector: str) -> str | None:
     """Sell-side quality 5-6 line quarterly results note. Cached 7 days + disk cache."""
-    import re as _re
-    from datetime import date as _date
-    week = _date.today().isocalendar()[:2]
-
-    # ── Disk cache (survives container restarts) ──────────────────────────────
-    _dc_key = f"rr_{ticker.replace('.', '_').replace('=', '_')}_{week[0]}_{week[1]}"
+    # ── Disk cache keyed only by ticker (7-day mtime TTL, survives restarts) ──
+    _dc_key = f"rr_{ticker.replace('.', '_').replace('=', '_')}"
     _rr_cached = _dcache_get(_dc_key, ttl_secs=604800)
     if _rr_cached is not None:
         print(f"[PERF] get_recent_results({company_name}): disk cache hit")
@@ -2557,6 +2553,88 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
         print(f"[Performance chart] {ticker_sym}: {_pe}")
 
 
+def _build_rr_factual_fallback(c: dict, details: dict, qstr: str) -> str:
+    """
+    Build a one-paragraph factual summary from already-loaded financial data.
+    Used when the Claude API call fails or times out — never shows placeholder text.
+    """
+    import re as _rfb_re
+    sym  = "₹" if c["exchange"] == "NSE" else "$"
+    info = details.get("info", {})
+    iq   = details.get("income_quarterly")
+
+    def _fmt_v(v):
+        if v is None:
+            return None
+        try:
+            v = float(v)
+            if pd.isna(v):
+                return None
+        except Exception:
+            return None
+        neg = "-" if v < 0 else ""
+        av  = abs(v)
+        if av >= 1e12: return f"{neg}{sym}{av/1e12:.2f}T"
+        if av >= 1e9:  return f"{neg}{sym}{av/1e9:.1f}B"
+        if av >= 1e6:  return f"{neg}{sym}{av/1e6:.0f}M"
+        return f"{neg}{sym}{av/1e3:.0f}K"
+
+    def _get_row(df, candidates):
+        for cand in candidates:
+            for idx in df.index:
+                if cand.lower() == str(idx).lower():
+                    return df.loc[idx]
+        return None
+
+    rev_val = ni_val = ebitda_val = rev_yoy = None
+
+    # Try quarterly income statement (most reliable source)
+    if iq is not None and not iq.empty and len(iq.columns) >= 1:
+        try:
+            rev_row  = _get_row(iq, ["Total Revenue", "Operating Revenue"])
+            ni_row   = _get_row(iq, ["Net Income Common Stockholders", "Net Income"])
+            eb_row   = _get_row(iq, ["EBITDA", "Normalized EBITDA", "EBIT",
+                                      "Operating Income"])
+            if rev_row is not None:
+                rev_val = float(rev_row.iloc[0]) if not pd.isna(rev_row.iloc[0]) else None
+                if len(rev_row) >= 5:
+                    rev_prev = (float(rev_row.iloc[4])
+                                if not pd.isna(rev_row.iloc[4]) else None)
+                    if rev_val and rev_prev and rev_prev != 0:
+                        rev_yoy = round((rev_val / rev_prev - 1) * 100, 1)
+            if ni_row is not None:
+                ni_val = float(ni_row.iloc[0]) if not pd.isna(ni_row.iloc[0]) else None
+            if eb_row is not None:
+                ebitda_val = (float(eb_row.iloc[0])
+                              if not pd.isna(eb_row.iloc[0]) else None)
+        except Exception:
+            pass
+
+    # Fallback to TTM fields from info
+    if rev_val is None:
+        rev_val = info.get("totalRevenue")
+    if ni_val is None:
+        ni_val = info.get("netIncomeToCommon")
+
+    parts = []
+    if rev_val is not None:
+        yoy_s = (f" ({'+' if rev_yoy >= 0 else ''}{rev_yoy:.1f}% YoY)"
+                 if rev_yoy is not None else "")
+        parts.append(f"revenue {_fmt_v(rev_val)}{yoy_s}")
+
+    if ebitda_val is not None:
+        lbl = "EBITDA loss" if ebitda_val < 0 else "EBITDA"
+        parts.append(f"{lbl} {_fmt_v(ebitda_val)}")
+
+    if ni_val is not None:
+        lbl = "net loss" if ni_val < 0 else "PAT"
+        parts.append(f"{lbl} {_fmt_v(ni_val)}")
+
+    if parts:
+        return f"{c['name']} reported {', '.join(parts)} in {qstr}. See Income Statement tab for full line items."
+    return f"Latest reported quarter: {qstr}. See Income Statement tab for line items."
+
+
 def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
     info       = details.get("info", {})
     sym        = "₹" if c["exchange"] == "NSE" else "$"
@@ -2693,68 +2771,107 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
         _rr_col, _rr_btn_col = st.columns([9, 1])
         with _rr_btn_col:
             if st.button("🔄 Refresh", key=f"rr_refresh_{tk}"):
+                # Force-clear both the in-memory and disk caches
                 get_recent_results.clear()
+                _rr_dk = f"rr_{yf_ticker(c).replace('.', '_').replace('=', '_')}"
+                try:
+                    _rr_dpath = f"{_DISK_CACHE_DIR}/{_rr_dk}.pkl"
+                    if os.path.exists(_rr_dpath):
+                        os.remove(_rr_dpath)
+                except Exception:
+                    pass
                 st.rerun()
+
+        import re as _rr_re
+        import concurrent.futures as _rr_cf
+        from datetime import date as _dt
+
+        _today = _dt.today()
+        # Indian fiscal quarter: Apr-Jun = Q1, Jul-Sep = Q2, Oct-Dec = Q3, Jan-Mar = Q4
+        _m   = _today.month
+        _fq  = (_m - 4) // 3 + 1 if _m >= 4 else (_m + 8) // 3
+        _fyr = _today.year + 1 if _m >= 4 else _today.year
+        # Most recently REPORTED quarter = one quarter behind the current quarter
+        # e.g. May 2026 → current FQ is Q1 FY27 → reported = Q4 FY26
+        if _fq == 1:
+            _rep_fq, _rep_fyr = 4, _fyr - 1
+        else:
+            _rep_fq, _rep_fyr = _fq - 1, _fyr
+        _qstr = f"Q{_rep_fq} FY{str(_rep_fyr)[2:]}"
+
+        _rr_text    = None
+        _rr_source  = "api"   # "disk", "api", "fallback"
+        _rr_updated = _today.strftime('%d %b %Y')
+
         try:
-            from datetime import date as _dt
-            _today = _dt.today()
-            # Indian fiscal quarter: Apr-Jun = Q1, Jul-Sep = Q2, Oct-Dec = Q3, Jan-Mar = Q4
-            _m = _today.month
-            _fq  = (_m - 4) // 3 + 1 if _m >= 4 else (_m + 8) // 3
-            _fyr = _today.year + 1 if _m >= 4 else _today.year
-            # Most recently REPORTED quarter = one quarter behind the current quarter
-            # e.g. May 2026 is Q1 FY27 → reported quarter is Q4 FY26
-            if _fq == 1:
-                _rep_fq, _rep_fyr = 4, _fyr - 1
+            # ── Fast path: disk cache (survives container restarts) ───────────
+            _rr_dk  = f"rr_{yf_ticker(c).replace('.', '_').replace('=', '_')}"
+            _rr_text = _dcache_get(_rr_dk, ttl_secs=604800)
+            if _rr_text is not None:
+                _rr_source = "disk"
+                # Update display timestamp from file mtime
+                try:
+                    import datetime as _rr_dt
+                    _mtime = os.path.getmtime(f"{_DISK_CACHE_DIR}/{_rr_dk}.pkl")
+                    _rr_updated = _rr_dt.datetime.fromtimestamp(_mtime).strftime('%d %b %Y')
+                except Exception:
+                    pass
             else:
-                _rep_fq, _rep_fyr = _fq - 1, _fyr
-            _qstr = f"Q{_rep_fq} FY{str(_rep_fyr)[2:]}"
-            _rr_text = get_recent_results(c["name"], yf_ticker(c), c["sector"])
-            if _rr_text:
-                st.markdown(
-                    f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
-                    border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
-                    margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
-                    <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
-                    text-transform:uppercase;margin-bottom:8px'>💡 RECENT RESULTS — {_qstr}</div>
-                    <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{_rr_text}</div>
-                    <div style='font-size:11px;color:#9ca3af;margin-top:10px'>
-                    Last updated: {_today.strftime('%d %b %Y')} &nbsp;·&nbsp; Powered by Claude + web search
-                    </div></div>""",
-                    unsafe_allow_html=True,
-                )
-            else:
-                # NEVER show bare "generating" — show factual fallback with available data
-                _rev = info.get("totalRevenue")
-                _ni  = info.get("netIncomeToCommon")
-                _rev_s = f"₹{_rev/1e9:.1f}B revenue (TTM)" if _rev else ""
-                _ni_s  = (f", net income ₹{_ni/1e9:.1f}B" if _ni and _ni > 0
-                          else (f", net loss ₹{abs(_ni)/1e9:.1f}B" if _ni else ""))
-                _pe_s  = f", P/E {info.get('trailingPE'):.1f}x" if info.get("trailingPE") else ""
-                _fallback_body = (
-                    f"{c['name']} ({c['sector']}). "
-                    + (_rev_s + _ni_s + _pe_s + "." if (_rev_s or _ni_s) else "")
-                    + f" Detailed {_qstr} results analysis is being generated — "
-                    + "click ↻ Refresh above to trigger a new summary."
-                ).strip()
-                print(f"[FAIL] Recent Results for {c['name']} returned empty — showing factual fallback")
-                st.markdown(
-                    f"""<div style='background:#f9f9f9;border:1px solid #ccdaea;
-                    border-radius:10px;padding:14px 18px;margin:10px 0'>
-                    <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.05em;
-                    text-transform:uppercase;margin-bottom:6px'>📋 {c['name']} — {_qstr} Results</div>
-                    <div style='color:#4a3520;font-size:13px;line-height:1.6'>{_fallback_body}</div>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-        except Exception as _rr_err:
-            print(f"[FAIL] Recent Results {c['name']}: {type(_rr_err).__name__}: {_rr_err}")
+                # ── Slow path: call Claude with 15s timeout ───────────────────
+                with _rr_cf.ThreadPoolExecutor(max_workers=1) as _rr_ex:
+                    _rr_fut = _rr_ex.submit(
+                        get_recent_results, c["name"], yf_ticker(c), c["sector"]
+                    )
+                    try:
+                        _rr_text = _rr_fut.result(timeout=15)
+                        _rr_source = "api"
+                    except _rr_cf.TimeoutError:
+                        _rr_text = None
+                        print(f"[RR TIMEOUT] {c['name']} timed out after 15s — showing factual fallback")
+                    except Exception as _rr_ex_err:
+                        _rr_text = None
+                        print(f"[RR ERR] {c['name']}: {_rr_ex_err}")
+
+        except Exception as _rr_outer_err:
+            _rr_text = None
+            print(f"[RR OUTER ERR] {c['name']}: {_rr_outer_err}")
+
+        if _rr_text:
+            # ── Quarter label validation: extract quarter from body, sync header ──
+            _q_match = _rr_re.search(r'Q([1-4])\s*FY(\d{2})', _rr_text)
+            if _q_match:
+                _body_qstr = f"Q{_q_match.group(1)} FY{_q_match.group(2)}"
+                if _body_qstr != _qstr:
+                    print(f"[RR QFIX] {c['name']}: header {_qstr} → body says {_body_qstr}")
+                    _qstr = _body_qstr
+
+            _src_note = ("Powered by Claude + web search"
+                         if _rr_source in ("api", "disk") else "Factual summary")
+            st.markdown(
+                f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
+                border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
+                margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
+                <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
+                text-transform:uppercase;margin-bottom:8px'>💡 RECENT RESULTS — {_qstr}</div>
+                <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{_rr_text}</div>
+                <div style='font-size:11px;color:#9ca3af;margin-top:10px'>
+                Last updated: {_rr_updated} &nbsp;·&nbsp; {_src_note}
+                </div></div>""",
+                unsafe_allow_html=True,
+            )
+        else:
+            # ── Factual fallback from financial data — never shows placeholder ──
+            print(f"[RR FALLBACK] {c['name']} — rendering factual fallback")
+            _fallback_body = _build_rr_factual_fallback(c, details, _qstr)
             st.markdown(
                 f"""<div style='background:#f9f9f9;border:1px solid #ccdaea;
                 border-radius:10px;padding:14px 18px;margin:10px 0'>
-                <div style='color:#4a3520;font-size:13px'>
-                {c['name']} results analysis temporarily unavailable.
-                Click ↻ Refresh to retry.</div></div>""",
+                <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.05em;
+                text-transform:uppercase;margin-bottom:6px'>📋 {c['name']} — {_qstr} Results</div>
+                <div style='color:#4a3520;font-size:13px;line-height:1.6'>{_fallback_body}</div>
+                <div style='font-size:11px;color:#9ca3af;margin-top:8px'>
+                Source: yfinance / BSE filings &nbsp;·&nbsp; Click ↻ Refresh for AI analysis
+                </div></div>""",
                 unsafe_allow_html=True,
             )
 
@@ -3198,18 +3315,36 @@ def _render_top_nav():
 
 def _prewarm_recent_results_bg() -> None:
     """
-    Background thread: pre-populate all company caches for the top 20 companies:
-    - fetch_company_financials (yfinance, parallel-fetched, disk-cached)
-    - get_company_takeaway_v2 (Claude API, disk-cached)
-    - get_recent_results (Claude API, disk-cached)
-    Called once per session (guarded by session_state flag).
+    Background thread: pre-populate all company caches for the priority 20 companies.
+    Warms: fetch_company_financials, get_company_takeaway_v2, get_recent_results.
+    Each company's failure is isolated — one bad API call never stops the others.
+    daemon=True: thread dies automatically when the main process exits.
+
+    To trigger a full scheduled refresh (e.g. weekly Streamlit Cloud rerun):
+        from app import _prewarm_recent_results_bg
+        _prewarm_recent_results_bg()
+    Or call refresh_all_recent_results() for a synchronous full pass.
     """
     import threading as _threading
 
+    # Priority order specified by stakeholder — CEO-visible companies first
+    _PRIORITY_TICKERS = [
+        "KISSHT", "ETERNAL", "SWIGGY", "GROWW", "NAZARA",
+        "PAYTM", "POLICYBZR", "MOBIKWIK", "MEESHO", "NYKAA",
+        "HONASA", "MAPMYINDIA", "OLAELEC", "MEDPLUS", "PWL",
+        "AYE", "MEDIASSIST", "APTUS", "CAPILLARY",
+    ]
+    _ticker_to_co = {c["ticker"]: c for c in COMPANIES}
+
     def _worker():
-        _TOP20 = COMPANIES[:20]
-        print(f"[PREWARM] Starting prewarm for {len(_TOP20)} companies…")
-        for _c in _TOP20:
+        _ordered = [_ticker_to_co[t] for t in _PRIORITY_TICKERS if t in _ticker_to_co]
+        # Append any remaining COMPANIES not in priority list (in original order)
+        _seen = {c["ticker"] for c in _ordered}
+        _ordered += [c for c in COMPANIES if c["ticker"] not in _seen]
+        _ordered = _ordered[:20]   # cap at 20
+
+        print(f"[PREWARM] Starting prewarm for {len(_ordered)} companies…")
+        for _c in _ordered:
             _tk = yf_ticker(_c)
             # 1. Financials (parallel yfinance — fast, disk-cached)
             try:
@@ -3229,6 +3364,33 @@ def _prewarm_recent_results_bg() -> None:
         print("[PREWARM] Done.")
 
     _threading.Thread(target=_worker, daemon=True).start()
+
+
+def refresh_all_recent_results() -> None:
+    """
+    Synchronous full refresh of Recent Results for all 47 companies.
+    Clears disk cache first, then regenerates via Claude API.
+    Use for scheduled weekly reruns or manual admin refresh.
+
+    Wire to Streamlit Cloud scheduled rerun:
+        Add a cron at https://share.streamlit.io → Settings → Scheduled reruns.
+        In the rerun script, call:  from app import refresh_all_recent_results; refresh_all_recent_results()
+    """
+    import glob as _glob
+    # Clear existing RR disk cache files
+    for _f in _glob.glob(f"{_DISK_CACHE_DIR}/rr_*.pkl"):
+        try:
+            os.remove(_f)
+        except Exception:
+            pass
+    get_recent_results.clear()
+    # Regenerate for all 47 companies
+    for _c in COMPANIES:
+        try:
+            get_recent_results(_c["name"], yf_ticker(_c), _c["sector"])
+        except Exception as _e:
+            print(f"[REFRESH RR] {_c['name']}: {_e}")
+    print("[REFRESH RR] Complete.")
 
 
 def main():
