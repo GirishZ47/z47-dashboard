@@ -3812,9 +3812,13 @@ def _run_z47_desktop():
             title=f"Z47'47 — Monthly Takeaway · {HARDCODED_INDEX_TAKEAWAY['window']}",
             icon="✨",
         )
+        from datetime import date as _idx_date, timedelta as _idx_td
+        _today_idx = _idx_date.today()
+        _days_ahead = (7 - _today_idx.weekday()) % 7 or 7  # days until next Monday
+        _next_mon = _today_idx + _idx_td(days=_days_ahead)
         st.caption(
             f"Last updated: {HARDCODED_INDEX_TAKEAWAY['updated']} "
-            f"· Next refresh: Monday 26 May"
+            f"· Next refresh: Monday {_next_mon.day} {_next_mon.strftime('%b')}"
         )
     except Exception as _zt_err:
         print(f"[Z47 index takeaway] render error: {_zt_err}")
@@ -3877,9 +3881,13 @@ def _run_z47_desktop():
             title=f"Z47'47 Valuation Perspective · {HARDCODED_VALUATION_TAKEAWAY['window']}",
             icon="📊",
         )
+        from datetime import date as _val_date, timedelta as _val_td
+        _today_val = _val_date.today()
+        _days_ahead_v = (7 - _today_val.weekday()) % 7 or 7
+        _next_mon_v = _today_val + _val_td(days=_days_ahead_v)
         st.caption(
             f"Last updated: {HARDCODED_VALUATION_TAKEAWAY['updated']} "
-            f"· Next refresh: Monday 26 May"
+            f"· Next refresh: Monday {_next_mon_v.day} {_next_mon_v.strftime('%b')}"
         )
     except Exception as _vt_err:
         print(f"[Valuation takeaway] render error: {_vt_err}")
