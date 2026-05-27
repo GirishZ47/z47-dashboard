@@ -837,15 +837,51 @@ def _ai_takeaway(system: str, prompt: str, max_tokens: int = 1500):
 
 
 # ── Shared takeaway box renderer ──────────────────────────────────────────────
+def _bullets_to_html(text: str) -> str:
+    """Convert •-prefixed lines to HTML <li> items for rendering inside takeaway boxes.
+    Lines not starting with • are rendered as paragraphs. Empty lines are skipped."""
+    lines = text.strip().splitlines()
+    html_parts: list[str] = []
+    in_list = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        is_bullet = stripped.startswith("•") or (
+            stripped.startswith("*") and not stripped.startswith("**")
+        )
+        if is_bullet:
+            if not in_list:
+                html_parts.append(
+                    "<ul style='margin:4px 0 0 0;padding-left:22px;"
+                    "list-style-type:disc'>"
+                )
+                in_list = True
+            item = stripped.lstrip("•*").strip()
+            html_parts.append(f"<li style='margin-bottom:8px'>{item}</li>")
+        else:
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(
+                f"<p style='margin:0 0 7px 0;line-height:1.65'>{stripped}</p>"
+            )
+    if in_list:
+        html_parts.append("</ul>")
+    return "\n".join(html_parts)
+
+
 def render_takeaway_box(text: str, title: str = "Z47 Takeaway", icon: str = "✨"):
-    """Render a purple-gradient takeaway box."""
+    """Render a purple-gradient takeaway box. Bullet lines (starting with •) are
+    rendered as a proper HTML list; prose text is rendered as paragraphs."""
+    body_html = _bullets_to_html(text)
     st.markdown(
         f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
         border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
         margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>
         <div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
         text-transform:uppercase;margin-bottom:8px'>{icon} {title}</div>
-        <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{text}</div>
+        <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{body_html}</div>
         </div>""",
         unsafe_allow_html=True,
     )
@@ -1143,37 +1179,45 @@ def _monthly_window():
 # ── Feature 3 & 7: Z47'47 Monthly takeaway (v2) ──────────────────────────────
 @st.cache_data(ttl=604800, show_spinner=False)
 def get_z47_index_takeaway_v2(monday_key: str = "") -> str | None:
-    """Analyst-quality 5-6 sentence monthly takeaway on Z47'47 index. Cached 1 week (Monday-keyed)."""
+    """Analyst-quality bullet-format monthly takeaway on Z47'47 index. Cached 1 week (Monday-keyed)."""
     _mk, _sl, _el, _sd, _ed = _monthly_window()
     system = (
-        "You are a sell-side equity research analyst writing a monthly takeaway for Z47'47 — "
-        "the Z47 index of 47 Indian new-age tech and financial services companies. "
-        "Write in tight, professional English. No markdown, no bullet points — plain prose only. "
-        "You cover the INDEX as a whole: sector themes, macro read-throughs, valuation observations. "
-        "Do not go company-by-company. Write at the index and sector-cohort level."
+        "You are a thoughtful market participant — someone who has traded these names, sat in IC meetings, "
+        "and knows where the bodies are buried — writing a monthly takeaway for Z47'47, "
+        "the index of 47 Indian new-age tech and financial-services companies. "
+        "Your job: surface what a senior person who doesn't track these companies daily "
+        "would learn from reading this. Write in tight, confident, plain English. "
+        "Index-level narrative — pull in specific company highlights and lowlights with the WHY behind them. "
+        "Not sell-side hedging, not VC breathlessness, not newspaper neutrality. Take a position."
     )
     prompt = (
         _NO_PREAMBLE
         + f"Analyze the rolling 30-day period from {_sd} to {_ed}. "
-        "Search for Z47'47 index performance, Indian new-age tech sector news, "
-        "and macro developments over this period. "
-        "Write exactly 5-6 lines in this structure: "
-        "(1) Headline: Z47'47's 30-day move vs Nifty 50 and what drove the relative performance "
-        "at the sector-cohort level — not company-by-company. "
-        "(2-4) Mix of key data points (index level, sector performance, macro event) AND at least "
-        "2 analyst insights from: variant perception (what consensus has wrong about the index), "
-        "structural vs cyclical distinction (permanent re-rate vs mean-reversion), "
-        "quality-of-sector-earnings (real outperformance or just multiple expansion without earnings), "
-        "read-through to the index from macro/policy events, "
-        "what the market is missing about Z47'47's composition or risk profile, "
-        "risk-reward asymmetry at current index levels. "
-        "Every number must be followed by what it means — not just the number. "
-        "(5) The watch-item: what single event or data release would change the index view. "
-        "(6) Net read: constructive/cautious/mixed on the index with one-line rationale. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
+        "Search for: Z47'47 index 30-day performance vs Nifty 50, top performers and laggards "
+        "in Indian new-age tech (with the WHY behind each move — results, deals, regulatory events), "
+        "macro events relevant to the cohort (RBI policy, SEBI actions, tariff/trade events), "
+        "significant block/bulk deals, lock-in expiries, DRHP filings, IPO news.\n\n"
+        "Write exactly 5-7 bullets. Each bullet starts with • (bullet character). "
+        "Structure:\n"
+        "• OPENING VERDICT: one sharp line stating Z47'47's 30-day move vs Nifty and the central "
+        "call — what the relative performance actually signals. This is the headline.\n"
+        "• BULLETS 2-5: each pulls in a specific company highlight or lowlight with cause-effect "
+        "chain explicit ('the drag is X because Y'). At least 2 bullets must surface non-obvious "
+        "insights: consensus mispricing, footnote nobody flagged, structural shift inside a headline "
+        "number, earned vs mechanical outperformance, quality-of-earnings distinction.\n"
+        "• FINAL BULLET: begin exactly with 'What to watch:' and name one specific observable "
+        "(data point, earnings print, regulatory decision) that would change the index view.\n\n"
+        "RULES:\n"
+        "- Every bullet: 1-2 sentences, ~25-40 words. Lead with the conclusion, then the data.\n"
+        "- Name companies, name rupee amounts, name buyers/sellers, name specific dates.\n"
+        "- No hallucinated data. If you cannot verify a number, leave it out.\n"
+        "- No recommendation language: buy, sell, hold, trim, overweight, underweight, target price.\n"
+        "- Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
         "'positive momentum', 'in line with expectations', 'broadly stable', "
-        "'well-positioned', 'execution remains key'. "
-        "No buy/sell/hold. No markdown. Plain prose. No preamble."
+        "'well-positioned', 'execution remains key', 'going forward', "
+        "'macroeconomic headwinds', 'constructive setup', 'navigating the environment'.\n"
+        "- No sub-bullets. Flat list only.\n"
+        "- No preamble. Output bullets only."
     )
     return _ai_takeaway(system, prompt, max_tokens=1500)
 
@@ -1194,35 +1238,41 @@ def get_valuation_multiples_takeaway(ev_revenue: float | None, ev_ebitda: float 
     if ebitda_margin: parts.append(f"Z47 EBITDA Margin={ebitda_margin*100:.0f}%")
     metrics_str = ", ".join(parts) if parts else "data unavailable"
     system = (
-        "You are a sell-side equity research analyst writing a valuation deep-dive note for Z47'47 — "
+        "You are a thoughtful market participant writing a valuation perspective note for Z47'47 — "
         "the index of 47 Indian new-age tech and financial-services companies. "
-        "Write in tight, professional English. Cite actual numbers. No markdown — plain prose only."
+        "Your job: build the valuation case analytically, take a position, cite specific numbers. "
+        "Write in tight, confident, plain English. "
+        "Not sell-side hedging. Not a framework deck. Take a stance on where the premium is earned vs rented."
     )
     prompt = (
         _NO_PREAMBLE
         + f"Rolling 30-day window: {_sd} to {_ed}. Z47'47 current multiples: {metrics_str}. "
-        "Search for the latest Nifty 50 P/E, EV/EBITDA, P/B and Sensex valuation data "
-        "from screener.in, NSE, or financial news. "
-        "Write exactly 4-5 lines — build the valuation case analytically, not just state conclusions: "
-        "(1) Where Z47'47 trades vs Nifty 50 right now on P/E (or P/B for the NBFC cohort) and "
-        "EV/EBITDA — cite the actual numbers for both indices, and state whether the premium has "
-        "expanded or compressed over the rolling 30-day period. "
-        "(2) The case FOR the premium: earnings growth differential between Z47'47 and Nifty, "
-        "business-mix advantages (tech-forward, asset-light, high gross-margin SaaS vs old-economy "
-        "Nifty), structural tailwinds (TAM expansion, formalization, digital adoption rate) — "
-        "anchored to specific data points, not assertions. "
-        "(3) The case AGAINST: where the multiple is stretched vs 3-year history or global comps; "
-        "which sub-segments within Z47'47 (e.g., loss-making consumer tech, pre-profit NBFCs) are "
-        "at peak multiples; what consensus is over-extrapolating in the growth assumption. "
-        "(4) The non-obvious insight: what is underpriced or overpriced within Z47'47 that the "
-        "headline index P/E conceals — e.g., cross-sector dispersion, quality differences in the "
-        "earnings mix (real margin expansion vs denominator effect), or a re-rating catalyst the "
-        "market hasn't priced. "
-        "(5) Net read: risk-reward at current levels — constructive/cautious/mixed — with the one "
-        "variable that would sharply change the premium direction. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
-        "'well-positioned', 'execution remains key', 'positive momentum'. "
-        "No buy/sell/hold. No markdown. No preamble."
+        "Search for the latest Nifty 50 P/E, EV/EBITDA, P/B from NSE, screener.in, or financial news. "
+        "Also search for recent earnings results and quarterly results from Z47'47 constituent companies "
+        "to identify which sub-cohorts are earning their multiples vs renting them.\n\n"
+        "Write exactly 5-7 bullets. Each bullet starts with • (bullet character). "
+        "Structure:\n"
+        "• OPENING VERDICT: one line stating where Z47'47 trades vs Nifty on P/E (or P/B) right now "
+        "and what the premium signals — earned, mechanical, or narrowing.\n"
+        "• THE CASE FOR: earnings growth differential, business-mix advantages, structural tailwinds — "
+        "anchored to specific numbers, not assertions. Name the sub-cohort doing real earnings work.\n"
+        "• THE CASE AGAINST: where the multiple is stretched; which sub-segment is at peak multiples; "
+        "what consensus is over-extrapolating. Name the specific company or cohort.\n"
+        "• NON-OBVIOUS INSIGHT: what does the headline index P/E conceal? "
+        "Cross-sector multiple dispersion, quality-of-earnings differences (real margin expansion vs "
+        "denominator effect), re-rating catalyst the market hasn't priced, IPO pipeline comparable-check risk.\n"
+        "• FINAL BULLET: begin exactly with 'What to watch:' and name the one specific variable "
+        "that would sharply change the premium direction.\n\n"
+        "RULES:\n"
+        "- Every bullet: 1-2 sentences, ~25-40 words. Lead with the conclusion, then the data.\n"
+        "- Cite actual numbers for both Z47'47 and Nifty. Name companies where relevant.\n"
+        "- No hallucinated data. If you cannot verify a number, leave it out.\n"
+        "- No recommendation language: buy, sell, hold, trim, overweight, underweight, target price.\n"
+        "- Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', "
+        "'well-positioned', 'execution remains key', 'positive momentum', "
+        "'broadly stable', 'going forward', 'constructive setup'.\n"
+        "- No sub-bullets. Flat list only.\n"
+        "- No preamble. Output bullets only."
     )
     return _ai_takeaway(system, prompt, max_tokens=1500)
 
@@ -1268,32 +1318,41 @@ def get_sector_takeaway_v2(sector: str, top_movers_str: str,
     _mk, _sl, _el, _sd, _ed = _monthly_window()
     kpi_hint = _SECTOR_KPI_MAP.get(sector, "Use the most relevant financial and operating KPIs for this sector.")
     system = (
-        f"You are a sell-side equity research analyst writing a monthly sector note for the "
+        f"You are a thoughtful market participant writing a monthly sector note for the "
         f"'{sector}' cohort within Z47'47 — the index of 47 Indian new-age tech and financial-services companies. "
-        "Write in tight, professional English. No markdown — plain prose only."
+        "Your job: surface what a senior person who doesn't track these companies daily would learn. "
+        "Write in tight, confident, plain English. Take a position on the sector. "
+        "Each bullet must pull in a specific company highlight or lowlight with the cause-effect chain explicit."
     )
     prompt = (
         _NO_PREAMBLE
         + f"Analyze the rolling 30-day period from {_sd} to {_ed}. "
         f"Z47'47 sector: {sector}. 30-day top movers: {top_movers_str}. "
-        f"Key sector KPIs to reference where available: {kpi_hint} "
-        "Search for the latest news, results, or regulatory developments in this sector. "
-        "Write exactly 5-6 lines: "
-        "(1) One-line verdict on the sector for the rolling 30-day period — what the performance actually signals, "
-        "not a recap of the movers list. "
-        "(2-3) What is driving the dispersion between winners and laggards — cite specific names and % moves "
-        "where relevant; do not just list them, interpret WHY the top performer outperformed (quality of earnings? "
-        "re-rating catalyst? regulatory tailwind?). Include at least 2 of: consensus mispricing, "
-        "structural vs cyclical distinction, regulatory or macro read-through, what the market is underweighting "
-        "in this sector's risk or opportunity profile. "
-        "(4) Structural vs noise: is this performance a permanent re-rating or mean-reversion from an extreme? "
-        "What is the earnings-quality story behind the sector's 30-day move? "
-        "(5) Read-through: what does this sector's print signal for adjacent sectors, supply-chain, "
-        "or the upcoming IPO pipeline in the Z47'47 universe? "
-        "(6) Net read: constructive/cautious/mixed — one line with the one variable that would change the view. "
-        "Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
-        "'broadly stable', 'well-positioned', 'execution remains key'. "
-        "No buy/sell/hold. No markdown. No preamble."
+        f"Key sector KPIs to reference where available: {kpi_hint}\n"
+        "Search for: latest quarterly results for companies in this sector, significant deals or "
+        "lock-in expiries, regulatory developments, competitive dynamics between names in the cohort.\n\n"
+        "Write exactly 5-7 bullets. Each bullet starts with • (bullet character). "
+        "Structure:\n"
+        "• OPENING VERDICT: one sharp line on the sector's 30-day performance — what it actually signals, "
+        "not a recap of the movers list.\n"
+        "• BULLETS 2-4: each bullet names a specific company, states the move or result, and gives "
+        "the WHY — cause-effect chain explicit ('the drag is X because Y'). "
+        "Cover: top performer WHY (quality of earnings? re-rating catalyst? structural shift?), "
+        "laggard WHY (earnings miss? regulatory? competitive?), one non-obvious insight "
+        "(consensus mispricing, footnote nobody flagged, structural vs cyclical distinction).\n"
+        "• BULLET 5 (optional): read-through to adjacent sectors, IPO pipeline, or macro.\n"
+        "• FINAL BULLET: begin exactly with 'What to watch:' and name one specific observable "
+        "that would change the sector view — a data point, earnings print, or regulatory decision.\n\n"
+        "RULES:\n"
+        "- Every bullet: 1-2 sentences, ~25-40 words. Lead with the conclusion, then the data.\n"
+        "- Name companies. Name rupee/dollar amounts. Name specific dates or data points.\n"
+        "- No hallucinated data. If you cannot verify a number, leave it out.\n"
+        "- No recommendation language: buy, sell, hold, trim, overweight, underweight, target price.\n"
+        "- Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', "
+        "'broadly stable', 'well-positioned', 'execution remains key', 'going forward', "
+        "'macroeconomic headwinds', 'constructive setup', 'navigating the environment'.\n"
+        "- No sub-bullets. Flat list only.\n"
+        "- No preamble. Output bullets only."
     )
     return _ai_takeaway(system, prompt, max_tokens=1500)
 

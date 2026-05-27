@@ -22,6 +22,39 @@ CARD_BG = "#f6f9fd"; BG_ALT = "#edf3fa"; BORDER = "#ccdaea"
 IST = pytz.timezone("Asia/Kolkata")
 
 
+# ── Bullet-to-HTML renderer (mirrors app.py version) ─────────────────────────
+def _bullets_to_html(text: str) -> str:
+    """Convert •-prefixed lines to HTML <li> items for rendering inside takeaway boxes."""
+    lines = text.strip().splitlines()
+    html_parts: list[str] = []
+    in_list = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        is_bullet = stripped.startswith("•") or (
+            stripped.startswith("*") and not stripped.startswith("**")
+        )
+        if is_bullet:
+            if not in_list:
+                html_parts.append(
+                    "<ul style='margin:4px 0 0 0;padding-left:22px;list-style-type:disc'>"
+                )
+                in_list = True
+            item = stripped.lstrip("•*").strip()
+            html_parts.append(f"<li style='margin-bottom:8px'>{item}</li>")
+        else:
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(
+                f"<p style='margin:0 0 7px 0;line-height:1.65'>{stripped}</p>"
+            )
+    if in_list:
+        html_parts.append("</ul>")
+    return "\n".join(html_parts)
+
+
 # ── Preamble-stripping helper (mirrors app.py version) ───────────────────────
 def _clean_takeaway_output(raw: str) -> str | None:
     """Strip model preamble from raw AI response. Returns cleaned text or None if too short."""
@@ -904,30 +937,44 @@ def get_top3_deal_takeaway_cached(company: str, value_cr: float,
             return None
         client = anthropic.Anthropic(api_key=api_key)
         system = (
-            "You are a sell-side equity research analyst writing a block/bulk deal note "
-            "for a Z47'47 constituent. Write in tight, professional English. "
-            "No markdown — plain prose only."
+            "You are a thoughtful market participant writing a block/bulk deal note for a Z47'47 constituent. "
+            "Your job: tell the reader what this deal actually signals about the company's ownership story — "
+            "the non-obvious read, not just who sold to whom. "
+            "Write in tight, confident, plain English. Take a position. "
+            "The reader should walk away with one specific insight they didn't have before."
         )
         prompt = (
             _NO_PREAMBLE_DEAL
-            + f"A {deal_type} deal of ₹{value_cr:.0f} crore was transacted in {company} "
-            f"on {date_str}. "
-            "Search for the exact deal details — seller identity, buyer identity, price per share, "
-            "number of shares, approximate stake %. "
-            "Write exactly 5-6 lines: "
-            "(1) One-line verdict: what this deal signals about the company's institutional ownership story. "
-            "(2) Who sold to whom, at what price, how many shares, what % of equity — "
-            "and whether the deal cleared at a discount or premium to the prevailing market price; "
-            "what that discount/premium implies about buyer conviction vs seller urgency. "
-            "(3) Why now: recent results, lock-in expiry, fund-level portfolio rebalancing, or strategic exit? "
-            "What does the seller's residual holding (if any) signal about their continued conviction? "
-            "(4) Read-through: what does this deal signal for other names with similar cap-table profiles, "
-            "VC backers in the same vintage fund, or companies in the same sector of Z47'47? "
-            "(5) Supply overhang vs institutional anchor: is there more stock to come (remaining lock-in shares), "
-            "or does the buyer base suggest a new institutional floor is forming? "
-            "(6) Net read: constructive/cautious/mixed on the stock post-deal — one line with clear rationale. "
-            "Banned phrases: 'strong performance', 'well-positioned', 'positive momentum', 'healthy growth'. "
-            "No buy/sell/hold. No markdown. No preamble."
+            + f"A {deal_type} deal of ₹{value_cr:.0f} crore was transacted in {company} on {date_str}. "
+            "Search for the exact deal details: seller identity, buyer identity, price per share, "
+            "number of shares, approximate stake %, recent results context, lock-in expiry status, "
+            "seller's remaining holding, buyer's existing position if any.\n\n"
+            "Write exactly 5-7 bullets. Each bullet starts with • (bullet character). "
+            "Structure:\n"
+            "• OPENING VERDICT: one sharp line — what this deal signals about the company's institutional "
+            "ownership story. Is it supply-into-strength, distressed exit, strategic anchor forming, "
+            "or overhang clearing?\n"
+            "• DEAL MECHANICS: who sold to whom, at what price, how many shares, what stake % — "
+            "and whether it cleared at discount or premium to market price. "
+            "What the discount/premium implies about buyer conviction vs seller urgency.\n"
+            "• WHY NOW: recent results context, lock-in expiry, fund-level portfolio rebalancing, "
+            "or strategic exit. What does the seller's residual holding signal?\n"
+            "• READ-THROUGH: what does this deal signal for other Z47 names with similar cap-table "
+            "profiles, VC backers in the same vintage fund, or companies in the same sector?\n"
+            "• SUPPLY OVERHANG vs INSTITUTIONAL ANCHOR: is there more stock to come, "
+            "or does the buyer base suggest a new institutional floor is forming?\n"
+            "• FINAL BULLET: begin exactly with 'What to watch:' and name one specific observable "
+            "that would confirm or deny the deal's signal — e.g., open-market accumulation, "
+            "next quarterly results, seller's next tranche.\n\n"
+            "RULES:\n"
+            "- Every bullet: 1-2 sentences, ~25-40 words. Lead with the conclusion, then the data.\n"
+            "- Name entities, name rupee amounts, name specific dates. Specificity is the currency.\n"
+            "- No hallucinated data. If you cannot verify a number, leave it out.\n"
+            "- No recommendation language: buy, sell, hold, trim, overweight, underweight, target price.\n"
+            "- Banned phrases: 'strong performance', 'well-positioned', 'positive momentum', "
+            "'healthy growth', 'robust', 'broadly stable', 'execution remains key'.\n"
+            "- No sub-bullets. Flat list only.\n"
+            "- No preamble. Output bullets only."
         )
         resp = client.messages.create(
             model="claude-sonnet-4-6",
@@ -1004,6 +1051,7 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
                 _title = f"Z47's TAKEAWAY — {sym} {dtype.upper()} · {date}"
 
             if tk:
+                _tk_html = _bullets_to_html(tk)
                 st.markdown(
                     f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
                     border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
@@ -1011,7 +1059,7 @@ def _render_top3_deal_takeaways(df_h: "pd.DataFrame") -> None:
                     <div style='font-size:11px;font-weight:700;color:#6d28d9;letter-spacing:.06em;
                     text-transform:uppercase;margin-bottom:8px'>
                     💡 {_title}</div>
-                    <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{tk}</div>
+                    <div style='color:#3b1f7a;font-size:14px;line-height:1.65'>{_tk_html}</div>
                     <div style='font-size:11px;color:#9ca3af;margin-top:8px'>
                     Value: ₹{val:,.0f} Cr · Updated {_hc.get("updated", date) if _hc else date}</div>
                     </div>""",

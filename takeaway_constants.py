@@ -7,56 +7,47 @@ Update manually each Monday when the 30-day rolling window advances.
 
 # ── Z47'47 Monthly Takeaway ───────────────────────────────────────────────────
 HARDCODED_INDEX_TAKEAWAY = {
-    "header":  "Z47 47 MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+    "header":  "Z47 47 MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
     "icon":    "✨",
     "window":  "19 Apr to 19 May 2026",
     "updated": "19 May 2026",
     "text": (
-        "Z47 47 outperformed the Nifty 50 over the trailing 30 days, and the relative win "
-        "is meaningful — even if part of it is mechanical. The Nifty is down ~2.2% "
-        "(down ~9.7% YTD), dragged by goods-export exposure to the April 9 reciprocal tariff "
-        "regime; Z47 47’s fintech and consumer-tech cohorts are domestic-revenue businesses, "
-        "which insulated them from the worst of the tariff drawdown and is exactly the kind of "
-        "structural composition advantage the index was built to capture. The premium is doing "
-        "real work: the fintech sub-cohort is anchored on UPI volumes compounding +25% YoY, "
-        "NBFC credit growth at 14.2% YoY, and an India fintech market on a 16.3% CAGR to "
-        "$109bn by 2031 — these are domestic compounders insulated from global cyclicality in "
-        "a way large-cap India simply isn’t. The watch-item is supply, not fundamentals: "
-        "24 DRHPs are filed with SEBI and Flipkart, Zepto, and Zetwerk alone are targeting "
-        "₹47,000+ cr, which will test where listed multiples clear once fresh paper hits. "
-        "Net read: the relative outperformance is earned in part and inherited in part; the "
-        "variable to watch is the spread between primary and secondary market multiples as "
-        "the IPO pipeline lands."
+        "• Z47'47 outperformed the Nifty 50 over the trailing 30 days, and the composition earned the insulation: "
+        "the April 9 tariff drawdown hit goods-export names hard; Z47'47's domestic-revenue cohorts watched from the sideline.\n"
+        "• Paytm's FY26 PAT of ₹552 Cr — a ₹1,215 Cr swing from a ₹663 Cr loss in FY25 — is the cohort's signal data point: "
+        "the sector's largest, most capital-intensive name is now profitable, which changes the base case for the fintech sub-cohort as a whole.\n"
+        "• Meesho's +18.5% was the index's single biggest contributor — Q4 FY26 revenue +47% YoY, losses narrowed 88% to ₹166 Cr, "
+        "264 million annual transacting users. Value-commerce at Tier 2/3 is a compounding base, not a cyclical bounce.\n"
+        "• Groww's ₹5,326 Cr lock-in block on May 12 pressed the stock 5.4% intraday; the sellers — Peak XV, Ribbit, YC Holdings — "
+        "completed a VC lifecycle exit at 29x–52x returns. Groww's 27% demat market share is unchanged; the supply event was mechanical, not fundamental.\n"
+        "• The IPO pipeline is the real variable: 24 DRHPs filed, Flipkart, Zepto, and Zetwerk targeting ₹47,000+ Cr. "
+        "Where listed multiples clear once primary supply lands is not currently priced at the index level.\n"
+        "• What to watch: the spread between primary IPO clearing multiples and secondary market multiples on comparable listed names — "
+        "convergence in either direction is where the next index re-rating gets written."
     ),
 }
 
 # ── Z47'47 Valuation Perspective ─────────────────────────────────────────────
 HARDCODED_VALUATION_TAKEAWAY = {
-    "header":  "Z47 47 VALUATION PERSPECTIVE · 19 APR TO 19 MAY 2026",
+    "header":  "Z47 47 VALUATION PERSPECTIVE · 19 APR TO 19 MAY 2026",
     "icon":    "\U0001f4ca",
     "window":  "19 Apr to 19 May 2026",
     "updated": "19 May 2026",
     "text": (
-        "The Nifty 50 trades at ~20.5x trailing P/E and 3.24x P/B — both modestly "
-        "below 5-year averages, which means the benchmark itself has de-rated ~50 bps over "
-        "the last month as earnings revisions turned negative again. Whatever premium Z47 47 "
-        "carries has mechanically widened, not because the cohort re-rated up but because the "
-        "floor moved down. The premium itself is defensible on first principles: Nifty earnings "
-        "growth is 12% for FY26 and 15.7% for FY27, while the Z47 47 cohort sits on top of "
-        "TAMs compounding several multiples faster — UPI volumes +25% YoY, India’s "
-        "fintech market on a 16.3% CAGR to $109 bn by 2031, formal credit penetration still "
-        "in early innings. You are paying a premium for duration of growth, not just rate of "
-        "growth, and that’s the right reason to pay it. The harder question is where inside "
-        "the index the premium is earned versus rented: the fintech/NBFC sub-cohort trades rich "
-        "but on real book value, real NIMs, real credit growth running at 14.2% YoY — "
-        "that’s a premium against cash flows. The consumer-tech sub-cohort trades rich on a "
-        "different basis, where high multiples are funding contribution-margin trajectories that "
-        "haven’t fully landed and where the IPO pipeline (Flipkart, Zepto, Zetwerk — "
-        "₹47,000+ cr) will force a comparable check. Net read: the headline premium is "
-        "intact and structurally justified, but it’s being held up by the "
-        "financial-services half of the cohort doing real work while the consumer-tech half is "
-        "increasingly relying on TAM narrative to defend its marks — that’s the spread "
-        "to watch, not the aggregate."
+        "• Z47'47's ~36.8x trailing P/E vs the Nifty's ~20.5x looks stretched on the surface; "
+        "the premium has mechanically widened this month not because Z47'47 re-rated up, "
+        "but because the Nifty de-rated as earnings revisions turned negative.\n"
+        "• The case for the premium is half-real: Z47'47's revenue growth runs at 24% YoY vs the Nifty's 12%, "
+        "and the fintech sub-cohort earns its marks against actual cash flows — Paytm profitable, "
+        "NBFC credit at 14.2% YoY, UPI volumes +25% YoY. That's a real premium, not a TAM premium.\n"
+        "• The case against is concentrated in consumer tech: Swiggy and MobiKwik carry meaningful EBITDA losses "
+        "that make the index-level 36.8x P/E an average obscuring a wide distribution — the profitable half subsidises the multiple for the still-unprofitable half.\n"
+        "• The non-obvious line: fintech/NBFC is becoming a cash-flow story while consumer tech is still a TAM story. "
+        "The index headline P/E conceals a 2x multiple dispersion between these two internal sub-cohorts.\n"
+        "• IPO pipeline creates a comparable-check risk: Flipkart and Zepto at ₹47,000+ Cr will force the market to price "
+        "similar assets at primary clearing levels, potentially compressing secondary multiples on listed comparables.\n"
+        "• What to watch: Swiggy and Instamart contribution margin in Q1 FY27 — if quick-commerce burn persists, "
+        "consumer-tech multiples face incremental pressure while the fintech sub-cohort stays anchored on earnings."
     ),
 }
 
@@ -70,25 +61,18 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         "window": "19 Apr to 19 May 2026",
         "updated": "19 May 2026",
         "text": (
-            "The sector’s -3.0% average masks a significant bifurcation: Meesho, the period’s standout at +18.5%, "
-            "is demonstrating that the value-commerce model is the real structural winner in Indian e-commerce — "
-            "Q4 FY26 revenue up 47% YoY to ₹3,531 Cr, GMV up 38% YoY to ₹18,941 Cr, loss narrowed 88% YoY to "
-            "₹166 Cr, with 264 million annual transacting users confirming that Tier 2/3 demand is not a cycle, "
-            "it is a compounding base. The consensus assumption that quick-commerce is the dominant consumer-tech "
-            "value driver needs inverting: Eternal (Zomato) pulled the plug on Zomato Quick citing unit-economics, "
-            "while Blinkit’s ~44-46% market share leadership is an earned structural position — but the real alpha "
-            "in this cohort came from low-AOV, high-frequency social commerce, not dark stores. Ather Energy "
-            "(+103% YoY to 27,024 units in April 2026) is the clearest read on India’s EV transition being a "
-            "consumer-tech story as much as an auto story, while Ola Electric’s April volume of 12,166 units — "
-            "down ~39% from 19,824 units in April 2025 — signals that brand trust and service infrastructure "
-            "matter more than first-mover advantage in EV two-wheelers. Nykaa and Honasa both guided late-20% "
-            "revenue growth for Q4, confirming that India’s branded beauty segment is a domestic secular rather "
-            "than a discretionary trade, though the upcoming DPDP consent-manager obligations create a non-trivial "
-            "compliance cost for every data-intensive D2C and social-commerce platform in the cohort. Net read: "
-            "the sector’s composition advantage is intact — domestic revenue, domestic demand drivers — but the "
-            "watch-item is whether Meesho can sustain take-rate expansion as its seller base scales, and whether "
-            "the Blinkit/Instamart dark-store count race tips into a margin war that pressures Eternal’s "
-            "consolidated EBITDA trajectory into FY27."
+            "• Consumer/Consumer Tech's ~3% average decline masks the real story — Meesho +18.5% and Swiggy among the laggards "
+            "confirms the cohort is fragmenting on unit economics, not softening on demand.\n"
+            "• Meesho's Q4 FY26 — revenue +47% YoY to ₹3,531 Cr, GMV +38% to ₹18,941 Cr, losses narrowed 88% to ₹166 Cr, "
+            "264M annual transacting users — confirms value-commerce at Tier 2/3 is a structural compounder, not a cycle story.\n"
+            "• Swiggy's drag isn't food delivery, which posted its strongest adj. EBITDA margin in 15 quarters. "
+            "The problem is Instamart: sequential GOV declined for the first time on record while Blinkit added 216 dark stores in the same window.\n"
+            "• Eternal killed Zomato Quick on unit-economics grounds and rebranded — the multi-vertical pivot (food, grocery, going-out) "
+            "is a deliberate platform repositioning. Blinkit's ~44-46% quick-commerce market share is structural.\n"
+            "• Ather at 27,024 units (+103% YoY in April 2026) vs Ola at 12,166 units (−39% YoY) settles the EV two-wheeler debate: "
+            "brand trust and service infrastructure beat first-mover advantage, and Ather is demonstrating both.\n"
+            "• What to watch: Instamart contribution margin in Q1 FY27 — sequential improvement without volume recovery "
+            "would force the market to recut its entire quick-commerce valuation framework."
         ),
     },
     "Fintech / Financial Services": {
@@ -97,26 +81,18 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         "window": "19 Apr to 19 May 2026",
         "updated": "19 May 2026",
         "text": (
-            "Paytm’s FY26 full-year PAT of ₹552 Cr — a ₹1,215 Cr swing from a ₹663 Cr loss in FY25 — is the "
-            "signal that separates this cohort from every prior vintage of Indian fintech: the largest, most "
-            "capital-intensive name in the sector is now a profitable compounder, with Q4 FY26 consumer UPI GTV "
-            "growing at 2.2x industry rate and financial services revenue up 52% YoY to ₹2,593 Cr for the full year. "
-            "The common assumption is that Alibaba’s ₹573 Cr block exit on May 7 is a negative read on Paytm — "
-            "the inversion is that it is the last overhang clearing: with Antfin’s partial stake sold at ₹842.50/share "
-            "against a backdrop of Paytm posting its fourth consecutive quarterly profit, the supply is exiting into "
-            "improving fundamentals, not deteriorating ones, and SBI MF’s absorption of 3.4M shares at the same "
-            "price signals domestic institutional conviction at that clearing level. Kissht’s IPO — the first BFSI "
-            "listing of FY27 — closed at 9.5x overall subscription with QIBs at 24.87x, listed at ~17.8% premium "
-            "to its ₹171 issue price, and is doing real re-rating work for the digital-NBFC pipeline: the market "
-            "priced an unsecured-lending book at a premium rather than a discount, which is a structural shift in "
-            "how institutions view digital-credit quality. Groww’s ₹5,326 Cr lock-in expiry block on May 12 — "
-            "Peak XV, Ribbit, and YC Holdings selling at 29x–52x returns — pressed the stock 5.4% on the day, "
-            "but the read-through is not fundamental deterioration: Groww holds 27% demat market share as of "
-            "December 2025 and the sellers are VC funds completing a lifecycle, not a strategic reassessment. "
-            "Net read: the fintech cohort is transitioning from a ‘promise’ to ‘delivery’ phase; the variable to "
-            "track is whether Paytm’s payment-processing margin expansion above 4 bps sustains into FY27 as UPI "
-            "monetisation policy evolves, and whether Groww’s revenue-per-active-user improves as SEBI’s F&O "
-            "framework normalises."
+            "• Fintech is crossing from 'promise' to 'delivery' — Paytm's FY26 PAT of ₹552 Cr and Kissht's IPO at 24.87x QIB "
+            "subscription confirm the market now prices digital finance on real earnings, not narrative.\n"
+            "• Paytm's consumer UPI GTV grew at 2.2x the industry rate; financial services revenue +52% YoY in FY26. "
+            "GMV remains below pre-RBI-action levels — the profitability is real, the volume rebuild is incomplete.\n"
+            "• Antfin's ₹572.9 Cr Paytm disposal into its fourth consecutive profit quarter is supply-into-strength: "
+            "SBI MF absorbed 3.4M shares at the ₹842.50 clearing price, replacing a constrained foreign holder with an unconstrained domestic institution.\n"
+            "• Kissht's listing at ~17.8% premium to its ₹171 issue price with QIBs at 24.87x repriced digital-NBFC as a category: "
+            "the market valued an unsecured-lending book at a premium — a structural shift in how institutions read digital-credit quality.\n"
+            "• Groww's May 12 lock-in block — Peak XV, Ribbit, YC Holdings at 29x–52x returns — was a VC lifecycle completion. "
+            "Groww's 27% demat market share and #1 active-user count on NSE are unchanged; the supply cleared mechanically.\n"
+            "• What to watch: Paytm's payment-processing margin vs the 4 bps threshold as UPI monetisation policy evolves — "
+            "and whether Groww's non-broking revenue crosses 20% of total, which would change the quality-of-earnings story."
         ),
     },
     "SaaS / AI": {
@@ -125,25 +101,18 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         "window": "19 Apr to 19 May 2026",
         "updated": "19 May 2026",
         "text": (
-            "The SaaS/AI cohort is splitting into two distinct businesses hiding inside one sector label: "
-            "Freshworks is a USD-revenue, Nasdaq-listed compounder posting Q1 2026 revenue of $228.6M (+16% YoY, "
-            "beat consensus by $5.3M), with EX-ARR at $540M (+27% YoY) and its first $1M+ ARR deal — a genuine "
-            "enterprise re-rating — while E2E Networks is a pure India-infrastructure play with Q4 FY26 revenue "
-            "up 186% YoY to ₹956M on 80% GPU utilisation, but FY26 PAT negative at -₹156M as the company deploys "
-            "₹1,185 Cr across ~5,050 GPUs. The variant perception on Freshworks is that indirect tariff headwinds "
-            "— a potential US GDP slowdown compressing discretionary IT budgets — are not priced into the stock, "
-            "yet NDR at 106% and enterprise traction in its EX suite suggest Freshworks is shifting from SMB "
-            "dependence toward a more defensive mid-market base. MapmyIndia’s ₹110 Cr IOCL contract and Survey "
-            "of India’s national geo-spatial platform mandate are not one-off deals — they are evidence of a "
-            "government procurement cycle compounding on top of automotive OEM revenue, making MapmyIndia’s "
-            "moat more structural than the market credits. RateGain’s Q4 FY26 earnings call will be the cohort’s "
-            "defining data point: with the Sojern acquisition closed in November 2025, the combined entity’s "
-            "55–60% guided revenue growth includes inorganic contribution, and the quality-of-earnings question "
-            "is whether organic ARR growth at 6–8% is being obscured by the acquisition headline. Net read: "
-            "E2E Networks’ B200 cluster deployment timeline and capacity utilisation through mid-FY27 is the "
-            "single most important watch-item for the cohort — if GPU utilisation holds above 80%, the "
-            "depreciation drag reverses into operating leverage; if it slips, the gap between headline revenue "
-            "growth and cash conversion widens further."
+            "• SaaS/AI is two businesses inside one sector label: Freshworks compounds USD enterprise revenue "
+            "while E2E Networks burns GPU capex that will either deliver operating leverage or widen the gap between revenue and cash conversion.\n"
+            "• Freshworks' Q1 2026 — revenue $228.6M (+16% YoY, $5.3M ahead of consensus), EX-ARR $540M (+27% YoY), "
+            "first $1M+ ARR deal — signals an enterprise re-rating; NDR at 106% with growing mid-market traction shifts the mix away from SMB dependence.\n"
+            "• E2E Networks' 186% YoY revenue growth to ₹956M in Q4 FY26 on 80% GPU utilisation is the headline; "
+            "FY26 PAT of -₹156M as it deploys ₹1,185 Cr across ~5,050 GPUs is the question — utilisation holding above 80% is the thesis test.\n"
+            "• MapMyIndia's ₹110 Cr IOCL contract and Survey of India national geo-spatial mandate aren't one-offs — "
+            "they mark a government procurement cycle compounding onto OEM revenue, making the mapping moat structural rather than platform-contingent.\n"
+            "• RateGain's Sojern acquisition (closed Nov 2025) targets 55-60% guided revenue growth, "
+            "but organic ARR at 6-8% growth is the quality-of-earnings tell — the inorganic headline is obscuring whether the native business is actually accelerating.\n"
+            "• What to watch: E2E Networks' GPU utilisation through mid-FY27 — above 80% and depreciation drag flips to operating leverage; "
+            "below 75% and the revenue-to-cash gap widens into a valuation problem."
         ),
     },
     "B2B": {
@@ -152,24 +121,18 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         "window": "19 Apr to 19 May 2026",
         "updated": "19 May 2026",
         "text": (
-            "Delhivery’s FY26 crossing the ₹10,000 Cr revenue milestone — Q4 revenue ₹2,848 Cr (+30% YoY), "
-            "full-year EBITDA ₹764 Cr (2x FY25’s ₹376 Cr), express parcel volumes at 1.054 billion shipments "
-            "(+40% YoY) — confirms that the logistics infrastructure buildout thesis is delivering operating "
-            "leverage, but Q4 PAT of ₹73.4 Cr is flat sequentially, flagging that the topline-to-bottom-line "
-            "conversion is not yet clean. The consensus view that Shadowfax is a second-tier logistics name "
-            "deserves challenge: FY26 revenue of ₹4,202 Cr (+69% YoY), Q4 profit of ₹56 Cr (vs. ₹-9.9 Cr in "
-            "Q4 FY25), and a Q4 revenue run-rate of ₹1,237 Cr at 74% YoY growth means Shadowfax is growing "
-            "faster than Delhivery in absolute percentage terms, powered by the quick-commerce last-mile wave "
-            "that Delhivery’s B2B-heavy mix underweights. BlackBuck’s SaaS-on-logistics model — FY26 revenue "
-            "₹652 Cr (+53% YoY), FY26 profit ₹160 Cr — is structurally differentiated from pure throughput "
-            "logistics: trucking-platform take-rates are more recurring and defensible than shipment-per-unit "
-            "economics, which is the quality-of-earnings distinction the market has not fully priced. TBO Tek "
-            "remains the cohort’s cleanest compounder on gross-profit-per-transaction terms, with the Hotels+ "
-            "segment driving mix shift toward higher-margin inventory; the read-through is that B2B travel-tech "
-            "monetisation is accruing to platform intermediaries, not airlines or OTAs. Net read: the watch-item "
-            "for Delhivery is whether revenue-per-shipment stabilises as volume scales — if realisations compress "
-            "while volumes grow, the EBITDA re-rating stalls; for Shadowfax, the question is whether Q-commerce "
-            "dependency is a concentration risk or a defensible moat as Blinkit and Instamart consolidate."
+            "• B2B is delivering on the infrastructure-compounding thesis but top-line-to-bottom-line conversion is lagging: "
+            "Delhivery crossed ₹10,000 Cr in FY26 revenue and doubled EBITDA to ₹764 Cr, yet Q4 PAT of ₹73.4 Cr was flat sequentially.\n"
+            "• Shadowfax is the cohort's hidden story: FY26 revenue ₹4,202 Cr (+69% YoY), Q4 profit ₹56 Cr vs -₹9.9 Cr a year ago — "
+            "growing faster than Delhivery in percentage terms by riding the quick-commerce last-mile wave that Delhivery's B2B-heavy mix underweights.\n"
+            "• BlackBuck's SaaS-on-logistics model — FY26 revenue ₹652 Cr (+53% YoY), profit ₹160 Cr — is the earnings-quality outlier: "
+            "trucking-platform take-rates are more recurring than shipment-per-unit economics, a distinction the index P/E hasn't yet priced.\n"
+            "• TBO Tek's Hotels+ mix shift toward higher-margin inventory is accruing to platform economics: "
+            "gross-profit-per-transaction is improving as the segment grows — B2B travel-tech monetisation flows to intermediaries, not airlines or OTAs.\n"
+            "• Shadowfax's quick-commerce dependency is simultaneously its growth driver and its concentration risk — "
+            "if Blinkit and Instamart consolidate dark-store footprints, last-mile volume narrows around two dominant counterparties.\n"
+            "• What to watch: Delhivery's revenue-per-shipment trajectory as volumes scale — stabilisation signals operating leverage "
+            "into FY27 PAT; further compression stalls the EBITDA re-rating."
         ),
     },
 }
@@ -180,73 +143,61 @@ HARDCODED_SECTOR_TAKEAWAYS = {
 # Update manually when new top-3 deals enter the trailing 30-day window.
 HARDCODED_DEAL_TAKEAWAYS = {
     "POLICYBZR|2026-04-30": {
-        "header": "Z47’s TAKEAWAY — PB FINTECH (POLICYBAZAAR) BLOCK · 30 APR 2026",
+        "header": "Z47's TAKEAWAY — PB FINTECH (POLICYBAZAAR) BLOCK · 30 APR 2026",
         "icon": "\U0001f4a1",
         "text": (
-            "Tiger Global sold 4.1M shares of PB Fintech on April 30, 2026, at ₹1,642/share for ₹673.2 Cr — "
-            "a systematic portfolio harvest that brings Tiger’s cumulative India exit tally well past $2 billion "
-            "across 18 months of structured secondary disposals, closing out what was a 5x return position "
-            "entered at sub-₹400 levels. The quality-of-deal signal is in who bought: Quant MF absorbed 2.05M "
-            "shares (₹336.6 Cr) at the same price — domestic institutional demand clearing VC supply at market "
-            "price with no visible discount is the structural positive, not the headline exit. The common read "
-            "is that Tiger’s departure pressures the stock; the inversion is that each Tiger tranche clearing "
-            "at progressively higher prices validates the PB Fintech re-rating as structural rather than "
-            "speculative, and removes an overhang that has capped institutional positioning for two years. "
-            "The read-across for other VC-backed Z47 names with Tiger exposure is that Tiger’s India exit "
-            "cadence is disciplined and price-sensitive, not distressed, which reduces the risk of a disorderly "
-            "supply event across the index. Net read: the variable to track is Tiger’s residual India "
-            "public-market position; if April 30 was a near-complete exit, PB Fintech’s free-float quality "
-            "improves materially as domestic institutions replace a liquidating global fund."
+            "• Tiger Global's PB Fintech disposal signals disciplined portfolio harvest, not distress: "
+            "each Tiger tranche has cleared at progressively higher prices, validating the re-rating as structural rather than speculative.\n"
+            "• Tiger sold 4.1M shares at ₹1,642/share for ₹673.2 Cr on April 30 — part of a systematic India exit programme "
+            "exceeding $2 billion over 18 months from a position entered below ₹400. The exit is at a return that justifies the cadence.\n"
+            "• Quant MF absorbed 2.05M shares (₹336.6 Cr) at the same ₹1,642 clearing price — "
+            "domestic institutional demand absorbing VC supply at market price without a discount is the structural signal, not the headline exit.\n"
+            "• The overhang that capped PB Fintech's institutional positioning for two years is clearing: "
+            "as Tiger's residual position shrinks, free-float quality improves as liquidating foreign capital is replaced by domestic conviction.\n"
+            "• Read-across to other Z47 names with Tiger exposure: Tiger's India cadence is price-sensitive and structured, not distressed — "
+            "it reduces the tail risk of a disorderly supply event across the index.\n"
+            "• What to watch: Tiger's remaining India public-market position — if April 30 was a near-complete PB Fintech exit, "
+            "the institutional ownership profile re-rates upward as the overhang narrative fades."
         ),
         "value_cr": 673.2,
         "updated": "19 May 2026",
     },
     "PAYTM|2026-05-07": {
-        "header": "Z47’s TAKEAWAY — PAYTM (ONE97 COMMUNICATIONS) BLOCK · 7 MAY 2026",
+        "header": "Z47's TAKEAWAY — PAYTM (ONE97 COMMUNICATIONS) BLOCK · 7 MAY 2026",
         "icon": "\U0001f4a1",
         "text": (
-            "Alibaba affiliate Antfin sold 6.8M shares of One97 Communications on May 7, 2026, at ₹842.50/share "
-            "for ₹572.9 Cr — an exit that arrived on the same day Paytm’s stock was absorbing the news of its "
-            "fourth consecutive quarterly profit and FY26 PAT of ₹552 Cr, making this a disposal into improving "
-            "fundamentals rather than a flight from deterioration. The structural read on Alibaba’s exit "
-            "trajectory is that ₹842.50 represents a partial recovery from the regulatory trough of 2024 but "
-            "remains a discount to pre-RBI-action highs — Antfin is completing a China-portfolio India "
-            "rationalisation that began with earlier tranches in 2025, and the May 7 sale is the continued "
-            "execution of that programme, not a new negative signal. SBI MF’s absorption of 3.4M shares — "
-            "exactly 50% of the block at the same ₹842.50 price — is the most important data point: a domestic "
-            "public-sector institution buying at the clearing price signals price support and replaces a "
-            "constrained foreign holder with an unconstrained domestic one. The read-across to other "
-            "Chinese-backed Z47 names is directionally cautious: where Chinese strategic investors hold "
-            "meaningful stakes acquired at pre-IPO prices, the exit clock is running, and the market should "
-            "expect further structured disposals as lock-in and diplomatic considerations resolve. Net read: "
-            "Paytm’s overhang narrative is becoming a clean-up story — the watch-item is the pace of Antfin’s "
-            "remaining position, and whether Paytm’s financial services revenue trajectory (up 52% YoY in "
-            "FY26) is sufficient to re-anchor valuation conversations away from the payments-margin debate."
+            "• Antfin's ₹572.9 Cr Paytm disposal into the company's fourth consecutive profitable quarter is supply-into-strength — "
+            "the exit arrived the same day FY26 PAT of ₹552 Cr confirmed Paytm's turn from a loss-era name to a profitable compounder.\n"
+            "• Alibaba affiliate Antfin sold 6.8M shares at ₹842.50/share on May 7 — a continued China-portfolio rationalisation "
+            "that began in 2025. The price reflects a partial recovery from the 2024 regulatory trough, not a distressed sale.\n"
+            "• SBI MF absorbed exactly 50% of the block (3.4M shares at ₹842.50) — a public-sector domestic institution at the clearing price "
+            "signals price support and replaces a constrained foreign holder with an unconstrained one.\n"
+            "• Paytm's financial services revenue grew 52% YoY in FY26 and consumer UPI GTV ran at 2.2x the industry rate — "
+            "yet GMV remains below pre-RBI-action levels, meaning the profitability recovery is cost-led, not yet volume-led.\n"
+            "• The Alibaba unwind crosses a symbolic threshold: Chinese strategic capital is now functionally absent from "
+            "the listed Indian fintech cap table, which re-rates regulatory risk profiles downward for the cohort.\n"
+            "• What to watch: Antfin's remaining Paytm stake — if May 7 was a near-full exit, the overhang narrative collapses; "
+            "if a meaningful stake remains, the supply clock runs through FY27."
         ),
         "value_cr": 572.9,
         "updated": "19 May 2026",
     },
     "NAZARA|2026-05-15": {
-        "header": "Z47’s TAKEAWAY — NAZARA TECHNOLOGIES BLOCK · 15 MAY 2026",
+        "header": "Z47's TAKEAWAY — NAZARA TECHNOLOGIES BLOCK · 15 MAY 2026",
         "icon": "\U0001f4a1",
         "text": (
-            "Mitter Infotech LLP — the vehicle of Nazara founder-CEO Nitish Mittersain — sold 18.26M shares at "
-            "₹266/share for ₹485.7 Cr on May 15, reducing the promoter’s direct stake from 6.09% to 0.90%, "
-            "in a transaction structurally different from every other Z47 block this period: the seller named "
-            "the buyers before the market opened, and those buyers — Zerodha Broking (linked to Nikhil Kamath) "
-            "and Axana Estates LLP acquiring 9.13M shares each — are India-anchored, gaming-conviction investors "
-            "adding to existing positions, not momentum traders. The common assumption is that a promoter selling "
-            "5.2% of the company is a red flag; the inversion is that routing a disposal directly to named "
-            "institutional anchors — rather than via a blind book-build — is an act of shareholder stewardship, "
-            "not opportunistic liquidation, and the fact that Nazara stock rallied ~18% on the day confirms that "
-            "the market read the buyer quality, not just the seller headline. Nikhil Kamath’s Zerodha buying "
-            "into Nazara — FY26 revenue ₹1,829 Cr (+13% YoY), EBITDA ₹255 Cr (+66% YoY) — is a meaningful "
-            "signal for the India gaming thesis: a domestic operator with deep retail-investor reach is making "
-            "a concentrated public-market gaming bet, which compresses the risk-premium the sector has carried "
-            "since the GST-on-gaming shock of FY24. Net read: the deal’s quality lies in the buyer roster, "
-            "not the headline disposal size — watch whether Nikhil Kamath’s associated entities continue "
-            "accumulating through open-market purchases, which would signal conviction beyond a single "
-            "negotiated block."
+            "• Mitter Infotech's disposal was designed to be read by the buyer list, not the seller size — "
+            "routing 9.13M shares each to Zerodha (Nikhil Kamath) and Axana Estates before market open is shareholder stewardship, not opportunistic liquidation.\n"
+            "• Founder-CEO Nitish Mittersain reduced his direct stake from 6.09% to 0.90% via 18.26M shares at ₹266/share for ₹485.7 Cr. "
+            "Nazara rallied ~18% on the day — the market read the buyer quality, not just the exit size.\n"
+            "• Nikhil Kamath's Zerodha accumulating into Nazara — FY26 revenue ₹1,829 Cr (+13% YoY), EBITDA ₹255 Cr (+66% YoY) — "
+            "compresses the gaming sector's risk premium: a domestic operator with deep retail reach making a concentrated public-market gaming bet.\n"
+            "• The deal reframes Nazara's ownership narrative: from a founder-heavy, gaming-optionality play to one with Kamath as an institutional anchor — "
+            "a distinction that changes how retail allocators frame the stock into FY27.\n"
+            "• Read-across to the gaming cohort: domestic retail-facing operators accumulating listed gaming exposure signals the TAM discount "
+            "applied post-FY24 GST shock is coming off — a cohort re-rating, not just a Nazara-specific event.\n"
+            "• What to watch: whether Kamath-linked entities accumulate through open-market purchases post-block — "
+            "buying at above-block prices in the secondary market would signal conviction beyond a single negotiated transaction."
         ),
         "value_cr": 485.7,
         "updated": "19 May 2026",
@@ -256,6 +207,8 @@ HARDCODED_DEAL_TAKEAWAYS = {
 # ── Hardcoded Recent Results (instant render, no API dependency) ──────────────
 # Key = company ticker (matches COMPANIES ticker field).
 # Update each quarter after results season. Checked BEFORE any API call.
+# NOTE: Recent Results stay in prose format — they are company-specific quarterly
+# recaps and benefit from narrative. Do NOT convert to bullets.
 HARDCODED_RECENT_RESULTS = {
     "SWIGGY": {
         "header_quarter": "Q4 FY26",
@@ -410,22 +363,51 @@ HARDCODED_FUNDAMENTALS = {
 }
 
 # ── Quality-bar few-shot prompt injected into every takeaway generation ───────
+# Anchors AI-generated takeaways to the bullet format and analytical voice.
 QUALITY_BAR_FEW_SHOT = """\
 
-REFERENCE QUALITY BAR — these two takeaways are the gold standard. Match their analytical depth, structure, and voice exactly.
+REFERENCE FORMAT — write in this exact bullet structure. These two examples are the gold standard for voice, format, and analytical depth.
 
-EXAMPLE 1 — Z47’s Monthly Takeaway:
-"Z47 47 outperformed the Nifty 50 over the trailing 30 days, and the relative win is meaningful — even if part of it is mechanical. The Nifty is down ~2.2% (down ~9.7% YTD), dragged by goods-export exposure to the April 9 reciprocal tariff regime; Z47 47’s fintech and consumer-tech cohorts are domestic-revenue businesses, which insulated them from the worst of the tariff drawdown and is exactly the kind of structural composition advantage the index was built to capture. The premium is doing real work: the fintech sub-cohort is anchored on UPI volumes compounding +25% YoY, NBFC credit growth at 14.2% YoY, and an India fintech market on a 16.3% CAGR to $109bn by 2031 — these are domestic compounders insulated from global cyclicality in a way large-cap India simply isn’t. The watch-item is supply, not fundamentals: 24 DRHPs are filed with SEBI and Flipkart, Zepto, and Zetwerk alone are targeting ₹47,000+ cr, which will test where listed multiples clear once fresh paper hits. Net read: the relative outperformance is earned in part and inherited in part; the variable to watch is the spread between primary and secondary market multiples as the IPO pipeline lands."
+FORMAT RULES:
+- 5-7 bullets total. Flat list — no sub-bullets, no nested structure.
+- Start every bullet with • (bullet character).
+- Opening verdict bullet: one sharp line stating the central call. This is the headline.
+- Supporting bullets: each a self-contained insight pulling in a specific company highlight or lowlight with the WHY behind it.
+- Final bullet must begin "What to watch:" and name the specific observable to track.
+- Each bullet: 1-2 sentences, ~25-40 words. Lead with the conclusion, then the data.
 
-EXAMPLE 2 — Z47’s Valuation Perspective:
-"The Nifty 50 trades at ~20.5x trailing P/E and 3.24x P/B — both modestly below 5-year averages, which means the benchmark itself has de-rated 50 bps over the last month as earnings revisions turned negative again. Whatever premium Z47 47 carries has mechanically widened, not because the cohort re-rated up but because the floor moved down. The premium itself is defensible on first principles: Nifty earnings growth is 12% for FY26 and 15.7% for FY27, while the Z47 47 cohort sits on top of TAMs compounding several multiples faster — UPI volumes +25% YoY, India’s fintech market on a 16.3% CAGR to $109bn by 2031, formal credit penetration still in early innings. You are paying a premium for duration of growth, not just rate of growth, and that’s the right reason to pay it. The harder question is where inside the index the premium is earned versus rented: the fintech/NBFC sub-cohort trades rich but on real book value, real NIMs, real credit growth running at 14.2% YoY — that’s a premium against cash flows. Net read: the headline premium is intact and structurally justified, but it’s being held up by the financial-services half of the cohort doing real work while the consumer-tech half is increasingly relying on TAM narrative to defend its marks — that’s the spread to watch, not the aggregate."
+EXAMPLE 1 — Z47'47 MONTHLY TAKEAWAY (bullet format):
+• Z47'47 outperformed the Nifty 50 over the trailing 30 days, and the composition earned the insulation: the April 9 tariff drawdown hit goods-export names hard; Z47'47's domestic-revenue cohorts watched from the sideline.
+• Paytm's FY26 PAT of ₹552 Cr — a ₹1,215 Cr swing from a ₹663 Cr loss in FY25 — is the cohort's signal data point: the sector's largest name is now profitable, which changes the base case for the fintech sub-cohort as a whole.
+• Meesho's +18.5% was the index's single biggest contributor — Q4 FY26 revenue +47% YoY, losses narrowed 88% to ₹166 Cr, 264M annual transacting users. Value-commerce at Tier 2/3 is a compounding base, not a cyclical bounce.
+• Groww's ₹5,326 Cr lock-in block on May 12 pressed the stock 5.4% intraday; Peak XV, Ribbit, YC Holdings completed a VC lifecycle exit at 29x–52x returns. Groww's 27% demat market share is unchanged — the supply was mechanical, not fundamental.
+• The IPO pipeline is the real variable: 24 DRHPs filed, Flipkart, Zepto, and Zetwerk targeting ₹47,000+ Cr. Where listed multiples clear once primary supply lands is not currently priced at the index level.
+• What to watch: the spread between primary IPO clearing multiples and secondary market multiples on comparable listed names — convergence in either direction is where the next index re-rating gets written.
+
+EXAMPLE 2 — SECTOR TAKEAWAY (bullet format):
+• Consumer/Consumer Tech's ~3% average decline masks the real story — Meesho +18.5% and Swiggy among the laggards confirms the cohort is fragmenting on unit economics, not softening on demand.
+• Meesho's Q4 FY26 — revenue +47% YoY to ₹3,531 Cr, losses narrowed 88% to ₹166 Cr, 264M annual transacting users — confirms value-commerce at Tier 2/3 is a structural compounder, not a cycle story.
+• Swiggy's drag isn't food delivery, which posted its strongest adj. EBITDA margin in 15 quarters. The problem is Instamart: sequential GOV declined for the first time on record while Blinkit added 216 dark stores in the same window.
+• Ather at 27,024 units (+103% YoY in April 2026) vs Ola at 12,166 units (−39% YoY) settles the EV two-wheeler debate: brand trust and service infrastructure beat first-mover advantage.
+• What to watch: Instamart contribution margin in Q1 FY27 — sequential improvement without volume recovery would force the market to recut its quick-commerce valuation framework.
 
 RULES derived from these examples:
-1. Open with a verdict. First sentence = analyst’s call, not a recap.
-2. Every claim must be tied to a specific number, date, or named entity.
-3. At least 2 insights: variant perception (“consensus is misreading X as Y”), quality-of-earnings, structural vs cyclical, read-through to peers, what the market is missing, earned vs rented premium.
-4. End with a Net Read that names a specific spread or variable to watch — not a portfolio action.
-5. No third-party quotes (“ICICIdirect notes...”, “JM Financial says...”).
-6. No hallucinated data. If you cannot verify a number, omit it entirely.
-7. No recommendation language: buy, sell, hold, trim, accumulate, avoid, overweight, underweight, target price.
-8. Banned phrases: ‘strong performance’, ‘healthy growth’, ‘robust quarter’, ‘positive momentum’, ‘in line with expectations’, ‘broadly stable’, ‘well-positioned’, ‘execution remains key’."""
+1. Open with the verdict. First bullet = analyst's call, not a recap.
+2. Every bullet must name a specific company, number, date, or entity — no generic observations.
+3. Cause-effect chains must be explicit: "the drag is X because Y" — not just "X was weak."
+4. Lead with the conclusion, then the supporting data — not the other way around.
+5. At least one bullet must surface the non-obvious: consensus mispricing, footnote nobody flagged, structural shift hiding inside a headline number.
+6. End with "What to watch:" naming a specific observable, not a portfolio action.
+7. No third-party quotes ("ICICIdirect notes...", "JM Financial says...").
+8. No hallucinated data. If you cannot verify a number, omit it entirely. Better directionally right than precisely wrong.
+9. No recommendation language: buy, sell, hold, trim, accumulate, avoid, overweight, underweight, target price.
+10. Banned phrases: 'strong performance', 'healthy growth', 'robust quarter', 'positive momentum', 'in line with expectations', 'broadly stable', 'well-positioned', 'execution remains key', 'going forward', 'macroeconomic headwinds', 'constructive setup', 'navigating the environment'.
+
+QUALITY SELF-CHECK before finalizing:
+- Does every bullet contain a specific company, number, or named entity?
+- Does at least one bullet make the reader learn something non-obvious about a specific company?
+- Is every claim verifiable from real data?
+- Did I hedge anywhere I shouldn't have?
+- Is each bullet under 40 words?
+- Did I use any banned phrase or recommendation language?
+Regenerate any bullet that fails."""
