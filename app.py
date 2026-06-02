@@ -3431,7 +3431,9 @@ def _render_top_nav():
     with c1: _nav_btn("📊 Z47'47",            "nav_z47",   "z47")
     with c2: _nav_btn("📈 IPOs",              "nav_ipos",  "ipos")
     with c3: _nav_btn("💼 Block & Bulk Deals","nav_block", "block")
-    with c4: _nav_btn("🌐 Z47fortyseven",    "nav_z47fs", "z47fortyseven")
+    # Unicode Mathematical Italic chars for "fortyseven" → renders italic in all browsers
+    _z47fs_lbl = "Z47\U0001d453\U0001d45c\U0001d45f\U0001d461\U0001d466\U0001d460\U0001d452\U0001d463\U0001d452\U0001d45b"
+    with c4: _nav_btn(_z47fs_lbl, "nav_z47fs", "z47fortyseven")
 
     st.markdown("<hr style='border-color:#ccdaea;margin:6px 0 0 0'>", unsafe_allow_html=True)
 
