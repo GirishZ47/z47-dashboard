@@ -21,6 +21,7 @@ import page_upcoming_ipos
 import page_block_deals
 import page_drhp
 from z47_assistant import render_z47_assistant, ask_z47_with_search, SYSTEM_PROMPTS
+import page_z47fortyseven
 try:
     from takeaway_constants import (
         HARDCODED_INDEX_TAKEAWAY,
@@ -3426,10 +3427,11 @@ def _render_top_nav():
     page = st.session_state.get("nav_page", "z47")
 
     # ── Level-1 nav ───────────────────────────────────────────────────────────
-    c1, c2, c3, _gap = st.columns([1.6, 0.9, 2.0, 5])
-    with c1: _nav_btn("📊 Z47'47",       "nav_z47",   "z47")
-    with c2: _nav_btn("📈 IPOs",            "nav_ipos",  "ipos")
-    with c3: _nav_btn("💼 Block & Bulk Deals","nav_block","block")
+    c1, c2, c3, c4, _gap = st.columns([1.4, 0.8, 1.8, 1.6, 2])
+    with c1: _nav_btn("📊 Z47'47",            "nav_z47",   "z47")
+    with c2: _nav_btn("📈 IPOs",              "nav_ipos",  "ipos")
+    with c3: _nav_btn("💼 Block & Bulk Deals","nav_block", "block")
+    with c4: _nav_btn("🌐 Z47fortyseven",    "nav_z47fs", "z47fortyseven")
 
     st.markdown("<hr style='border-color:#ccdaea;margin:6px 0 0 0'>", unsafe_allow_html=True)
 
@@ -3565,6 +3567,16 @@ def main():
             import traceback as _tb
             st.error("⚠️ Block Deals page encountered an error. Please refresh.")
             print(f"[PAGE ERROR] block: {type(_page_err).__name__}: {_page_err}\n"
+                  f"{_tb.format_exc()}")
+        return
+
+    if page == "z47fortyseven":
+        try:
+            page_z47fortyseven.render()
+        except Exception as _page_err:
+            import traceback as _tb
+            st.error("⚠️ Z47fortyseven page encountered an error. Please refresh.")
+            print(f"[PAGE ERROR] z47fortyseven: {type(_page_err).__name__}: {_page_err}\n"
                   f"{_tb.format_exc()}")
         return
 
