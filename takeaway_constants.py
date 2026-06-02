@@ -7,32 +7,38 @@ Update manually each Monday when the 30-day rolling window advances.
 
 # ── Z47'47 Monthly Takeaway ───────────────────────────────────────────────────
 HARDCODED_INDEX_TAKEAWAY = {
-    "header":  "Z47 47 MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+    "header":  "Z47 47 MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
     "icon":    "✨",
-    "window":  "19 Apr to 19 May 2026",
-    "updated": "19 May 2026",
+    "window":  "4 May to 3 Jun 2026",
+    "updated": "3 Jun 2026",
     "text": (
-        "• Z47'47 outperformed the Nifty 50 over the trailing 30 days, and the composition earned the insulation: "
-        "the April 9 tariff drawdown hit goods-export names hard; Z47'47's domestic-revenue cohorts watched from the sideline.\n"
-        "• Paytm's FY26 PAT of ₹552 Cr — a ₹1,215 Cr swing from a ₹663 Cr loss in FY25 — is the cohort's signal data point: "
-        "the sector's largest, most capital-intensive name is now profitable, which changes the base case for the fintech sub-cohort as a whole.\n"
-        "• Meesho's +18.5% was the index's single biggest contributor — Q4 FY26 revenue +47% YoY, losses narrowed 88% to ₹166 Cr, "
-        "264 million annual transacting users. Value-commerce at Tier 2/3 is a compounding base, not a cyclical bounce.\n"
-        "• Groww's ₹5,326 Cr lock-in block on May 12 pressed the stock 5.4% intraday; the sellers — Peak XV, Ribbit, YC Holdings — "
-        "completed a VC lifecycle exit at 29x–52x returns. Groww's 27% demat market share is unchanged; the supply event was mechanical, not fundamental.\n"
-        "• The IPO pipeline is the real variable: 24 DRHPs filed, Flipkart, Zepto, and Zetwerk targeting ₹47,000+ Cr. "
-        "Where listed multiples clear once primary supply lands is not currently priced at the index level.\n"
-        "• What to watch: the spread between primary IPO clearing multiples and secondary market multiples on comparable listed names — "
-        "convergence in either direction is where the next index re-rating gets written."
+        "• The 4 May – 3 Jun window was defined by institutional supply clearance, not index-level drama: "
+        "three Z47 block deals in 10 trading days (Paytm ₹572.9 Cr, Groww ₹5,326 Cr, Nazara ₹485.7 Cr) "
+        "absorbed ₹6,300+ Cr of institutional stock — and cleared without structural dislocation.\n"
+        "• Groww's May 12 lock-in block — Peak XV, Ribbit, YC Holdings exiting at 29x–52x returns — was the period's defining event. "
+        "The stock absorbed ₹5,326 Cr of supply; Groww's 27% demat market share and #1 active-user count on NSE are unchanged. "
+        "Supply was mechanical, not fundamental.\n"
+        "• Kissht's IPO at ~17.8% premium to its ₹171 issue price with QIBs at 24.87x subscription repriced "
+        "digital-NBFC as a category: the market valued an unsecured-lending book at a premium — the first time "
+        "institutional investors have collectively priced digital-credit quality above par.\n"
+        "• Nazara's ₹485.7 Cr block on May 15 — Nikhil Kamath/Zerodha and Axana Estates each buying 9.13M shares — "
+        "rallied the stock ~18% on the day. The market read the buyer quality, not just the exit size: "
+        "a domestic retail-facing operator making a concentrated gaming bet compresses the sector's post-GST risk premium.\n"
+        "• The index's supply-absorption story is the structural positive: VC and promoter exits clearing into domestic "
+        "MF demand (SBI MF, Quant MF) and strategic buyers (Zerodha) at or above market price signals secondary market "
+        "depth is improving — a precondition for the Flipkart/Zepto primary IPO window to open.\n"
+        "• What to watch: Groww's blended yield per client in Q1 FY27 — if revenue-per-active-client stabilises "
+        "despite the F&O regulatory reset, the lock-in clearance re-rates the stock; if it compresses further, "
+        "the supply overhang narrative returns."
     ),
 }
 
 # ── Z47'47 Valuation Perspective ─────────────────────────────────────────────
 HARDCODED_VALUATION_TAKEAWAY = {
-    "header":  "Z47 47 VALUATION PERSPECTIVE · 19 APR TO 19 MAY 2026",
+    "header":  "Z47 47 VALUATION PERSPECTIVE · 4 MAY TO 3 JUN 2026",
     "icon":    "\U0001f4ca",
-    "window":  "19 Apr to 19 May 2026",
-    "updated": "19 May 2026",
+    "window":  "4 May to 3 Jun 2026",
+    "updated": "3 Jun 2026",
     "text": (
         "• Z47'47's ~36.8x trailing P/E vs the Nifty's ~20.5x looks stretched on the surface; "
         "the premium has mechanically widened this month not because Z47'47 re-rated up, "
@@ -56,10 +62,10 @@ HARDCODED_VALUATION_TAKEAWAY = {
 # Update manually each Monday alongside the index takeaways.
 HARDCODED_SECTOR_TAKEAWAYS = {
     "Consumer / Consumer Tech": {
-        "header": "CONSUMER / CONSUMER TECH — MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+        "header": "CONSUMER / CONSUMER TECH — MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
         "icon": "\U0001f4ca",
-        "window": "19 Apr to 19 May 2026",
-        "updated": "19 May 2026",
+        "window": "4 May to 3 Jun 2026",
+        "updated": "3 Jun 2026",
         "text": (
             "• Consumer/Consumer Tech's ~3% average decline masks the real story — Meesho +18.5% and Swiggy among the laggards "
             "confirms the cohort is fragmenting on unit economics, not softening on demand.\n"
@@ -76,10 +82,10 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         ),
     },
     "Fintech / Financial Services": {
-        "header": "FINTECH / FINANCIAL SERVICES — MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+        "header": "FINTECH / FINANCIAL SERVICES — MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
         "icon": "\U0001f4ca",
-        "window": "19 Apr to 19 May 2026",
-        "updated": "19 May 2026",
+        "window": "4 May to 3 Jun 2026",
+        "updated": "3 Jun 2026",
         "text": (
             "• Fintech is crossing from 'promise' to 'delivery' — Paytm's FY26 PAT of ₹552 Cr and Kissht's IPO at 24.87x QIB "
             "subscription confirm the market now prices digital finance on real earnings, not narrative.\n"
@@ -96,10 +102,10 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         ),
     },
     "SaaS / AI": {
-        "header": "SAAS / AI — MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+        "header": "SAAS / AI — MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
         "icon": "\U0001f4ca",
-        "window": "19 Apr to 19 May 2026",
-        "updated": "19 May 2026",
+        "window": "4 May to 3 Jun 2026",
+        "updated": "3 Jun 2026",
         "text": (
             "• SaaS/AI is two businesses inside one sector label: Freshworks compounds USD enterprise revenue "
             "while E2E Networks burns GPU capex that will either deliver operating leverage or widen the gap between revenue and cash conversion.\n"
@@ -116,10 +122,10 @@ HARDCODED_SECTOR_TAKEAWAYS = {
         ),
     },
     "B2B": {
-        "header": "B2B — MONTHLY TAKEAWAY · 19 APR TO 19 MAY 2026",
+        "header": "B2B — MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
         "icon": "\U0001f4ca",
-        "window": "19 Apr to 19 May 2026",
-        "updated": "19 May 2026",
+        "window": "4 May to 3 Jun 2026",
+        "updated": "3 Jun 2026",
         "text": (
             "• B2B is delivering on the infrastructure-compounding thesis but top-line-to-bottom-line conversion is lagging: "
             "Delhivery crossed ₹10,000 Cr in FY26 revenue and doubled EBITDA to ₹764 Cr, yet Q4 PAT of ₹73.4 Cr was flat sequentially.\n"
@@ -160,7 +166,7 @@ HARDCODED_DEAL_TAKEAWAYS = {
             "the institutional ownership profile re-rates upward as the overhang narrative fades."
         ),
         "value_cr": 673.2,
-        "updated": "19 May 2026",
+        "updated": "3 Jun 2026",
     },
     "PAYTM|2026-05-07": {
         "header": "Z47's TAKEAWAY — PAYTM (ONE97 COMMUNICATIONS) BLOCK · 7 MAY 2026",
@@ -180,7 +186,7 @@ HARDCODED_DEAL_TAKEAWAYS = {
             "if a meaningful stake remains, the supply clock runs through FY27."
         ),
         "value_cr": 572.9,
-        "updated": "19 May 2026",
+        "updated": "3 Jun 2026",
     },
     "NAZARA|2026-05-15": {
         "header": "Z47's TAKEAWAY — NAZARA TECHNOLOGIES BLOCK · 15 MAY 2026",
@@ -200,7 +206,7 @@ HARDCODED_DEAL_TAKEAWAYS = {
             "buying at above-block prices in the secondary market would signal conviction beyond a single negotiated transaction."
         ),
         "value_cr": 485.7,
-        "updated": "19 May 2026",
+        "updated": "3 Jun 2026",
     },
 }
 

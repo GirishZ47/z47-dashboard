@@ -799,17 +799,38 @@ _FALLBACK_DEALS = [
 
 
 def _fetch_nse_csv_history(days=90):
-    """Try to fetch block/bulk deal CSVs from NSE archives (CDN, usually accessible)."""
+    """
+    Fetch block/bulk deal CSVs from NSE archives.
+    Uses a session with NSE homepage cookies for better success rate.
+    Checks last 45 calendar days (≈ 30 trading days).
+    """
+    import zipfile, io as _io
     all_rows = []
     today = datetime.now().date()
-    headers = {
+    _arch_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/octet-stream,application/zip,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
         "Referer": "https://www.nseindia.com/",
+        "Connection": "keep-alive",
     }
-    for delta in range(min(days, 30)):  # check last 30 trading days
+    # Warm a session with NSE cookies — improves archive CDN hit rate
+    _sess = requests.Session()
+    try:
+        _sess.get("https://www.nseindia.com", headers=_arch_headers, timeout=6)
+    except Exception:
+        pass  # proceed without cookies — CDN often still serves the zips
+
+    _px_keys_h = [
+        "Trade Price / Wt. Avg. Price",
+        "Trade Price / Wght Avg Price",
+        "Trade Price/Wt. Avg. Price",
+        "Wt. Avg. Price", "PRICE", "Price", "Rate", "Avg. Price",
+    ]
+
+    for delta in range(min(days * 2, 90)):  # check up to 90 calendar days
         dt = today - timedelta(days=delta)
         if dt.weekday() >= 5:  # skip weekends
             continue
@@ -819,77 +840,88 @@ def _fetch_nse_csv_history(days=90):
             ("Bulk",  f"https://nsearchives.nseindia.com/content/equities/bulk{dd}.zip"),
         ]:
             try:
-                import zipfile, io
-                r = requests.get(url_template, headers=headers, timeout=8)
-                if r.status_code == 200 and r.content:
-                    zf = zipfile.ZipFile(io.BytesIO(r.content))
-                    for name in zf.namelist():
-                        if name.endswith(".csv"):
-                            df_csv = pd.read_csv(io.StringIO(zf.read(name).decode("utf-8", errors="ignore")))
-                            df_csv.columns = [c.strip() for c in df_csv.columns]
-                            for _, row in df_csv.iterrows():
-                                sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
-                                if sym not in Z47_SYMBOLS:
-                                    continue
-                                try:    qty_i = int(float(str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")))
-                                except: qty_i = 0
-                                # NSE archive CSV uses "Trade Price / Wt. Avg. Price" (dots)
-                                _px_keys_h = [
-                                    "Trade Price / Wt. Avg. Price",
-                                    "Trade Price / Wght Avg Price",
-                                    "Trade Price/Wt. Avg. Price",
-                                    "PRICE", "Price", "Rate", "Avg. Price",
-                                ]
-                                _px_raw_h = next((row.get(k) for k in _px_keys_h if row.get(k) is not None), 0)
-                                try:    px = float(str(_px_raw_h).replace(",", "").replace("₹", "").strip() or 0)
-                                except: px = 0.0
-                                ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper().strip()
-                                all_rows.append({
-                                    "Date":           dt.strftime("%Y-%m-%d"),
-                                    "Deal Type":      deal_type,
-                                    "Symbol":         sym,
-                                    "Company":        Z47_NAME_MAP.get(sym, sym),
-                                    "Client / Party": str(row.get("Client Name", row.get("CLIENT_NAME", ""))).strip(),
-                                    "Buy/Sell":       "BUY" if "B" in ttype else "SELL",
-                                    "Quantity":       qty_i,
-                                    "Price (₹)":      px,
-                                    "Value (₹ Cr)":   round(qty_i * px / 1e7, 2),
-                                })
+                r = _sess.get(url_template, headers=_arch_headers, timeout=15)
+                if r.status_code != 200 or not r.content:
+                    continue
+                zf = zipfile.ZipFile(_io.BytesIO(r.content))
+                for name in zf.namelist():
+                    if not name.endswith(".csv"):
+                        continue
+                    df_csv = pd.read_csv(
+                        _io.StringIO(zf.read(name).decode("utf-8", errors="ignore"))
+                    )
+                    df_csv.columns = [c.strip() for c in df_csv.columns]
+                    for _, row in df_csv.iterrows():
+                        sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
+                        if sym not in Z47_SYMBOLS:
+                            continue
+                        try:
+                            qty_i = int(float(
+                                str(row.get("Quantity Traded", row.get("QTY", 0))
+                                    ).replace(",", "")
+                            ))
+                        except Exception:
+                            qty_i = 0
+                        _px_raw = next(
+                            (row.get(k) for k in _px_keys_h if row.get(k) is not None), 0
+                        )
+                        try:
+                            px = float(
+                                str(_px_raw).replace(",", "").replace("₹", "").strip() or 0
+                            )
+                        except Exception:
+                            px = 0.0
+                        ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper()
+                        all_rows.append({
+                            "Date":           dt.strftime("%Y-%m-%d"),
+                            "Deal Type":      deal_type,
+                            "Symbol":         sym,
+                            "Company":        Z47_NAME_MAP.get(sym, sym),
+                            "Client / Party": str(row.get("Client Name",
+                                                          row.get("CLIENT_NAME", ""))).strip(),
+                            "Buy/Sell":       "BUY" if "B" in ttype else "SELL",
+                            "Quantity":       qty_i,
+                            "Price (₹)":      px,
+                            "Value (₹ Cr)":   round(qty_i * px / 1e7, 2),
+                        })
             except Exception:
                 continue
+    if all_rows:
+        print(f"[NSE archive] fetched {len(all_rows)} Z47 deal rows from NSE archives")
     return all_rows
 
 
 def _load_history_cache():
     """
     Load or refresh the 90-day deal history.
-    Strategy: always include curated fallback; merge live NSE data on top
-    (live takes precedence for the same date so duplicates are removed).
-    This ensures curated records (incl. Nazara 15 May etc.) are never lost
-    when the NSE archive fetch partially succeeds.
+    Strategy: always include curated fallback; merge live NSE archive data on top.
+    Tracks live fetch success date so we can show staleness warnings.
     """
     now_ts = time.time()
     last   = st.session_state.get("bd_hist_ts", 0)
     if now_ts - last < _HIST_TTL and "bd_hist_df" in st.session_state:
         return st.session_state["bd_hist_df"], st.session_state.get("bd_hist_src", "cache")
 
-    # Start with the full curated fallback (always safe)
-    fallback_rows = list(_FALLBACK_DEALS)   # copy to avoid mutating the constant
+    # Always start with the full curated fallback (guaranteed baseline)
+    fallback_rows = list(_FALLBACK_DEALS)
 
-    # Attempt live NSE CSV archive fetch; merge rather than replace
-    live_rows = _fetch_nse_csv_history(days=90)
-    src_label = "Curated Z47 deals (NSE/BSE filings)"
+    # Attempt live NSE CSV archive fetch (session + cookies for better hit rate)
+    live_rows = []
+    live_fetch_ok = False
+    try:
+        live_rows     = _fetch_nse_csv_history(days=90)
+        live_fetch_ok = len(live_rows) > 0
+    except Exception as _lfe:
+        print(f"[NSE archive fetch] exception: {_lfe}")
 
-    if live_rows:
-        # Build a set of (date, symbol, client) from live data so we can deduplicate
-        live_keys = set()
-        for r in live_rows:
-            live_keys.add((
-                str(r.get("Date", ""))[:10],
-                str(r.get("Symbol", "")).upper().strip(),
-                str(r.get("Client / Party", "")).strip()[:30],
-            ))
-        # Only keep fallback rows that are NOT already in the live data
+    if live_fetch_ok:
+        # Deduplicate: live takes precedence; only keep fallback rows not in live
+        live_keys = {
+            (str(r.get("Date", ""))[:10],
+             str(r.get("Symbol", "")).upper().strip(),
+             str(r.get("Client / Party", "")).strip()[:30])
+            for r in live_rows
+        }
         merged_fallback = [
             r for r in fallback_rows
             if (str(r.get("Date", ""))[:10],
@@ -897,21 +929,32 @@ def _load_history_cache():
                 str(r.get("Client / Party", "")).strip()[:30]) not in live_keys
         ]
         all_rows  = live_rows + merged_fallback
-        src_label = f"NSE Archives + curated ({len(live_rows)} live, {len(merged_fallback)} curated)"
+        src_label = (f"NSE Archives + curated "
+                     f"({len(live_rows)} live rows · {len(merged_fallback)} curated)")
+        # Record the live fetch timestamp for freshness indicator
+        st.session_state["bd_live_fetch_ts"]  = now_ts
+        st.session_state["bd_live_fetch_date"] = datetime.now(IST).strftime("%d %b %Y %H:%M IST")
     else:
-        all_rows = fallback_rows
+        all_rows  = fallback_rows
+        src_label = "Curated Z47 deals (NSE live fetch unavailable)"
+        # Keep any existing live fetch date — don't overwrite with failure
+        if "bd_live_fetch_date" not in st.session_state:
+            # Fallback: infer last update from latest deal in _FALLBACK_DEALS
+            _fb_dates = [r.get("Date", "") for r in _FALLBACK_DEALS if r.get("Date")]
+            _last_fb  = max(_fb_dates) if _fb_dates else "unknown"
+            st.session_state["bd_live_fetch_date"] = f"curated through {_last_fb}"
 
     df = pd.DataFrame(all_rows)
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.dropna(subset=["Date"]).sort_values("Date", ascending=False).reset_index(drop=True)
     df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
 
-    # Fast yfinance-only enrichment for zero-price rows (no news, won't hang)
     df = _fast_enrich_df(df)
 
-    st.session_state["bd_hist_df"]  = df
-    st.session_state["bd_hist_ts"]  = now_ts
-    st.session_state["bd_hist_src"] = src_label
+    st.session_state["bd_hist_df"]      = df
+    st.session_state["bd_hist_ts"]      = now_ts
+    st.session_state["bd_hist_src"]     = src_label
+    st.session_state["bd_live_ok"]      = live_fetch_ok
     return df, src_label
 
 
@@ -1094,8 +1137,10 @@ def _render_history_tab():
     hcol1, hcol2 = st.columns([8, 1])
     with hcol2:
         if st.button("🔄 Reload History", key="bd_hist_reload"):
-            st.session_state.pop("bd_hist_df", None)
-            st.session_state.pop("bd_hist_ts", None)
+            # Clear all history cache keys to force a fresh NSE fetch
+            for _k in ("bd_hist_df", "bd_hist_ts", "bd_hist_src",
+                       "bd_live_fetch_ts", "bd_live_fetch_date", "bd_live_ok"):
+                st.session_state.pop(_k, None)
             st.rerun()
 
     with st.spinner("Loading deal history (60–90 days)…"):
@@ -1104,6 +1149,36 @@ def _render_history_tab():
     if df_h.empty:
         st.info("No deal records found for Z47 companies in the selected period.")
         return
+
+    # ── Freshness indicator ──────────────────────────────────────────────────
+    _live_ok   = st.session_state.get("bd_live_ok", False)
+    _fetch_lbl = st.session_state.get("bd_live_fetch_date", "unknown")
+    _latest_date_str = df_h["Date"].max() if not df_h.empty else "unknown"
+    try:
+        from datetime import date as _hd, timedelta as _ht
+        _latest_dt  = pd.to_datetime(_latest_date_str).date()
+        _data_age   = (_hd.today() - _latest_dt).days
+    except Exception:
+        _data_age = 99
+
+    if _live_ok:
+        st.markdown(
+            f"<div style='background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;"
+            f"padding:8px 14px;color:#065f46;font-size:12px;margin-bottom:8px'>"
+            f"✅ <b>Live feed:</b> NSE Archives · Last fetched: {_fetch_lbl} · "
+            f"Most recent deal: {_latest_date_str} · Source: {src_label}</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        _age_warn = (f" — data is <b>{_data_age} days old</b>" if _data_age > 1 else "")
+        st.markdown(
+            f"<div style='background:#fef3cd;border:1px solid #fbbf24;border-radius:8px;"
+            f"padding:8px 14px;color:#78350f;font-size:12px;margin-bottom:8px'>"
+            f"⚠️ <b>Live feed degraded:</b> NSE archive fetch returned no data{_age_warn}. "
+            f"Showing curated records through <b>{_latest_date_str}</b>. "
+            f"Press 🔄 Reload History to retry, or check NSE directly.</div>",
+            unsafe_allow_html=True,
+        )
 
     # ── Filters ──────────────────────────────────────────────────────────────
     st.markdown(

@@ -2947,18 +2947,86 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
 # ── Utility ───────────────────────────────────────────────────────────────────
 
 def build_extended_df(hist, nifty_live, sensex_live):
-    last  = hist.iloc[-1]
-    today = pd.Timestamp.today().normalize()
-    if pd.Timestamp(last["date"]).normalize() >= today:
+    """
+    Extend the history CSV with ALL missing trading days up to today.
+    Uses yfinance to fetch Nifty + Sensex for each missing day and scales
+    Z47 proportionally from the last known anchor point.
+    Falls back to a single-today row if yfinance is unavailable.
+    """
+    last      = hist.iloc[-1]
+    today     = pd.Timestamp.today().normalize()
+    last_date = pd.Timestamp(last["date"]).normalize()
+    if last_date >= today:
         return hist
-    nb, sb = last.get("nifty_abs"), last.get("sensex_abs")
-    z47 = last["z47_float"] * (nifty_live / nb)  if nb and nifty_live  else last["z47_float"]
-    ni  = last["nifty_indexed"]  * (nifty_live  / nb) if nb and nifty_live  else last["nifty_indexed"]
-    si  = last["sensex_indexed"] * (sensex_live / sb) if sb and sensex_live else last["sensex_indexed"]
-    new = pd.DataFrame([{"date": today, "z47_float": z47, "z47_mcap": last["z47_mcap"],
-                          "nifty_indexed": ni, "sensex_indexed": si,
-                          "nifty_abs": nifty_live or nb, "sensex_abs": sensex_live or sb}])
-    return pd.concat([hist, new], ignore_index=True)
+
+    nb_base  = float(last.get("nifty_abs")  or 0)
+    sb_base  = float(last.get("sensex_abs") or 0)
+    z47_base = float(last["z47_float"])
+    ni_base  = float(last["nifty_indexed"])
+    si_base  = float(last["sensex_indexed"])
+    z47mc_b  = float(last.get("z47_mcap")  or z47_base)
+
+    new_rows: list[dict] = []
+    try:
+        gap_start = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        gap_end   = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        nf = yf.download("^NSEI",  start=gap_start, end=gap_end,
+                         progress=False, auto_adjust=True)
+        sf = yf.download("^BSESN", start=gap_start, end=gap_end,
+                         progress=False, auto_adjust=True)
+
+        def _close_series(df_yfin: "pd.DataFrame") -> "pd.Series":
+            if df_yfin.empty:
+                return pd.Series(dtype=float)
+            # yfinance ≥ 0.2.x may return MultiIndex columns
+            if isinstance(df_yfin.columns, pd.MultiIndex):
+                return df_yfin["Close"].squeeze()
+            return df_yfin["Close"].squeeze() if "Close" in df_yfin.columns else df_yfin.iloc[:, 0]
+
+        nf_close = _close_series(nf)
+        sf_close = _close_series(sf)
+
+        for dt in nf_close.index:
+            dt_norm = pd.Timestamp(dt).normalize()
+            if dt_norm <= last_date:
+                continue
+            nb_new = float(nf_close.loc[dt])
+            if not nb_new or not nb_base:
+                continue
+            ratio  = nb_new / nb_base
+            try:    sb_new = float(sf_close.loc[dt])
+            except: sb_new = sb_base * ratio
+            si_new = si_base * (sb_new / sb_base) if sb_base else si_base * ratio
+            new_rows.append({
+                "date":           dt_norm,
+                "z47_float":      round(z47_base * ratio, 4),
+                "z47_mcap":       round(z47mc_b  * ratio, 4),
+                "nifty_indexed":  round(ni_base  * ratio, 4),
+                "sensex_indexed": round(si_new,           4),
+                "nifty_abs":      round(nb_new, 2),
+                "sensex_abs":     round(sb_new, 2),
+            })
+        if new_rows:
+            print(f"[build_extended_df] filled {len(new_rows)} missing trading days "
+                  f"({last_date.date()} → {today.date()})")
+    except Exception as _ext_e:
+        print(f"[build_extended_df] yfinance gap fill error: {_ext_e}")
+
+    if not new_rows:
+        # Fallback: single today row using live prices already in memory
+        ratio  = (nifty_live / nb_base) if nb_base and nifty_live else 1.0
+        sb_td  = sensex_live or (sb_base * ratio)
+        si_td  = si_base * (sb_td / sb_base) if sb_base else si_base * ratio
+        new_rows = [{"date": today,
+                     "z47_float":      round(z47_base * ratio, 4),
+                     "z47_mcap":       round(z47mc_b  * ratio, 4),
+                     "nifty_indexed":  round(ni_base  * ratio, 4),
+                     "sensex_indexed": round(si_td,            4),
+                     "nifty_abs":      nifty_live or nb_base,
+                     "sensex_abs":     sb_td}]
+
+    new_df = pd.DataFrame(new_rows).sort_values("date")
+    return pd.concat([hist, new_df], ignore_index=True)
 
 
 def safe_render(fn, name: str) -> None:
@@ -3864,21 +3932,80 @@ def _run_z47_desktop():
     st.plotly_chart(make_perf_chart(df, period), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Z47'47 Monthly Takeaway (hardcoded reference content — instant render) ─
+    # ── Index history staleness banner ────────────────────────────────────────
     try:
-        render_takeaway_box(
-            HARDCODED_INDEX_TAKEAWAY["text"],
-            title=f"Z47'47 — Monthly Takeaway · {HARDCODED_INDEX_TAKEAWAY['window']}",
-            icon="✨",
-        )
-        from datetime import date as _idx_date, timedelta as _idx_td
-        _today_idx = _idx_date.today()
-        _days_ahead = (7 - _today_idx.weekday()) % 7 or 7  # days until next Monday
-        _next_mon = _today_idx + _idx_td(days=_days_ahead)
-        st.caption(
-            f"Last updated: {HARDCODED_INDEX_TAKEAWAY['updated']} "
-            f"· Next refresh: Monday {_next_mon.day} {_next_mon.strftime('%b')}"
-        )
+        _hist_last_date = df["date"].max()
+        _hist_age_days  = (pd.Timestamp.today().normalize() - _hist_last_date).days
+        if _hist_age_days <= 3:  # weekends + holiday tolerance
+            st.caption(
+                f"📈 Index history through: {_hist_last_date.strftime('%d %b %Y')} · "
+                f"auto-updates daily via market data"
+            )
+        else:
+            st.warning(
+                f"⚠️ Index history last updated {_hist_last_date.strftime('%d %b %Y')} "
+                f"({_hist_age_days} days ago). Data is being refreshed — reload in a moment.",
+                icon=None,
+            )
+    except Exception:
+        pass
+
+    # ── Z47'47 Monthly Takeaway — auto-refresh when hardcoded is stale ───────
+    try:
+        from datetime import date as _idx_date, timedelta as _idx_td, datetime as _idx_dtcls
+        _today_idx  = _idx_date.today()
+        _days_ahead = (7 - _today_idx.weekday()) % 7 or 7
+        _next_mon   = _today_idx + _idx_td(days=_days_ahead)
+
+        # Compute age of the hardcoded takeaway
+        try:
+            _hc_upd_str = HARDCODED_INDEX_TAKEAWAY.get("updated", "1 Jan 2000")
+            _hc_upd_dt  = _idx_dtcls.strptime(_hc_upd_str, "%d %b %Y").date()
+            _hc_age     = (_today_idx - _hc_upd_dt).days
+        except Exception:
+            _hc_age = 99
+
+        _live_idx_text = None
+        _live_idx_window = None
+        if _hc_age > 7:
+            # Hardcoded is stale — try disk cache first (fast, survives restarts)
+            _mk_now, _sl_now, _el_now, _sd_now, _ed_now = _monthly_window()
+            _dc_key_idx = f"idx_tk_{_mk_now}"
+            _live_idx_text = _dcache_get(_dc_key_idx, ttl_secs=604800)
+            if _live_idx_text is None:
+                # st.cache_data version — fast if already cached this week, ~30s if cold
+                _live_idx_text = get_z47_index_takeaway_v2(monday_key=_mk_now)
+                if _live_idx_text:
+                    _dcache_set(_dc_key_idx, _live_idx_text)
+            _live_idx_window = f"{_sl_now} to {_el_now}"
+
+        if _live_idx_text:
+            render_takeaway_box(
+                _live_idx_text,
+                title=f"Z47'47 — Monthly Takeaway · {_live_idx_window}",
+                icon="✨",
+            )
+            st.caption(
+                f"Auto-refreshed: {_today_idx.strftime('%d %b %Y')} "
+                f"· Next refresh: Monday {_next_mon.day} {_next_mon.strftime('%b')}"
+            )
+        else:
+            render_takeaway_box(
+                HARDCODED_INDEX_TAKEAWAY["text"],
+                title=f"Z47'47 — Monthly Takeaway · {HARDCODED_INDEX_TAKEAWAY['window']}",
+                icon="✨",
+            )
+            _upd_label = HARDCODED_INDEX_TAKEAWAY.get("updated", "")
+            if _hc_age > 7:
+                st.warning(
+                    f"⚠️ Monthly takeaway dated {_upd_label} ({_hc_age} days ago). "
+                    "Auto-refresh is running in the background — reload in 30 seconds.",
+                    icon=None,
+                )
+            st.caption(
+                f"Last updated: {_upd_label} "
+                f"· Next refresh: Monday {_next_mon.day} {_next_mon.strftime('%b')}"
+            )
     except Exception as _zt_err:
         print(f"[Z47 index takeaway] render error: {_zt_err}")
 
@@ -3933,21 +4060,68 @@ def _run_z47_desktop():
         except Exception as _mc_err:
             print(f"[Multiples line chart] error: {_mc_err}")
 
-    # ── Valuation Perspective (hardcoded reference — always renders, no API dep) ─
+    # ── Valuation Perspective — auto-refresh when hardcoded is stale ─────────
     try:
-        render_takeaway_box(
-            HARDCODED_VALUATION_TAKEAWAY["text"],
-            title=f"Z47'47 Valuation Perspective · {HARDCODED_VALUATION_TAKEAWAY['window']}",
-            icon="📊",
-        )
-        from datetime import date as _val_date, timedelta as _val_td
-        _today_val = _val_date.today()
+        from datetime import date as _val_date, timedelta as _val_td, datetime as _val_dtcls
+        _today_val    = _val_date.today()
         _days_ahead_v = (7 - _today_val.weekday()) % 7 or 7
-        _next_mon_v = _today_val + _val_td(days=_days_ahead_v)
-        st.caption(
-            f"Last updated: {HARDCODED_VALUATION_TAKEAWAY['updated']} "
-            f"· Next refresh: Monday {_next_mon_v.day} {_next_mon_v.strftime('%b')}"
-        )
+        _next_mon_v   = _today_val + _val_td(days=_days_ahead_v)
+
+        try:
+            _hcv_upd_str = HARDCODED_VALUATION_TAKEAWAY.get("updated", "1 Jan 2000")
+            _hcv_age     = (_today_val - _val_dtcls.strptime(_hcv_upd_str, "%d %b %Y").date()).days
+        except Exception:
+            _hcv_age = 99
+
+        _live_val_text = None
+        _live_val_window = None
+        if _hcv_age > 7:
+            _mk_v, _sl_v, _el_v, _sd_v, _ed_v = _monthly_window()
+            _dc_key_val = f"val_tk_{_mk_v}"
+            _live_val_text = _dcache_get(_dc_key_val, ttl_secs=604800)
+            if _live_val_text is None:
+                # Get live fundamentals for the API call
+                try:
+                    _vfund = get_all_index_fundamentals()
+                    _vf = _vfund.get("z47", {}) if _vfund else {}
+                    _live_val_text = get_valuation_multiples_takeaway(
+                        _vf.get("ev_revenue"), _vf.get("ev_ebitda"),
+                        _vf.get("pe"), _vf.get("rev_growth"), _vf.get("ebitda_margin"),
+                        monday_key=_mk_v,
+                    )
+                except Exception:
+                    _live_val_text = None
+                if _live_val_text:
+                    _dcache_set(_dc_key_val, _live_val_text)
+            _live_val_window = f"{_sl_v} to {_el_v}"
+
+        if _live_val_text:
+            render_takeaway_box(
+                _live_val_text,
+                title=f"Z47'47 Valuation Perspective · {_live_val_window}",
+                icon="📊",
+            )
+            st.caption(
+                f"Auto-refreshed: {_today_val.strftime('%d %b %Y')} "
+                f"· Next refresh: Monday {_next_mon_v.day} {_next_mon_v.strftime('%b')}"
+            )
+        else:
+            render_takeaway_box(
+                HARDCODED_VALUATION_TAKEAWAY["text"],
+                title=f"Z47'47 Valuation Perspective · {HARDCODED_VALUATION_TAKEAWAY['window']}",
+                icon="📊",
+            )
+            _vupd_label = HARDCODED_VALUATION_TAKEAWAY.get("updated", "")
+            if _hcv_age > 7:
+                st.warning(
+                    f"⚠️ Valuation perspective dated {_vupd_label} ({_hcv_age} days ago). "
+                    "Auto-refreshing — reload in 30 seconds.",
+                    icon=None,
+                )
+            st.caption(
+                f"Last updated: {_vupd_label} "
+                f"· Next refresh: Monday {_next_mon_v.day} {_next_mon_v.strftime('%b')}"
+            )
     except Exception as _vt_err:
         print(f"[Valuation takeaway] render error: {_vt_err}")
 
