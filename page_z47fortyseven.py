@@ -546,45 +546,29 @@ def _s3_returns(df: pd.DataFrame) -> None:
         ("Sensex",         "sensex_indexed"),
     ]
 
-    def _cell_bg_txt(v):
-        if v is None:
-            return "#FAFAFA", _LGR
-        intensity = min(abs(v) / 30.0, 1.0)
-        if v >= 0:
-            r2 = int(220 + (255-220)*(1-intensity))
-            g2 = int(242 + (255-242)*(1-intensity))
-            b2 = int(220 + (255-220)*(1-intensity))
-            txt = "#0A4A1A" if intensity > 0.35 else _BLK
-        else:
-            r2 = 255
-            g2 = int(220 + (255-220)*(1-intensity))
-            b2 = int(220 + (255-220)*(1-intensity))
-            txt = "#6A0A0A" if intensity > 0.35 else _BLK
-        return f"rgb({r2},{g2},{b2})", txt
-
-    th_s  = (f"padding:10px 14px;text-align:center;font-size:10px;font-weight:700;"
-             f"letter-spacing:0.07em;color:{_LGR};background:#FAFAFA;"
+    th_s  = (f"padding:10px 16px;text-align:center;font-size:11px;font-weight:600;"
+             f"letter-spacing:0.05em;color:{_LGR};background:{_WHT};"
              f"border-bottom:1px solid {_BRD};text-transform:uppercase;{_F}")
-    th_l  = f"text-align:left;{th_s};min-width:140px"
-    tbl   = (f'<div style="overflow-x:auto"><table style="width:100%;'
-             f'border-collapse:collapse;border:1px solid {_BRD}">'
+    th_l  = f"text-align:left;{th_s};min-width:150px"
+    tbl   = (f'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
              f'<thead><tr><th style="{th_l}"></th>')
     for lbl, _ in periods:
         tbl += f'<th style="{th_s}">{lbl}</th>'
     tbl += "</tr></thead><tbody>"
     for idx_name, col in rows_cfg:
-        tbl += (f'<tr><td style="padding:13px 16px;font-size:14px;font-weight:600;'
+        tbl += (f'<tr><td style="padding:14px 16px;font-size:14px;font-weight:700;'
                 f'color:{_BLK};border-bottom:1px solid {_BRD};white-space:nowrap;{_F}">'
                 f'{idx_name}</td>')
         for _, kw in periods:
-            v        = _pct_since(df, col, **kw)
-            bg, txt  = _cell_bg_txt(v)
-            vs       = (f"+{v:.1f}%" if v > 0 else f"{v:.1f}%") if v is not None else "—"
-            tbl += (f'<td style="padding:13px 14px;text-align:center;font-weight:700;'
-                    f'font-size:13px;background:{bg};color:{txt};'
+            v  = _pct_since(df, col, **kw)
+            vs = (f"+{v:.1f}%" if v > 0 else f"{v:.1f}%") if v is not None else "—"
+            # No background tint — signal carried entirely by text colour
+            tc = _GRN if (v or 0) > 0 else (_RED if (v or 0) < 0 else _LGR)
+            tbl += (f'<td style="padding:14px 16px;text-align:center;font-weight:700;'
+                    f'font-size:15px;background:{_WHT};color:{tc};'
                     f'border-bottom:1px solid {_BRD};{_F}">{vs}</td>')
         tbl += "</tr>"
-    tbl += "</tbody></table></div>"
+    tbl += "</tbody></table>"
     st.markdown(tbl, unsafe_allow_html=True)
 
 
@@ -774,13 +758,12 @@ def _s7_constituents(returns_1m: dict, mcaps: dict,
     tbl = (f'<div style="overflow-x:auto"><table style="width:100%;'
            f'border-collapse:collapse;border:1px solid {_BRD}">'
            f'<thead><tr>'
-           f'<th style="text-align:left;{th}">Company</th>'
-           f'<th style="text-align:left;{th}">Sector</th>'
-           f'<th style="text-align:left;{th}">Ticker</th>'
-           f'<th style="text-align:right;{th}">Price</th>'
-           f'<th style="text-align:right;{th}">Day Chg</th>'
-           f'<th style="text-align:right;{th}">1M Chg</th>'
-           f'<th style="text-align:right;{th}">Mkt Cap (&#8377; Mn)</th>'
+           f'<th style="text-align:left;{th};width:28%">Company</th>'
+           f'<th style="text-align:left;{th};width:18%">Sector</th>'
+           f'<th style="text-align:right;{th};width:13%">Price</th>'
+           f'<th style="text-align:right;{th};width:10%">Day Chg</th>'
+           f'<th style="text-align:right;{th};width:10%">1M Chg</th>'
+           f'<th style="text-align:right;{th};width:15%">Mkt Cap (&#8377; Mn)</th>'
            f'</tr></thead><tbody>')
 
     for c in sorted_cos:
@@ -802,8 +785,6 @@ def _s7_constituents(returns_1m: dict, mcaps: dict,
             f'{c["name"]}</td>'
             f'<td style="padding:12px 14px;font-size:11px;color:{_LGR};{_F}">'
             f'{SHORT_S.get(c["sector"],c["sector"])}</td>'
-            f'<td style="padding:12px 14px;font-size:11px;font-family:monospace;color:{_DGR}">'
-            f'{c["ticker"]}</td>'
             f'<td style="padding:12px 14px;text-align:right;font-size:14px;'
             f'font-weight:500;color:{_BLK};{_F}">{px_str}</td>'
             f'<td style="padding:12px 14px;text-align:right;font-size:13px;{_F}">'
@@ -821,41 +802,73 @@ def _s7_constituents(returns_1m: dict, mcaps: dict,
 
 
 def _s8_sector() -> None:
-    """Section 8 — Sector composition donut + list."""
+    """Section 8 — Sector composition donut + list.
+    Per-slice fills with contrast-checked text colours:
+      Consumer Tech  → light grey  #ECECEC  / dark text
+      Fintech        → medium orange #FF9A5C / dark text
+      B2B            → brand orange  #FF6B1A / dark text
+      SaaS / AI      → dark grey    #2A2A2A / WHITE text
+    """
     st.markdown(f'<p style="{_lbl()}">SECTOR COMPOSITION</p>', unsafe_allow_html=True)
     from collections import Counter
-    counts = Counter(c["sector"] for c in COMPANIES)
-    total  = sum(counts.values())
-    SHORT  = {"Fintech / Financial Services":"Fintech","Consumer / Consumer Tech":"Consumer Tech","B2B":"B2B","SaaS / AI":"SaaS / AI"}
-    sectors = list(counts.keys()); vals = [counts[s] for s in sectors]
-    palette = [_OG,"#FF9A5C","#FFC39A","#4A4A4A","#888888"]
-    colors  = (palette*4)[:len(sectors)]
+
+    # Explicit per-sector fill + text-colour map — immune to Counter ordering
+    _SECTOR_STYLE = {
+        "Consumer / Consumer Tech":     {"fill": "#ECECEC", "text": _BLK,  "label_text": _BLK},
+        "Fintech / Financial Services": {"fill": "#FF9A5C", "text": _BLK,  "label_text": _BLK},
+        "B2B":                          {"fill": _OG,       "text": _BLK,  "label_text": _BLK},
+        "SaaS / AI":                    {"fill": "#2A2A2A", "text": "#FFFFFF", "label_text": "#FFFFFF"},
+    }
+
+    counts  = Counter(c["sector"] for c in COMPANIES)
+    total   = sum(counts.values())
+    SHORT   = {"Fintech / Financial Services": "Fintech",
+               "Consumer / Consumer Tech":     "Consumer Tech",
+               "B2B": "B2B", "SaaS / AI": "SaaS / AI"}
+
+    sectors     = list(counts.keys())
+    vals        = [counts[s] for s in sectors]
+    fill_colors = [_SECTOR_STYLE.get(s, {"fill": _LGR})["fill"]       for s in sectors]
+    text_colors = [_SECTOR_STYLE.get(s, {"text": _BLK})["text"]       for s in sectors]
+
     fig = go.Figure(go.Pie(
-        labels=[SHORT.get(s,s) for s in sectors], values=vals, hole=0.65,
-        marker=dict(colors=colors, line=dict(color=_WHT, width=2)),
-        textinfo="percent+label", textfont=dict(size=10, color=_BLK),
-        hovertemplate="%{label}: %{value} cos<extra></extra>", showlegend=False,
+        labels=[SHORT.get(s, s) for s in sectors],
+        values=vals,
+        hole=0.65,
+        marker=dict(colors=fill_colors, line=dict(color=_WHT, width=2)),
+        textinfo="percent+label",
+        textfont=dict(size=10, color=text_colors),   # per-slice text colour list
+        hovertemplate="%{label}: %{value} cos<extra></extra>",
+        showlegend=False,
     ))
     fig.add_annotation(text=f"<b>{total}</b>", x=0.5, y=0.56, showarrow=False,
                        font=dict(size=30, color=_BLK))
     fig.add_annotation(text="companies", x=0.5, y=0.43, showarrow=False,
                        font=dict(size=11, color=_LGR))
     fig.update_layout(paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=300,
-                      margin=dict(l=0,r=0,t=8,b=8), transition_duration=0)
-    cl, cr = st.columns([1,1], gap="large")
+                      margin=dict(l=0, r=0, t=8, b=8), transition_duration=0)
+
+    cl, cr = st.columns([1, 1], gap="large")
     with cl:
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     with cr:
+        # Legend with matching colour swatches
         rows_html = "".join(
             f'<div style="display:flex;justify-content:space-between;align-items:center;'
             f'padding:11px 0;border-bottom:1px solid {_BRD}">'
-            f'<span style="font-size:13px;color:{_BLK};font-weight:500;{_F}">'
-            f'{SHORT.get(s,s)}</span>'
+            f'<span style="display:flex;align-items:center;gap:8px;{_F}">'
+            f'<span style="display:inline-block;width:12px;height:12px;border-radius:2px;'
+            f'background:{_SECTOR_STYLE.get(s,{}).get("fill",_LGR)};'
+            f'border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></span>'
+            f'<span style="font-size:13px;color:{_BLK};font-weight:500">'
+            f'{SHORT.get(s, s)}</span></span>'
             f'<span style="font-size:12px;color:{_LGR};{_F}">'
-            f'{cnt} co · {cnt/total*100:.1f}%</span></div>'
-            for s, cnt in sorted(counts.items(), key=lambda x:-x[1])
+            f'{cnt} co · {cnt/total*100:.1f}%</span>'
+            f'</div>'
+            for s, cnt in sorted(counts.items(), key=lambda x: -x[1])
         )
-        st.markdown(f'<div style="margin-top:20px">{rows_html}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="margin-top:20px">{rows_html}</div>',
+                    unsafe_allow_html=True)
 
 
 def _s9_methodology() -> None:
