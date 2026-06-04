@@ -17,12 +17,35 @@ from __future__ import annotations
 import os
 import glob as _glob
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time as _time
 
 import pandas as pd
 import plotly.graph_objects as go
+import pytz as _pytz
 import streamlit as st
 import yfinance as yf
+
+# ── Timezone ──────────────────────────────────────────────────────────────────
+# Streamlit Cloud runs in UTC. Always use _IST_TZ for user-facing timestamps.
+_IST_TZ = _pytz.timezone("Asia/Kolkata")
+
+
+def _now_ist() -> datetime:
+    """Current time in IST (timezone-aware)."""
+    return datetime.now(_IST_TZ)
+
+
+def _now_ist_str(fmt: str = "%H:%M IST") -> str:
+    return _now_ist().strftime(fmt)
+
+
+def _is_market_hours() -> bool:
+    """True if NSE market is currently open (Mon–Fri, 09:15–15:35 IST)."""
+    now = _now_ist()
+    if now.weekday() >= 5:   # Sat / Sun
+        return False
+    t = now.time()
+    return _time(9, 15) <= t <= _time(15, 35)
 
 from companies import COMPANIES, yf_ticker
 
@@ -56,7 +79,7 @@ def _card_wrap(extra=""):
 # Data helpers — self-contained, no app.py imports
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)   # 2-min TTL — refreshes within auto-refresh window
 def _live_indices() -> tuple:
     nifty = sensex = usdinr = fx_chg = None
     try:    nifty  = round(float(yf.Ticker("^NSEI").fast_info.last_price), 2)
@@ -132,7 +155,7 @@ def _extend_history(hist: pd.DataFrame, nifty_live, sensex_live) -> pd.DataFrame
     return pd.concat([hist, pd.DataFrame(new_rows).sort_values("date")], ignore_index=True)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)   # 2-min TTL — constituent prices
 def _fetch_price(symbol: str, exchange: str) -> dict:
     """Live price: fast_info → history(5d) → {}."""
     tk = symbol + ".NS" if exchange == "NSE" else symbol
@@ -156,7 +179,7 @@ def _fetch_price(symbol: str, exchange: str) -> dict:
     return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — 1M returns
 def _fetch_1m_returns() -> dict[str, float]:
     """1-calendar-month returns for all 47 companies, NaN-safe."""
     tickers = [yf_ticker(c) for c in COMPANIES]
@@ -189,7 +212,7 @@ def _fetch_1m_returns() -> dict[str, float]:
         return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — market caps
 def _fetch_mcaps() -> dict:
     """Live market caps for all 47 companies."""
     def _get(c):
@@ -292,7 +315,7 @@ def _maybe_refresh_weekly() -> None:
 
         with open(flag_path, "w") as fh:
             fh.write(monday.isoformat())
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        now_str = _now_ist_str("%Y-%m-%d %H:%M IST")
         print(f"[REFRESH {now_str}] Weekly AI content caches cleared — will regenerate on next view")
     except Exception as _e:
         print(f"[z47fs weekly_refresh] {_e}")
@@ -302,26 +325,55 @@ def _maybe_refresh_weekly() -> None:
 # Section renderers — ALL inline styles, no CSS class dependencies
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _render_header_bar(df: pd.DataFrame, usdinr: float) -> None:
-    """Thin data-freshness strip at top right of page."""
+def _render_header_bar(df: pd.DataFrame, usdinr: float,
+                       fetch_ts: str | None = None,
+                       fetch_age_s: float | None = None) -> None:
+    """
+    Data-freshness strip at top of page.
+    fetch_ts   : IST time string of the most recent _live_indices() fetch
+    fetch_age_s: seconds elapsed since that fetch
+    Colors:
+      green  = fresh (< 3 min)
+      orange = approaching stale (3–10 min)
+      red    = stale (> 10 min)
+    """
     try:
         last_dt  = df["date"].max()
         age_days = (pd.Timestamp.today().normalize() - last_dt).days
         idx_col  = _GRN if age_days <= 1 else (_OG if age_days <= 3 else _RED)
-        idx_lbl  = f"today" if age_days <= 1 else last_dt.strftime("%d %b")
+        idx_lbl  = "today" if age_days <= 1 else last_dt.strftime("%d %b")
     except Exception:
         idx_col, idx_lbl = _LGR, "unknown"
 
     tk_updated = HARDCODED_INDEX_TAKEAWAY.get("updated", "—")
-    now_ts     = datetime.now().strftime("%H:%M IST")
+
+    # Price freshness color
+    if fetch_age_s is None:
+        price_col = _LGR
+        price_lbl = fetch_ts or _now_ist_str()
+    elif fetch_age_s < 180:       # < 3 min
+        price_col = _GRN
+        price_lbl = fetch_ts or _now_ist_str()
+    elif fetch_age_s < 600:       # 3–10 min
+        price_col = _OG
+        age_m = int(fetch_age_s // 60)
+        price_lbl = f"{fetch_ts} ({age_m}m ago)"
+    else:                          # > 10 min — STALE
+        price_col = _RED
+        age_m = int(fetch_age_s // 60)
+        price_lbl = f"STALE — {fetch_ts} ({age_m}m ago)"
+
+    mh_dot = (f'<span style="color:{_GRN};font-size:8px">●</span>&nbsp;MARKET OPEN&nbsp;·&nbsp;'
+              if _is_market_hours() else "")
 
     st.markdown(
         f'<div style="text-align:right;font-size:10px;color:{_LGR};'
         f'padding:2px 0 16px;{_F}">'
+        f'{mh_dot}'
         f'<b style="color:{_DGR}">DATA</b>'
         f'&nbsp;·&nbsp;<span style="color:{idx_col}">Index: {idx_lbl}</span>'
-        f'&nbsp;·&nbsp;Prices: live {now_ts}'
-        f'&nbsp;·&nbsp;FX: ₹{usdinr:.2f}'
+        f'&nbsp;·&nbsp;Prices:&nbsp;<span style="color:{price_col}">{price_lbl}</span>'
+        f'&nbsp;·&nbsp;FX: &#8377;{usdinr:.2f}'
         f'&nbsp;·&nbsp;Takeaway: {tk_updated}'
         f'</div>',
         unsafe_allow_html=True,
@@ -332,7 +384,7 @@ def _s1_hero(df: pd.DataFrame, nifty_live, sensex_live, usdinr, fx_chg) -> None:
     """Section 1 — 5 live stat cards with proper inline-styled card containers."""
     last     = df.iloc[-1]
     z47_v    = last["z47_float"]
-    now_ts   = datetime.now().strftime("%H:%M IST")
+    now_ts   = _now_ist_str()
 
     z47_all = _pct_since(df, "z47_float",     all_time=True)
     nif_all = _pct_since(df, "nifty_indexed",  all_time=True)
@@ -831,7 +883,7 @@ def _s9_methodology() -> None:
 
 def _s10_footer(usdinr: float) -> None:
     """Section 10 — Data status + disclaimer."""
-    now_ts  = datetime.now().strftime("%H:%M IST · %d %b %Y")
+    now_ts  = _now_ist_str("%H:%M IST · %d %b %Y")
     updated = HARDCODED_INDEX_TAKEAWAY.get("updated", "—")
     st.markdown(
         f'<div style="margin-top:16px;padding:12px 0;border-top:1px solid {_BRD}">'
@@ -864,23 +916,26 @@ def _s10_footer(usdinr: float) -> None:
 def render() -> None:
     """Render the Z47fortyseven public-facing page."""
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=300_000, key="z47fs_autorefresh")
 
-    # Run weekly refresh check (idempotent, fast after first Monday run)
+    # ── Adaptive auto-refresh: 3 min during market hours, 15 min outside ─────
+    _mh = _is_market_hours()
+    _refresh_ms = 180_000 if _mh else 900_000
+    st_autorefresh(interval=_refresh_ms, key="z47fs_autorefresh")
+
+    # ── Weekly content cache refresh (Monday-keyed, idempotent) ──────────────
     _maybe_refresh_weekly()
 
-    # ── Background override (use st.html if available; fallback to st.markdown)
-    # Short rule, no CSS comments — survives DOMPurify even if <style> is allowed
+    # ── Background override ───────────────────────────────────────────────────
     _bg_css = ("<style>"
                ".stApp,.stApp>div,.block-container"
                "{background-color:#FFFFFF!important}"
                "</style>")
     try:
-        st.html(_bg_css)                                       # Streamlit ≥ 1.32
+        st.html(_bg_css)
     except AttributeError:
-        st.markdown(_bg_css, unsafe_allow_html=True)           # fallback
+        st.markdown(_bg_css, unsafe_allow_html=True)
 
-    # ── Google Fonts (<link> tag survives DOMPurify) ──────────────────────────
+    # ── Google Fonts ──────────────────────────────────────────────────────────
     st.markdown(
         '<link href="https://fonts.googleapis.com/css2?family=Inter:'
         'ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&display=swap"'
@@ -888,38 +943,94 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Page title (HTML with genuine <em> italic on "fortyseven") ───────────
-    st.markdown(
-        f'<div style="padding:28px 0 4px">'
-        f'<h1 style="font-size:34px;font-weight:800;color:{_BLK};'
-        f'margin:0;letter-spacing:-0.5px;{_F}">'
-        f'Z47<em style="font-style:italic">fortyseven</em>'
-        f'</h1>'
-        f'<p style="font-size:14px;color:{_DGR};margin-top:5px;{_F}">'
-        f"India's index of 47 new-age tech and financial-services companies"
-        f'</p></div>',
-        unsafe_allow_html=True,
-    )
+    # ── Title row + force-refresh button ─────────────────────────────────────
+    _title_col, _btn_col = st.columns([11, 1])
+    with _title_col:
+        st.markdown(
+            f'<div style="padding:24px 0 4px">'
+            f'<h1 style="font-size:34px;font-weight:800;color:{_BLK};'
+            f'margin:0;letter-spacing:-0.5px;{_F}">'
+            f'Z47<em style="font-style:italic">fortyseven</em>'
+            f'</h1>'
+            f'<p style="font-size:14px;color:{_DGR};margin-top:5px;{_F}">'
+            f"India's index of 47 new-age tech and financial-services companies"
+            f'</p></div>',
+            unsafe_allow_html=True,
+        )
+    with _btn_col:
+        st.markdown("<div style='padding-top:28px'></div>", unsafe_allow_html=True)
+        if st.button("🔄", key="z47fs_force_refresh",
+                     help="Force-refresh all live data now"):
+            # Clear every live-data cache so next render refetches
+            _live_indices.clear()
+            _fetch_price.clear()
+            _fetch_1m_returns.clear()
+            _fetch_mcaps.clear()
+            # Clear the fetch-time record so the badge doesn't show stale time
+            for _k in ("z47fs_fetch_ts", "z47fs_fetch_epoch"):
+                st.session_state.pop(_k, None)
+            print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
+                  f"Force-refresh triggered by user")
+            st.rerun()
 
-    # ── Load all data ─────────────────────────────────────────────────────────
+    # ── Load all live data in parallel ────────────────────────────────────────
     with st.spinner(""):
-        nifty_live, sensex_live, usdinr, fx_chg = _live_indices()
-        hist       = _load_history()
-        df         = _extend_history(hist, nifty_live, sensex_live)
-        returns_1m = _fetch_1m_returns()
-        mcaps      = _fetch_mcaps()
+        _fetch_start = _now_ist()
 
-        price_cache: dict = {}
-        def _fp(c):
-            return c["ticker"], _fetch_price(c["ticker"], c["exchange"])
-        with ThreadPoolExecutor(max_workers=12) as ex:
-            for tk, pd_data in ex.map(_fp, COMPANIES):
-                price_cache[tk] = pd_data
+        # --- Parallel fast path: indices + all constituent prices at once ----
+        def _get_indices():
+            return _live_indices()
+        def _get_1m():
+            return _fetch_1m_returns()
+        def _get_mcaps():
+            return _fetch_mcaps()
+        def _get_hist():
+            return _load_history()
+
+        with ThreadPoolExecutor(max_workers=6) as _ex:
+            _fut_idx   = _ex.submit(_get_indices)
+            _fut_1m    = _ex.submit(_get_1m)
+            _fut_mcaps = _ex.submit(_get_mcaps)
+            _fut_hist  = _ex.submit(_get_hist)
+
+            # Constituent prices fetch (parallel within)
+            def _fp(c):
+                return c["ticker"], _fetch_price(c["ticker"], c["exchange"])
+            price_cache: dict = {}
+            with ThreadPoolExecutor(max_workers=12) as _px_ex:
+                for tk, pd_data in _px_ex.map(_fp, COMPANIES):
+                    price_cache[tk] = pd_data
+
+            try:
+                nifty_live, sensex_live, usdinr, fx_chg = _fut_idx.result(timeout=15)
+            except Exception as _e:
+                print(f"[z47fs indices fetch] {_e}")
+                nifty_live = sensex_live = fx_chg = None
+                usdinr = 85.0
+            returns_1m = _fut_1m.result(timeout=15)  if True else {}
+            mcaps      = _fut_mcaps.result(timeout=15) if True else {}
+            hist       = _fut_hist.result(timeout=15)
+
+        df = _extend_history(hist, nifty_live, sensex_live)
+
+    # ── Record actual fetch time (IST) in session state ───────────────────────
+    _fetch_elapsed = (_now_ist() - _fetch_start).total_seconds()
+    _fetch_ts_str  = _fetch_start.strftime("%H:%M IST")  # time when fetch began
+    st.session_state["z47fs_fetch_ts"]    = _fetch_ts_str
+    st.session_state["z47fs_fetch_epoch"] = _fetch_start.timestamp()
+    print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
+          f"Z47fortyseven data loaded in {_fetch_elapsed:.1f}s "
+          f"(market={'OPEN' if _mh else 'CLOSED'}, interval={_refresh_ms//1000}s)")
 
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
-    # ── Freshness strip (top-right) ───────────────────────────────────────────
-    _render_header_bar(df, usdinr)
+    # ── Compute how old this render's data actually is ────────────────────────
+    _age_s = (datetime.now(_IST_TZ).timestamp() -
+               st.session_state.get("z47fs_fetch_epoch", datetime.now(_IST_TZ).timestamp()))
+    _saved_ts = st.session_state.get("z47fs_fetch_ts", _fetch_ts_str)
+
+    # ── Freshness strip ───────────────────────────────────────────────────────
+    _render_header_bar(df, usdinr, fetch_ts=_saved_ts, fetch_age_s=_age_s)
 
     # ── Sections ──────────────────────────────────────────────────────────────
 
@@ -941,7 +1052,7 @@ def render() -> None:
         _s6_1m_chart(returns_1m, name_map)
         _divider()
     else:
-        st.info("1-month return data loading — auto-refreshes every 5 minutes.")
+        st.info("1-month return data loading — auto-refreshes every 3 minutes during market hours.")
         _divider()
 
     _s7_constituents(returns_1m, mcaps, price_cache, usdinr)

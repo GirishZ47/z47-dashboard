@@ -7,9 +7,24 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import yfinance as yf
-from datetime import timedelta, datetime
+import pytz as _pytz_app
+from datetime import timedelta, datetime, time as _time_app
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+_APP_IST = _pytz_app.timezone("Asia/Kolkata")
+
+def _app_now_ist() -> datetime:
+    """Current IST datetime (Streamlit Cloud runs UTC — never use datetime.now() directly)."""
+    return datetime.now(_APP_IST)
+
+def _app_is_market_hours() -> bool:
+    """True during NSE trading hours (Mon–Fri 09:15–15:35 IST)."""
+    now = _app_now_ist()
+    if now.weekday() >= 5:
+        return False
+    t = now.time()
+    return _time_app(9, 15) <= t <= _time_app(15, 35)
 
 import anthropic
 from streamlit_js_eval import streamlit_js_eval
@@ -259,7 +274,7 @@ def fetch_live_indices() -> tuple:
     return nifty, sensex
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)   # was 3600 — FX moves, needs 5-min refresh
 def get_usdinr() -> float:
     try:
         return round(float(yf.Ticker("USDINR=X").fast_info.last_price), 2)
@@ -3583,8 +3598,9 @@ def main():
         return
 
     # ── Z47 Index (default) ───────────────────────────────────────────────────
-    # Auto-refresh every 5 minutes — keeps prices, indices and live data current
-    st_autorefresh(interval=300_000, key="z47_autorefresh")
+    # Adaptive auto-refresh: 3 min during market hours, 15 min outside
+    _z47_refresh_ms = 180_000 if _app_is_market_hours() else 900_000
+    st_autorefresh(interval=_z47_refresh_ms, key="z47_autorefresh")
 
     screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_w")
     if screen_width is not None and screen_width < 768:
