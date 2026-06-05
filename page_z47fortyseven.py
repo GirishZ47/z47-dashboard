@@ -872,26 +872,99 @@ def _s8_sector() -> None:
 
 
 def _s9_methodology() -> None:
-    """Section 9 — Methodology bullet list."""
-    st.markdown(f'<p style="{_lbl()}">METHODOLOGY</p>', unsafe_allow_html=True)
-    points = [
-        "47 listed Indian new-age tech and financial-services companies selected for their role in India's transition to a developed economy by 2047",
-        "Equal-weight index rebased to 100 on 1 January 2024",
-        "Constituents reviewed quarterly — additions on listing, removals on delisting or classification change",
-        "Price data sourced from NSE / BSE via Yahoo Finance, with 15-minute live refresh during market hours",
+    """Section 9 — Four-part methodology section per brand spec."""
+
+    def _bullet_list(points: list[str]) -> str:
+        return "".join(
+            f'<li style="margin-bottom:10px;color:{_DGR};font-size:14px;'
+            f'line-height:1.65;list-style:none;padding-left:18px;position:relative;{_F}">'
+            f'<span style="position:absolute;left:0;color:{_OG};font-weight:700">•</span>'
+            f'{p}</li>'
+            for p in points
+        )
+
+    def _sub_section(label: str, points: list[str], intro: str = "") -> str:
+        intro_html = (f'<p style="font-size:14px;color:{_DGR};margin:0 0 12px;'
+                      f'line-height:1.65;{_F}">{intro}</p>' if intro else "")
+        return (
+            f'<p style="{_lbl("margin-top:28px")};">{label}</p>'
+            f'{intro_html}'
+            f'<ul style="margin:0;padding:0">{_bullet_list(points)}</ul>'
+        )
+
+    # ── Sub-section 1: Methodology ────────────────────────────────────────────
+    s1 = _sub_section("METHODOLOGY", [
+        "47 listed Indian new-age technology and new-economy financial-services companies "
+        "selected for their role in India's transition to a developed economy by 2047",
+        "Equal-weighted index, rebased to 100 on 1 January 2024",
+        "For constituents listed after 1 January 2024, included from their first full "
+        "trading day post-listing; no synthetic pre-listing prices are used",
+        "<b>Constituent changes &mdash; divisor adjustment.</b> When a constituent is added, "
+        "removed, or replaced, the index divisor is adjusted on the effective date so that "
+        "the index level is unchanged at the moment of the change. The constituent change is "
+        "value-neutral; subsequent index movements reflect only price changes of the new basket. "
+        "This ensures the historical index series is continuous and free of artificial jumps "
+        "from basket reconstitution.",
+        "Constituents reviewed quarterly &mdash; additions on listing, removals on delisting, "
+        "prolonged suspension, or classification change",
+        "Price data sourced from NSE / BSE via Yahoo Finance with 5-minute live refresh "
+        "during market hours",
         "Returns computed in INR terms; benchmark comparisons against Nifty 50 and BSE Sensex",
-        "Sector classification: Fintech / Financial Services · Consumer / Consumer Tech · B2B · SaaS / AI",
-        "Data refresh cadence — prices: 5 min · index level: daily · takeaways: weekly (Monday)",
-        "For informational purposes only. Not investment advice.",
-    ]
-    items = "".join(
-        f'<li style="margin-bottom:10px;color:{_DGR};font-size:14px;'
-        f'line-height:1.65;list-style:none;padding-left:18px;position:relative;{_F}">'
-        f'<span style="position:absolute;left:0;color:{_OG};font-weight:700">•</span>'
-        f'{p}</li>'
-        for p in points
+        "Sector classification: Fintech / Financial Services &nbsp;·&nbsp; "
+        "Consumer / Consumer Tech &nbsp;·&nbsp; B2B &nbsp;·&nbsp; SaaS / AI",
+        "Data refresh cadence &mdash; prices: 5 min &nbsp;·&nbsp; index level: daily "
+        "&nbsp;·&nbsp; takeaways: weekly (Monday)",
+    ])
+
+    # ── Sub-section 2: Inclusion Criteria ─────────────────────────────────────
+    s2 = _sub_section(
+        "INCLUSION CRITERIA",
+        [
+            "Listed on NSE or BSE in the last decade, broadly capturing the new-age IPO wave "
+            "(with Info Edge grandfathered as the foundational predecessor of the cohort)",
+            "Operates a new-age, technology-led, or category-creating business model",
+            "Has received institutional venture, growth-equity, or private-equity capital at "
+            "some point in its lifecycle &mdash; i.e., not a pure promoter-only or "
+            "family-conglomerate business",
+            "Minimum market capitalisation of &#8377;2,000 crore at the time of index entry",
+            "Added to the index from their first full trading day post-listing, provided all "
+            "other criteria are met at that date",
+        ],
+        intro="A company qualifies for Z47fortyseven if it meets ALL of the following:",
     )
-    st.markdown(f'<ul style="margin:0;padding:0">{items}</ul>', unsafe_allow_html=True)
+
+    # ── Sub-section 3: Review Policy ──────────────────────────────────────────
+    s3 = _sub_section(
+        "REVIEW POLICY",
+        [
+            "New listings that meet the inclusion criteria",
+            "Changes in business model, sector classification, or market cap that affect "
+            "a constituent's eligibility",
+            "Delistings, prolonged suspensions, mergers, or material restructuring",
+            "Refinements to the methodology itself as the index matures",
+        ],
+        intro=(
+            "The constituent list is not static. Z47fortyseven is reviewed quarterly and "
+            "may be updated to reflect:"
+        ),
+    )
+    s3 += (
+        f'<p style="font-size:14px;color:{_DGR};margin:16px 0 0;line-height:1.65;{_F}">'
+        f'Replacements and other constituent changes could happen in the future depending '
+        f'on new listings or changes to current companies due to any reason. Constituent '
+        f'changes are applied prospectively from the effective date, with a divisor '
+        f'adjustment to keep the index level continuous; they are not retroactively '
+        f'spliced into the historical series.'
+        f'</p>'
+    )
+
+    # ── Sub-section 4: Disclosure ─────────────────────────────────────────────
+    s4 = _sub_section("DISCLOSURE", [
+        "For informational and discussion purposes only. Not investment advice. Past "
+        "performance is not indicative of future results.",
+    ])
+
+    st.markdown(s1 + s2 + s3 + s4, unsafe_allow_html=True)
 
 
 def _s10_footer(usdinr: float) -> None:

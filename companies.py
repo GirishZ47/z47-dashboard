@@ -1,9 +1,11 @@
-# Z47 Index constituents — updated May 2026
+# Z47 Index constituents — updated June 2026
 # mkt_cap_mn = INR Mn as of March 2026 (last Excel refresh); new entrants use listing-month market cap
 # Sectors: exactly 4 — Fintech / Financial Services | Consumer / Consumer Tech | B2B | SaaS / AI
-# Constituent changes:
-#   16 Feb 2026: Aye Finance (AYE) IN  — Smartworks (SMARTWORKS) OUT
-#    8 May 2026: Kissht (KISSHT)   IN  — Awfis (AWFIS)           OUT
+# Constituent changes (full event log with divisors in constituent_events.json):
+#   30 May 2024: Awfis (AWFIS)         IN  [slot 34] — WeWork India (WEWORK)   OUT (retroactive erasure)
+#   14 Nov 2024: Niva Bupa (NIVABUPA)  IN  [slot 12] — 360 One Wam (360ONE)   OUT
+#   16 Feb 2026: Aye Finance (AYE)     IN  [slot 40] — Smartworks (SMARTWORKS) OUT
+#    8 May 2026: Kissht (KISSHT)       IN  [slot 44] — Awfis prev@44 (AWFIS)  OUT (Awfis stays at slot 34)
 COMPANIES = [
     {"num":  1, "name": "Eternal (Zomato)",           "ticker": "ETERNAL",    "exchange": "NSE",    "sector": "Consumer / Consumer Tech",       "float_pct": 74.43, "mkt_cap_mn": 2365689.80},
     {"num":  2, "name": "Groww",                       "ticker": "GROWW",      "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct":  9.71, "mkt_cap_mn": 1305096.31},
@@ -16,7 +18,7 @@ COMPANIES = [
     {"num":  9, "name": "PolicyBazaar",                "ticker": "POLICYBZR",  "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 73.43, "mkt_cap_mn":  779221.40},
     {"num": 10, "name": "Meesho",                      "ticker": "MEESHO",     "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct":  6.22, "mkt_cap_mn":  909172.94},
     {"num": 11, "name": "MakeMyTrip",                  "ticker": "MMYT",       "exchange": "NASDAQ", "sector": "Consumer / Consumer Tech",        "float_pct": 25.74, "mkt_cap_mn":  451627.42},
-    {"num": 12, "name": "360 One Wam",                 "ticker": "360ONE",     "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 63.83, "mkt_cap_mn":  451678.40},
+    {"num": 12, "name": "Niva Bupa Health Insurance",   "ticker": "NIVABUPA",  "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 24.80, "mkt_cap_mn":  152717.14},  # in from 14 Nov 2024 (listing date)
     {"num": 13, "name": "PhysicsWallah",               "ticker": "PWL",        "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 16.12, "mkt_cap_mn":  314394.59},
     {"num": 14, "name": "Delhivery",                   "ticker": "DELHIVERY",  "exchange": "NSE",    "sector": "B2B",                             "float_pct": 74.39, "mkt_cap_mn":  360683.49},
     {"num": 15, "name": "Go Digit Insurance",          "ticker": "GODIGIT",    "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 25.96, "mkt_cap_mn":  291291.42},
@@ -38,7 +40,7 @@ COMPANIES = [
     {"num": 31, "name": "Ixigo",                       "ticker": "IXIGO",      "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 48.82, "mkt_cap_mn":   73933.22},
     {"num": 32, "name": "Honasa (Mamaearth)",          "ticker": "HONASA",     "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 41.66, "mkt_cap_mn":  115376.13},
     {"num": 33, "name": "India Shelter Finance",       "ticker": "INDIASHLTR", "exchange": "NSE",    "sector": "Fintech / Financial Services",    "float_pct": 40.77, "mkt_cap_mn":   91374.11},
-    {"num": 34, "name": "WeWork India",                "ticker": "WEWORK",     "exchange": "NSE",    "sector": "B2B",                             "float_pct": 26.78, "mkt_cap_mn":   74036.72},
+    {"num": 34, "name": "Awfis Space Solutions",        "ticker": "AWFIS",     "exchange": "NSE",    "sector": "B2B",                             "float_pct": 41.80, "mkt_cap_mn":   22216.79},  # in from 30 May 2024 (listing date), replaces WeWork India retroactively
     {"num": 35, "name": "RateGain",                    "ticker": "RATEGAIN",   "exchange": "NSE",    "sector": "SaaS / AI",                       "float_pct": 51.41, "mkt_cap_mn":   74897.62},
     {"num": 36, "name": "MapmyIndia",                  "ticker": "MAPMYINDIA", "exchange": "NSE",    "sector": "SaaS / AI",                       "float_pct": 31.56, "mkt_cap_mn":   52976.04},
     {"num": 37, "name": "BlueStone",                   "ticker": "BLUESTONE",  "exchange": "NSE",    "sector": "Consumer / Consumer Tech",        "float_pct": 36.14, "mkt_cap_mn":   76599.46},

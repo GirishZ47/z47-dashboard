@@ -1,0 +1,38 @@
+[
+  {
+    "effective_date": "2024-05-30",
+    "event_type": "swap",
+    "removed": null,
+    "added": "AWFIS",
+    "reason": "Awfis listing \u2014 WeWork India retroactively removed from index entirely (Option B clean erasure). Index ran on 46 constituents from 1 Jan 2024 to 29 May 2024, Awfis enters as the 47th member on its listing date.",
+    "divisor_before": 1.0,
+    "divisor_after": 0.986423
+  },
+  {
+    "effective_date": "2024-11-14",
+    "event_type": "swap",
+    "removed": "360ONE",
+    "added": "NIVABUPA",
+    "reason": "Replace 360 One Wam with Niva Bupa Health Insurance \u2014 better new-age financial services thematic fit. 360 One stays in the historical series through 13 Nov 2024; Niva Bupa enters on its listing date with a divisor adjustment.",
+    "divisor_before": 0.986423,
+    "divisor_after": 1.013074
+  },
+  {
+    "effective_date": "2026-02-16",
+    "event_type": "swap",
+    "removed": "SMARTWORKS",
+    "added": "AYE",
+    "reason": "Aye Finance replaces Smartworks. Divisor adjusted in underlying Excel model; not recomputed here.",
+    "divisor_before": null,
+    "divisor_after": null
+  },
+  {
+    "effective_date": "2026-05-08",
+    "event_type": "swap",
+    "removed": "AWFIS",
+    "added": "KISSHT",
+    "reason": "Kissht (OnEMI Technology) IPO listing replaces Awfis Space Solutions (at the Kissht slot, num 44). Awfis continues in the index at slot 34 as the retroactive WeWork replacement. Divisor adjusted in underlying Excel model; not recomputed here.",
+    "divisor_before": null,
+    "divisor_after": null
+  }
+]
