@@ -473,7 +473,7 @@ def _s2_performance(df: pd.DataFrame) -> None:
         for col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
             plot[col] = plot[col] / base[col] * 100
 
-    # ── Stat strip — sits between period selector and chart ───────────────────
+    # ── Stat blocks — three clean label/value blocks above the chart ─────────
     kw    = _period_kw(period)
     z47_r = _pct_since(df, "z47_float",     **kw)
     nif_r = _pct_since(df, "nifty_indexed",  **kw)
@@ -482,23 +482,24 @@ def _s2_performance(df: pd.DataFrame) -> None:
     def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
     def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
 
-    _sep = (f'<span style="color:{_LGR};font-size:20px;font-weight:400;'
-            f'margin:0 12px"> · </span>')
-    _stat_items = [
-        (f'<span style="color:{_cc(z47_r)};font-size:20px;font-weight:600;{_F}">'
-         f'{_sign(z47_r)}</span>'
-         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Z47fortyseven</span>'),
-        (f'<span style="color:{_cc(nif_r)};font-size:20px;font-weight:600;{_F}">'
-         f'{_sign(nif_r)}</span>'
-         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Nifty 50</span>'),
-        (f'<span style="color:{_cc(sen_r)};font-size:20px;font-weight:600;{_F}">'
-         f'{_sign(sen_r)}</span>'
-         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Sensex</span>'),
-    ]
+    _lbl_s  = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
+               f"text-transform:uppercase;color:{_LGR};margin:0 0 4px;{_F}")
+    _val_s  = f"font-size:22px;font-weight:700;margin:0;line-height:1.1;{_F}"
+
+    def _block(label, v):
+        return (
+            f'<div style="display:inline-block;vertical-align:top;margin-right:64px">'
+            f'<p style="{_lbl_s}">{label}</p>'
+            f'<p style="{_val_s};color:{_cc(v)}">{_sign(v)}</p>'
+            f'</div>'
+        )
+
     st.markdown(
-        f'<div style="padding:16px 0 20px;line-height:1.4">'
-        + _sep.join(_stat_items) +
-        f'</div>',
+        f'<div style="padding:16px 0 24px">'
+        + _block("Z47fortyseven", z47_r)
+        + _block("Nifty 50",      nif_r)
+        + _block("Sensex",        sen_r)
+        + f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -522,10 +523,10 @@ def _s2_performance(df: pd.DataFrame) -> None:
                     font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1,
                    showline=True,
-                   tickfont=dict(size=14, family="Inter", color="#4A4A4A")),
+                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
         yaxis=dict(showgrid=True, gridcolor="#F5F5F5",
                    showline=False,
-                   tickfont=dict(size=14, family="Inter", color="#4A4A4A")),
+                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
         margin=dict(l=0, r=0, t=8, b=0),
         transition_duration=0,
     )
