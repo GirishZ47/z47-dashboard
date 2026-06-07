@@ -364,8 +364,12 @@ def _s_kissht_takeaway() -> None:
             )
             for sb in sub_bul:
                 body_html += (
-                    f'<p style="margin:0 0 7px;font-size:14px;line-height:1.65;'
+                    f'<div style="position:relative;padding-left:14px;margin-bottom:7px">'
+                    f'<span style="position:absolute;left:0;top:6px;color:{_BLK};'
+                    f'font-size:8px;line-height:1">&#9679;</span>'
+                    f'<p style="margin:0;font-size:14px;line-height:1.65;'
                     f'font-weight:500;color:{_BLK};{_F}">{_process_bold(sb)}</p>'
+                    f'</div>'
                 )
             body_html += '</div>'
         else:
@@ -392,9 +396,12 @@ def _s_kissht_takeaway() -> None:
             for j, sb in enumerate(sub_bul):
                 mt_sb = "0" if j == 0 else "5px"
                 body_html += (
-                    f'<p style="margin:{mt_sb} 0 0 24px;font-size:13.5px;'
-                    f'line-height:1.65;color:{_DGR};font-weight:400;{_F}">'
-                    f'{_process_bold(sb)}</p>'
+                    f'<div style="position:relative;margin:{mt_sb} 0 0 24px;padding-left:14px">'
+                    f'<span style="position:absolute;left:0;top:6px;color:{_BLK};'
+                    f'font-size:8px;line-height:1">&#9679;</span>'
+                    f'<p style="margin:0;font-size:13.5px;line-height:1.65;'
+                    f'color:{_DGR};font-weight:400;{_F}">{_process_bold(sb)}</p>'
+                    f'</div>'
                 )
             body_html += '</div>'
 
@@ -808,8 +815,12 @@ def _s4_takeaway() -> None:
             )
             for sb in sub_bul:
                 body_html += (
-                    f'<p style="margin:0 0 7px;font-size:14px;line-height:1.65;'
+                    f'<div style="position:relative;padding-left:14px;margin-bottom:7px">'
+                    f'<span style="position:absolute;left:0;top:6px;color:{_BLK};'
+                    f'font-size:8px;line-height:1">&#9679;</span>'
+                    f'<p style="margin:0;font-size:14px;line-height:1.65;'
                     f'font-weight:500;color:{_BLK};{_F}">{_process_bold(sb)}</p>'
+                    f'</div>'
                 )
             body_html += '</div>'
 
@@ -840,9 +851,12 @@ def _s4_takeaway() -> None:
             for j, sb in enumerate(sub_bul):
                 mt_sb = "0" if j == 0 else "5px"
                 body_html += (
-                    f'<p style="margin:{mt_sb} 0 0 24px;font-size:13.5px;'
-                    f'line-height:1.65;color:{_DGR};font-weight:400;{_F}">'
-                    f'{_process_bold(sb)}</p>'
+                    f'<div style="position:relative;margin:{mt_sb} 0 0 24px;padding-left:14px">'
+                    f'<span style="position:absolute;left:0;top:6px;color:{_BLK};'
+                    f'font-size:8px;line-height:1">&#9679;</span>'
+                    f'<p style="margin:0;font-size:13.5px;line-height:1.65;'
+                    f'color:{_DGR};font-weight:400;{_F}">{_process_bold(sb)}</p>'
+                    f'</div>'
                 )
             body_html += '</div>'
 
@@ -1260,7 +1274,7 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Hero band #1 — above PERFORMANCE section ─────────────────────────────
+    # ── Hero band — rendered ONCE at the top regardless of active section ──────
     st.markdown('<div style="padding-top:32px"></div>', unsafe_allow_html=True)
     _hero_band()
 
@@ -1333,43 +1347,73 @@ def render() -> None:
               f"Force-refresh triggered by user")
         st.rerun()
 
-    # ── SECTION 1: PERFORMANCE ───────────────────────────────────────────────
-    _section_label("PERFORMANCE")
-    _s1_hero(df, nifty_live, sensex_live, usdinr, fx_chg)
-    _divider()
-    _s2_performance(df)
-    _divider()
-    _s3_returns(df)
-    _divider()
-    if returns_1m:
-        _s5_movers(returns_1m, name_map)
-    else:
-        st.info("1-month return data loading — auto-refreshes every 3 minutes during market hours.")
+    # ── Section sub-nav (4 pills, matching IPOs tab pattern) ────────────────
+    _SECTIONS = [
+        ("performance",  "📊 Performance"),
+        ("insights",     "✨ Z47 Insights"),
+        ("constituents", "🏢 Constituents"),
+        ("about",        "ℹ️ About"),
+    ]
+    _section_ids = [s[0] for s in _SECTIONS]
 
-    # ── SECTION 2: Z47 INSIGHTS ──────────────────────────────────────────────
-    _section_spacer()
-    _hero_band()
-    _section_label("Z47 INSIGHTS")
-    _s4_takeaway()
-    _s_kissht_takeaway()
+    # Init session state — honour ?section= query param on first load
+    if "z47fs_section" not in st.session_state:
+        _qs_sec = st.query_params.get("section", "performance")
+        st.session_state.z47fs_section = (
+            _qs_sec if _qs_sec in _section_ids else "performance"
+        )
+    _active = st.session_state.z47fs_section
 
-    # ── SECTION 3: CONSTITUENTS ──────────────────────────────────────────────
-    _section_spacer()
-    _hero_band()
-    _section_label("CONSTITUENTS")
-    _s8_sector()
-    _divider()
-    if returns_1m:
-        _s6_1m_chart(returns_1m, name_map)
+    st.markdown('<div style="height:32px"></div>', unsafe_allow_html=True)
+    _nc1, _nc2, _nc3, _nc4, _ncgap = st.columns([1.5, 1.6, 1.6, 0.8, 2.5])
+    for _ncol, (_sid, _slabel) in zip([_nc1, _nc2, _nc3, _nc4], _SECTIONS):
+        with _ncol:
+            if st.button(
+                _slabel,
+                key=f"z47fs_snav_{_sid}",
+                type="primary" if _active == _sid else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state.z47fs_section = _sid
+                st.query_params["section"] = _sid
+                st.rerun()
+    st.markdown(
+        "<hr style='border-color:#E8E8E8;margin:6px 0 14px 0'>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Active section content ────────────────────────────────────────────────
+    if _active == "performance":
+        _section_label("PERFORMANCE")
+        _s1_hero(df, nifty_live, sensex_live, usdinr, fx_chg)
         _divider()
-    _s7_constituents(returns_1m, mcaps, price_cache, usdinr)
+        _s2_performance(df)
+        _divider()
+        _s3_returns(df)
+        _divider()
+        if returns_1m:
+            _s5_movers(returns_1m, name_map)
+        else:
+            st.info("1-month return data loading — auto-refreshes every 3 minutes during market hours.")
 
-    # ── SECTION 4: ABOUT ─────────────────────────────────────────────────────
-    _section_spacer()
-    _hero_band()
-    _section_label("ABOUT")
-    _s9_methodology()
+    elif _active == "insights":
+        _section_label("Z47 INSIGHTS")
+        _s4_takeaway()
+        _s_kissht_takeaway()
 
-    # ── SLIM FOOTER ───────────────────────────────────────────────────────────
+    elif _active == "constituents":
+        _section_label("CONSTITUENTS")
+        _s8_sector()
+        _divider()
+        if returns_1m:
+            _s6_1m_chart(returns_1m, name_map)
+            _divider()
+        _s7_constituents(returns_1m, mcaps, price_cache, usdinr)
+
+    elif _active == "about":
+        _section_label("ABOUT")
+        _s9_methodology()
+
+    # ── Slim footer — always visible regardless of active section ─────────────
     _section_spacer()
     _slim_footer()
