@@ -1051,27 +1051,30 @@ def render() -> None:
     )
 
     # ── Hero band ─────────────────────────────────────────────────────────────
+    # Flex column with gap:28px + padding:28px 0 guarantees equal spacing at
+    # every transition: top-rule→title, title→tagline, tagline→subtitle,
+    # subtitle→bottom-rule. margin:0 on each child kills browser defaults.
     st.markdown(
         f'<div style="padding-top:32px">'
-        # Top rule (1.5px)
-        f'<div style="border-top:1.5px solid {_OG}"></div>'
-        # Title — smaller, ~30px
-        f'<h1 style="font-size:30px;font-weight:800;color:{_BLK};'
-        f'letter-spacing:-0.01em;margin:24px 0 24px;line-height:1.1;{_F}">'
+        f'<div style="'
+        f'border-top:1.5px solid {_OG};border-bottom:1.5px solid {_OG};'
+        f'padding:28px 0;display:flex;flex-direction:column;gap:28px">'
+        # Title
+        f'<h1 style="margin:0;padding:0;font-size:28px;font-weight:800;'
+        f'color:{_BLK};letter-spacing:-0.02em;line-height:1.1;{_F}">'
         f'Z47<em style="font-style:italic">fortyseven</em></h1>'
-        # Tagline — orange, large, prominent
-        f'<p style="font-size:28px;font-weight:600;color:{_OG};'
-        f'line-height:1.25;margin:0 0 24px;{_F}">'
+        # Tagline — orange, same weight as title
+        f'<p style="margin:0;padding:0;font-size:28px;font-weight:600;'
+        f'color:{_OG};line-height:1.25;{_F}">'
         f"Powering India&#x2019;s journey to a developed nation by 2047"
         f'</p>'
-        # Subtitle — near-black italic
-        f'<p style="font-size:15px;font-weight:400;font-style:italic;color:{_BLK};'
-        f'line-height:1.5;margin:0 0 28px;{_F}">'
+        # Subtitle — near-black italic, 15px
+        f'<p style="margin:0;padding:0;font-size:15px;font-weight:400;'
+        f'font-style:italic;color:{_BLK};line-height:1.5;{_F}">'
         f'Tracking 47 listed Indian new-age technology, consumer and new-economy '
         f'financial-services companies'
         f'</p>'
-        # Bottom rule (1.5px)
-        f'<div style="border-top:1.5px solid {_OG}"></div>'
+        f'</div>'
         f'</div>'
         # Spacer below hero before stat cards
         f'<div style="height:48px"></div>',
