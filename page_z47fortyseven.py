@@ -80,7 +80,7 @@ def _card_wrap(extra=""):
 # Data helpers — self-contained, no app.py imports
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=120, show_spinner=False)   # 2-min TTL — refreshes within auto-refresh window
+@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — matches "updated hourly" claim
 def _live_indices() -> tuple:
     nifty = sensex = usdinr = fx_chg = None
     try:    nifty  = round(float(yf.Ticker("^NSEI").fast_info.last_price), 2)
@@ -156,7 +156,7 @@ def _extend_history(hist: pd.DataFrame, nifty_live, sensex_live) -> pd.DataFrame
     return pd.concat([hist, pd.DataFrame(new_rows).sort_values("date")], ignore_index=True)
 
 
-@st.cache_data(ttl=120, show_spinner=False)   # 2-min TTL — constituent prices
+@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — constituent prices
 def _fetch_price(symbol: str, exchange: str) -> dict:
     """Live price: fast_info → history(5d) → {}."""
     tk = symbol + ".NS" if exchange == "NSE" else symbol
@@ -180,7 +180,7 @@ def _fetch_price(symbol: str, exchange: str) -> dict:
     return {}
 
 
-@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — 1M returns
+@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — 1M returns
 def _fetch_1m_returns() -> dict[str, float]:
     """1-calendar-month returns for all 47 companies, NaN-safe."""
     tickers = [yf_ticker(c) for c in COMPANIES]
@@ -213,7 +213,7 @@ def _fetch_1m_returns() -> dict[str, float]:
         return {}
 
 
-@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — market caps
+@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — market caps
 def _fetch_mcaps() -> dict:
     """Live market caps for all 47 companies."""
     def _get(c):
@@ -1164,11 +1164,12 @@ def _s9_methodology() -> None:
     s2 = _sub_section(
         "INCLUSION CRITERIA",
         [
-            "Listed on NSE or BSE in the last decade, broadly capturing the new-age IPO wave "
-            "(with Info Edge grandfathered as the foundational predecessor of the cohort)",
+            "Listed on NSE, BSE, Nasdaq, or NYSE in the last decade, with an Indian founding "
+            "team and India as a core market (with Info Edge and MakeMyTrip, both listed 2010, "
+            "grandfathered as foundational predecessors)",
             "Operates a new-age, technology-led, or category-creating business model",
             "Has received institutional venture, growth-equity, or private-equity capital at "
-            "some point in its lifecycle &mdash; i.e., not a pure promoter-only or "
+            "some point in its lifecycle; i.e., not a pure promoter-only or "
             "family-conglomerate business",
             "Minimum market capitalisation of &#8377;2,000 crore at the time of index entry",
             "Added to the index from their first full trading day post-listing, provided all "
@@ -1259,25 +1260,35 @@ def render() -> None:
     _bg_css = (
         "<style>"
         ".stApp,.stApp>div,.block-container{background-color:#FFFFFF!important}"
-        # Active nav pill → brand orange #FF6B1A, no word-break
+        # Active nav pill → brand orange; nowrap on button AND inner text elements
         "button[data-testid='baseButton-primary']{"
         "background-color:#FF6B1A!important;"
         "border-color:#FF6B1A!important;"
         "color:#FFFFFF!important;"
         "white-space:nowrap!important;"
-        "overflow:hidden!important;"
-        "text-overflow:ellipsis!important}"
+        "word-break:normal!important;"
+        "hyphens:none!important}"
+        "button[data-testid='baseButton-primary'] p,"
+        "button[data-testid='baseButton-primary'] span{"
+        "white-space:nowrap!important;"
+        "word-break:normal!important;"
+        "hyphens:none!important}"
         "button[data-testid='baseButton-primary']:hover{"
         "background-color:#e55e14!important;"
         "border-color:#e55e14!important}"
-        # Inactive nav pill → white + light border, no word-break
+        # Inactive nav pill → white + light border; same nowrap treatment
         "button[data-testid='baseButton-secondary']{"
         "background-color:#FFFFFF!important;"
         "border-color:#E8E8E8!important;"
         "color:#0A0A0A!important;"
         "white-space:nowrap!important;"
-        "overflow:hidden!important;"
-        "text-overflow:ellipsis!important}"
+        "word-break:normal!important;"
+        "hyphens:none!important}"
+        "button[data-testid='baseButton-secondary'] p,"
+        "button[data-testid='baseButton-secondary'] span{"
+        "white-space:nowrap!important;"
+        "word-break:normal!important;"
+        "hyphens:none!important}"
         "button[data-testid='baseButton-secondary']:hover{"
         "border-color:#FF6B1A!important}"
         "</style>"
@@ -1300,15 +1311,21 @@ def render() -> None:
     _hero_band()
 
     # ── Load data — session-state cache avoids refetch on pill switches ──────
-    # Only hits the network when (a) session state is cold or (b) TTL expired.
+    # Fetch logic (market-hours aware, 1-hr TTL):
+    #   • No cache       → always fetch (cold start)
+    #   • Market CLOSED  → always serve from cache; never refetch outside hours
+    #   • Market OPEN    → refetch only when cache is older than _DATA_TTL_S
     # Each source is isolated: one failed ticker/feed never crashes the page.
     _ss         = st.session_state
     _now_epoch  = datetime.now(_IST_TZ).timestamp()
-    _DATA_TTL_S = 115   # seconds — just under the 2-min live_indices TTL
+    _DATA_TTL_S = 3600  # 1-hour TTL — matches "updated hourly" claim
     _have_cache = "z47fs_cache" in _ss
-    _cache_fresh = _have_cache and (_now_epoch - _ss.get("z47fs_fetch_epoch", 0.0)) < _DATA_TTL_S
+    _cache_age  = _now_epoch - _ss.get("z47fs_fetch_epoch", 0.0)
+    # Outside market hours: never hit the network; serve whatever cache we have.
+    # Inside market hours: refetch when cache is stale (>1hr) or absent.
+    _should_fetch = not _have_cache or (_mh and _cache_age >= _DATA_TTL_S)
 
-    if not _cache_fresh:
+    if _should_fetch:
         # ── Real network fetch ────────────────────────────────────────────────
         _fetch_start  = _now_ist()
         _fetch_errors: list[str] = []
@@ -1419,6 +1436,7 @@ def render() -> None:
         _fetch_price.clear()
         _fetch_1m_returns.clear()
         _fetch_mcaps.clear()
+        _load_history.clear()
         for _k in ("z47fs_cache", "z47fs_fetch_ts", "z47fs_fetch_epoch"):
             _ss.pop(_k, None)
         print(f"[FORCE-REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] user clicked 🔄")
@@ -1442,15 +1460,17 @@ def render() -> None:
     _active = st.session_state.z47fs_section
 
     st.markdown('<div style="height:32px"></div>', unsafe_allow_html=True)
-    # Equal-width pills; trailing gap column keeps pills left-aligned
-    _nc1, _nc2, _nc3, _nc4, _ncgap = st.columns([1.5, 1.5, 1.5, 1.5, 2.0])
+    # Each pill sizes to its label text; trailing gap keeps the strip left-aligned.
+    # use_container_width=False lets each button shrink to content width so
+    # "Methodology" is never forced into a narrow fixed-width box.
+    _nc1, _nc2, _nc3, _nc4, _ncgap = st.columns([1.5, 1.5, 1.5, 2.0, 2.5])
     for _ncol, (_sid, _slabel) in zip([_nc1, _nc2, _nc3, _nc4], _SECTIONS):
         with _ncol:
             if st.button(
                 _slabel,
                 key=f"z47fs_snav_{_sid}",
                 type="primary" if _active == _sid else "secondary",
-                use_container_width=True,
+                use_container_width=False,
             ):
                 st.session_state.z47fs_section = _sid
                 st.query_params["section"] = _sid
