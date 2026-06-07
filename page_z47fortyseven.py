@@ -1260,19 +1260,25 @@ def render() -> None:
     _bg_css = (
         "<style>"
         ".stApp,.stApp>div,.block-container{background-color:#FFFFFF!important}"
-        # Active nav pill → brand orange #FF6B1A
+        # Active nav pill → brand orange #FF6B1A, no word-break
         "button[data-testid='baseButton-primary']{"
         "background-color:#FF6B1A!important;"
         "border-color:#FF6B1A!important;"
-        "color:#FFFFFF!important}"
+        "color:#FFFFFF!important;"
+        "white-space:nowrap!important;"
+        "overflow:hidden!important;"
+        "text-overflow:ellipsis!important}"
         "button[data-testid='baseButton-primary']:hover{"
         "background-color:#e55e14!important;"
         "border-color:#e55e14!important}"
-        # Inactive nav pill → white + light border
+        # Inactive nav pill → white + light border, no word-break
         "button[data-testid='baseButton-secondary']{"
         "background-color:#FFFFFF!important;"
         "border-color:#E8E8E8!important;"
-        "color:#0A0A0A!important}"
+        "color:#0A0A0A!important;"
+        "white-space:nowrap!important;"
+        "overflow:hidden!important;"
+        "text-overflow:ellipsis!important}"
         "button[data-testid='baseButton-secondary']:hover{"
         "border-color:#FF6B1A!important}"
         "</style>"
@@ -1294,73 +1300,129 @@ def render() -> None:
     st.markdown('<div style="padding-top:32px"></div>', unsafe_allow_html=True)
     _hero_band()
 
-    # ── Load all live data in parallel ────────────────────────────────────────
-    with st.spinner(""):
-        _fetch_start = _now_ist()
+    # ── Load data — session-state cache avoids refetch on pill switches ──────
+    # Only hits the network when (a) session state is cold or (b) TTL expired.
+    # Each source is isolated: one failed ticker/feed never crashes the page.
+    _ss         = st.session_state
+    _now_epoch  = datetime.now(_IST_TZ).timestamp()
+    _DATA_TTL_S = 115   # seconds — just under the 2-min live_indices TTL
+    _have_cache = "z47fs_cache" in _ss
+    _cache_fresh = _have_cache and (_now_epoch - _ss.get("z47fs_fetch_epoch", 0.0)) < _DATA_TTL_S
 
-        # --- Parallel fast path: indices + all constituent prices at once ----
-        def _get_indices():
-            return _live_indices()
-        def _get_1m():
-            return _fetch_1m_returns()
-        def _get_mcaps():
-            return _fetch_mcaps()
-        def _get_hist():
-            return _load_history()
+    if not _cache_fresh:
+        # ── Real network fetch ────────────────────────────────────────────────
+        _fetch_start  = _now_ist()
+        _fetch_errors: list[str] = []
+        _prev = _ss.get("z47fs_cache", {})   # stale cache for fallback values
 
-        with ThreadPoolExecutor(max_workers=6) as _ex:
-            _fut_idx   = _ex.submit(_get_indices)
-            _fut_1m    = _ex.submit(_get_1m)
-            _fut_mcaps = _ex.submit(_get_mcaps)
-            _fut_hist  = _ex.submit(_get_hist)
-
-            # Constituent prices fetch (parallel within)
-            def _fp(c):
-                return c["ticker"], _fetch_price(c["ticker"], c["exchange"])
-            price_cache: dict = {}
-            with ThreadPoolExecutor(max_workers=12) as _px_ex:
-                for tk, pd_data in _px_ex.map(_fp, COMPANIES):
-                    price_cache[tk] = pd_data
+        with st.spinner(""):
+            try:
+                nifty_live, sensex_live, usdinr, fx_chg = _live_indices()
+            except Exception as _e:
+                _fetch_errors.append(f"indices:{_e}")
+                nifty_live = sensex_live = fx_chg = None
+                usdinr = float(_prev.get("usdinr") or 85.0)
 
             try:
-                nifty_live, sensex_live, usdinr, fx_chg = _fut_idx.result(timeout=15)
+                returns_1m = _fetch_1m_returns()
             except Exception as _e:
-                print(f"[z47fs indices fetch] {_e}")
-                nifty_live = sensex_live = fx_chg = None
-                usdinr = 85.0
-            returns_1m = _fut_1m.result(timeout=15)  if True else {}
-            mcaps      = _fut_mcaps.result(timeout=15) if True else {}
-            hist       = _fut_hist.result(timeout=15)
+                _fetch_errors.append(f"1m_returns:{_e}")
+                returns_1m = _prev.get("returns_1m") or {}
 
-        df = _extend_history(hist, nifty_live, sensex_live)
+            try:
+                mcaps = _fetch_mcaps()
+            except Exception as _e:
+                _fetch_errors.append(f"mcaps:{_e}")
+                mcaps = _prev.get("mcaps") or {}
 
-    # ── Record actual fetch time (IST) in session state ───────────────────────
-    _fetch_elapsed = (_now_ist() - _fetch_start).total_seconds()
-    _fetch_ts_str  = _fetch_start.strftime("%H:%M IST")  # time when fetch began
-    st.session_state["z47fs_fetch_ts"]    = _fetch_ts_str
-    st.session_state["z47fs_fetch_epoch"] = _fetch_start.timestamp()
-    print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
-          f"Z47fortyseven data loaded in {_fetch_elapsed:.1f}s "
-          f"(market={'OPEN' if _mh else 'CLOSED'}, interval={_refresh_ms//1000}s)")
+            try:
+                hist = _load_history()
+            except Exception as _e:
+                _fetch_errors.append(f"history:{_e}")
+                hist = pd.DataFrame()
 
-    name_map = {c["ticker"]: c["name"] for c in COMPANIES}
+            # Constituent prices — each ticker isolated
+            price_cache: dict = {}
+            def _fp(c):
+                try:
+                    return c["ticker"], _fetch_price(c["ticker"], c["exchange"])
+                except Exception:
+                    return c["ticker"], {}
+            with ThreadPoolExecutor(max_workers=12) as _px_ex:
+                for _ftk, _fpd in _px_ex.map(_fp, COMPANIES):
+                    price_cache[_ftk] = _fpd
 
-    # ── Compute how old this render's data actually is ────────────────────────
-    _age_s = (datetime.now(_IST_TZ).timestamp() -
-               st.session_state.get("z47fs_fetch_epoch", datetime.now(_IST_TZ).timestamp()))
-    _saved_ts = st.session_state.get("z47fs_fetch_ts", _fetch_ts_str)
+            try:
+                df = _extend_history(hist, nifty_live, sensex_live) if not hist.empty else pd.DataFrame()
+            except Exception as _e:
+                _fetch_errors.append(f"extend_history:{_e}")
+                df = hist if not hist.empty else pd.DataFrame()
 
-    # ── Freshness strip + inline refresh button ──────────────────────────────
+        name_map = {c["ticker"]: c["name"] for c in COMPANIES}
+
+        if _fetch_errors:
+            print(f"[z47fs fetch errors] {'; '.join(_fetch_errors)}")
+
+        if not df.empty:
+            # Success — store fresh data and update timestamp
+            _ss["z47fs_cache"] = {
+                "df": df, "nifty_live": nifty_live, "sensex_live": sensex_live,
+                "usdinr": usdinr, "fx_chg": fx_chg,
+                "returns_1m": returns_1m, "mcaps": mcaps,
+                "price_cache": price_cache, "name_map": name_map,
+            }
+            _ss["z47fs_fetch_ts"]    = _fetch_start.strftime("%H:%M IST")
+            _ss["z47fs_fetch_epoch"] = _fetch_start.timestamp()
+            print(f"[FETCH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
+                  f"loaded in {(_now_ist()-_fetch_start).total_seconds():.1f}s "
+                  f"(market={'OPEN' if _mh else 'CLOSED'})"
+                  f"{' errors:'+','.join(_fetch_errors) if _fetch_errors else ''}")
+        elif _have_cache:
+            # Fresh fetch produced no usable data — fall back to stale cache
+            _c = _prev
+            df          = _c["df"];          nifty_live  = _c["nifty_live"]
+            sensex_live = _c["sensex_live"]; usdinr      = _c["usdinr"]
+            fx_chg      = _c["fx_chg"];      returns_1m  = _c["returns_1m"]
+            mcaps       = _c["mcaps"];       price_cache = _c["price_cache"]
+            name_map    = _c["name_map"]
+            st.warning(
+                f"⚠️ Live refresh failed — showing last available data "
+                f"from {_ss.get('z47fs_fetch_ts', '—')}. "
+                f"Auto-retrying in {_refresh_ms//1000}s.",
+                icon="⚠️",
+            )
+        else:
+            # No data at all
+            st.error(
+                "Unable to load market data. "
+                "Please click 🔄 to retry, or refresh the page.",
+                icon="🚫",
+            )
+            _slim_footer()
+            return
+    else:
+        # ── Fast path: serve from session-state cache (pill switch / hot rerun) ─
+        _c          = _ss["z47fs_cache"]
+        df          = _c["df"];          nifty_live  = _c["nifty_live"]
+        sensex_live = _c["sensex_live"]; usdinr      = _c["usdinr"]
+        fx_chg      = _c["fx_chg"];      returns_1m  = _c["returns_1m"]
+        mcaps       = _c["mcaps"];       price_cache = _c["price_cache"]
+        name_map    = _c["name_map"]
+
+    # ── Freshness badge — timestamp from actual fetch, not current time ───────
+    _saved_ts = _ss.get("z47fs_fetch_ts", "—")
+    _age_s    = _now_epoch - _ss.get("z47fs_fetch_epoch", _now_epoch)
+
+    # ── Freshness strip + inline refresh button ───────────────────────────────
     if _render_header_bar(df, usdinr, fetch_ts=_saved_ts, fetch_age_s=_age_s):
-        # Refresh button was clicked — clear all caches and rerun
+        # User clicked 🔄 — clear function caches AND session-state cache, rerun
         _live_indices.clear()
         _fetch_price.clear()
         _fetch_1m_returns.clear()
         _fetch_mcaps.clear()
-        for _k in ("z47fs_fetch_ts", "z47fs_fetch_epoch"):
-            st.session_state.pop(_k, None)
-        print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
-              f"Force-refresh triggered by user")
+        for _k in ("z47fs_cache", "z47fs_fetch_ts", "z47fs_fetch_epoch"):
+            _ss.pop(_k, None)
+        print(f"[FORCE-REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] user clicked 🔄")
         st.rerun()
 
     # ── Section sub-nav (4 pills, matching IPOs tab pattern) ────────────────
@@ -1381,7 +1443,8 @@ def render() -> None:
     _active = st.session_state.z47fs_section
 
     st.markdown('<div style="height:32px"></div>', unsafe_allow_html=True)
-    _nc1, _nc2, _nc3, _nc4, _ncgap = st.columns([1.5, 1.6, 1.6, 0.8, 2.5])
+    # Equal-width pills; trailing gap column keeps pills left-aligned
+    _nc1, _nc2, _nc3, _nc4, _ncgap = st.columns([1.5, 1.5, 1.5, 1.5, 2.0])
     for _ncol, (_sid, _slabel) in zip([_nc1, _nc2, _nc3, _nc4], _SECTIONS):
         with _ncol:
             if st.button(
