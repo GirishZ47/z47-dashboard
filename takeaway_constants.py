@@ -6,31 +6,92 @@ Update manually each Monday when the 30-day rolling window advances.
 """
 
 # ── Z47'47 Monthly Takeaway ───────────────────────────────────────────────────
+# "sections" field: new structured format for Z47fortyseven tab renderer.
+# "text" field: flat bullet fallback for Z47'47 tab backward compat.
+# Both fields must be kept in sync when content is updated.
 HARDCODED_INDEX_TAKEAWAY = {
-    "header":  "Z47 47 MONTHLY TAKEAWAY · 4 MAY TO 3 JUN 2026",
-    "icon":    "✨",
-    "window":  "4 May to 3 Jun 2026",
-    "updated": "3 Jun 2026",
+    "header":           "Z47 47 MONTHLY TAKEAWAY · 4 MAY –3 JUN 2026",
+    "icon":             "✨",
+    "window":           "4 May –3 Jun 2026",
+    "date_range_label": "4 MAY – 3 JUN 2026",
+    "section_label":    "MONTHLY TAKEAWAY",
+    "updated":          "3 Jun 2026",
+    # ── Flat bullet text (Z47’ tab backward compat) ───────────────────────
     "text": (
-        "• The 4 May – 3 Jun window was defined by institutional supply clearance, not index-level drama: "
-        "three Z47 block deals in 10 trading days (Paytm ₹572.9 Cr, Groww ₹5,326 Cr, Nazara ₹485.7 Cr) "
-        "absorbed ₹6,300+ Cr of institutional stock — and cleared without structural dislocation.\n"
-        "• Groww's May 12 lock-in block — Peak XV, Ribbit, YC Holdings exiting at 29x–52x returns — was the period's defining event. "
-        "The stock absorbed ₹5,326 Cr of supply; Groww's 27% demat market share and #1 active-user count on NSE are unchanged. "
-        "Supply was mechanical, not fundamental.\n"
-        "• Kissht's IPO at ~17.8% premium to its ₹171 issue price with QIBs at 24.87x subscription repriced "
-        "digital-NBFC as a category: the market valued an unsecured-lending book at a premium — the first time "
-        "institutional investors have collectively priced digital-credit quality above par.\n"
-        "• Nazara's ₹485.7 Cr block on May 15 — Nikhil Kamath/Zerodha and Axana Estates each buying 9.13M shares — "
-        "rallied the stock ~18% on the day. The market read the buyer quality, not just the exit size: "
-        "a domestic retail-facing operator making a concentrated gaming bet compresses the sector's post-GST risk premium.\n"
-        "• The index's supply-absorption story is the structural positive: VC and promoter exits clearing into domestic "
-        "MF demand (SBI MF, Quant MF) and strategic buyers (Zerodha) at or above market price signals secondary market "
-        "depth is improving — a precondition for the Flipkart/Zepto primary IPO window to open.\n"
-        "• What to watch: Groww's blended yield per client in Q1 FY27 — if revenue-per-active-client stabilises "
-        "despite the F&O regulatory reset, the lock-in clearance re-rates the stock; if it compresses further, "
-        "the supply overhang narrative returns."
+        "• Index performance ; Z47fortyseven held while benchmarks slid. "
+        "Z47fortyseven traded broadly flat; Nifty fell ~2.6%, Sensex ~3.5% on FII outflows "
+        "and post-RBI growth-cut pressure. The cohort’s underweight to oil, metals, and "
+        "goods-export sectors is structural.\n"
+        "• Market context ; the cohort proved it can absorb large institutional exits without dislocation. "
+        "The supply rotation from foreign VC exits to domestic MF demand is the structural story consensus is underweighting. "
+        "Q4 FY26 prints split the cohort; profitable names traded up, loss-makers de-rated regardless of revenue ; "
+        "profitability is now being rewarded over scale.\n"
+        "• Macro ; global pressures stack but the hits are asymmetric and partially offset. "
+        "Rising oil prices hit the cohort on both demand and cost sides. "
+        "The structural offset is real and cohort-wide; India’s digital adoption compounds faster than nominal GDP.\n"
+        "• Top gainers ; E2E Networks (+25.7%) on domestic AI infrastructure conviction. "
+        "RateGain (+28.1%) on travel-tech SaaS resilience repriced as global travel volumes hold.\n"
+        "• Top laggards ; Pine Labs (–27.0%) on permanent take-rate reset pricing. "
+        "Urban Company (–20.8%) on contribution-margin thesis under test from delivery-cost inflation.\n"
+        "• Net Read ; the index is structurally absorbing supply; the test ahead is earnings. "
+        "Q1 FY27 results, starting in July, will be the key catalyst."
     ),
+    # ── Structured sections (Z47fortyseven tab new renderer) ──────────────────
+    "sections": [
+        {
+            "type": "main_bullet",
+            "header": "Index performance ; Z47fortyseven held while benchmarks slid.",
+            "sub_bullets": [
+                "Z47fortyseven traded broadly flat; Nifty fell ~2.6%, Sensex ∼3.5% on FII outflows and post-RBI growth-cut pressure.",
+                "The cohort’s underweight to oil, metals, and goods-export sectors is structural; Z47fortyseven is built around domestic compounders that hold up precisely when global cyclical sectors don’t.",
+            ],
+        },
+        {
+            "type": "main_bullet",
+            "header": "Market context ; the cohort proved it can absorb large institutional exits without dislocation.",
+            "sub_bullets": [
+                "Large block supply across multiple cohort names cleared without dislocation in a tight window.",
+                "The supply rotation from foreign VC exits to domestic MF demand is the structural story consensus is underweighting.",
+                "The price action through these prints tells you institutional demand for new-age India is no longer flow-driven; it’s becoming structural ownership.",
+                "Q4 FY26 prints split the cohort; profitable names traded up, loss-makers de-rated regardless of revenue ; profitability is now being rewarded over scale.",
+            ],
+        },
+        {
+            "type": "main_bullet",
+            "header": "Macro ; global pressures stack but the hits are asymmetric and partially offset.",
+            "sub_bullets": [
+                "Rising oil prices hit the cohort on both demand and cost sides; discretionary spend compresses and margins get squeezed.",
+                "Cost pressure stacks from two sides; rupee weakening inflates dollar-linked input costs, while expected rate cuts off the table remove the funding-cost tailwind.",
+                "Sub-normal monsoon and El Niño risk threaten rural consumption growth ; the under-discussed downside variable the market isn’t yet pricing.",
+                "The structural offset is real and cohort-wide; India’s digital adoption compounds faster than nominal GDP and tailwinds every sub-cohort regardless of cyclical macro.",
+                "The proof points are visible across UPI volumes, e-commerce penetration, digital transacting consumers, and credit penetration ; each compounding well above headline growth.",
+            ],
+        },
+        {
+            "type": "main_bullet",
+            "header": "Top gainers",
+            "sub_bullets": [
+                "**E2E Networks (+25.7%)** ; increasing investor conviction around domestic AI infrastructure spending, as enterprises and model builders accelerate investments in compute capacity.",
+                "**RateGain (+28.1%)** ; recurring-revenue resilience in travel-tech SaaS being repriced as global travel volumes hold despite macro slowdown, with the market underweighting the cohort’s revenue durability.",
+            ],
+        },
+        {
+            "type": "main_bullet",
+            "header": "Top laggards",
+            "sub_bullets": [
+                "**Pine Labs (–27.0%)** ; the market is pricing in a permanent take-rate reset, whereas the current pressure appears driven by near-term merchant churn; stabilisation in merchant additions could drive a sharp re-rating.",
+                "**Urban Company (–20.8%)** ; the contribution-margin thesis is facing a real test as delivery-cost inflation pressures unit economics; further downside is likely if upcoming results fail to demonstrate margin resilience.",
+            ],
+        },
+        {
+            "type": "section_title",
+            "header": "Net Read",
+            "sub_bullets": [
+                "The index is structurally absorbing supply; the test ahead is earnings.",
+                "Q1 FY27 results, starting in July, will be the key catalyst; the divergence between fundamentally-driven names and narrative-led names is likely to widen.",
+            ],
+        },
+    ],
 }
 
 # ── Z47'47 Valuation Perspective ─────────────────────────────────────────────

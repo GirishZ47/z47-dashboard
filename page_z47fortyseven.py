@@ -15,6 +15,7 @@ Architecture notes (critical for maintainers):
 from __future__ import annotations
 
 import os
+import re
 import glob as _glob
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta, datetime, time as _time
@@ -666,12 +667,17 @@ def _s3_returns(df: pd.DataFrame) -> None:
     st.markdown(tbl, unsafe_allow_html=True)
 
 
+def _process_bold(text: str) -> str:
+    """Convert **text** markers to inline <strong> HTML (used in takeaway renderer)."""
+    return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+
+
 def _s4_takeaway() -> None:
-    """Section 4 — Monthly takeaway, Z47 brand style, orange top border, no purple."""
-    tk      = HARDCODED_INDEX_TAKEAWAY
-    window  = tk.get("window", "")
-    text    = tk.get("text", "")
-    updated = tk.get("updated", "")
+    """Section 4 — Monthly takeaway, structured multi-section renderer."""
+    tk       = HARDCODED_INDEX_TAKEAWAY
+    window   = tk.get("window", "")
+    updated  = tk.get("updated", "")
+    sections = tk.get("sections")
 
     st.markdown(
         f'<p style="{_lbl()}">MONTHLY TAKEAWAY'
@@ -679,42 +685,109 @@ def _s4_takeaway() -> None:
         unsafe_allow_html=True,
     )
 
-    bullets = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("•")]
-    if not bullets:
-        st.markdown(f'<p style="color:{_DGR};{_F}">{text}</p>', unsafe_allow_html=True)
+    # ── Legacy flat-bullet fallback (no sections key) ──────────────────────────
+    if not sections:
+        text    = tk.get("text", "")
+        bullets = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("•")]
+        if not bullets:
+            st.markdown(f'<p style="color:{_DGR};{_F}">{text}</p>', unsafe_allow_html=True)
+            return
+        items_html = ""
+        for i, b in enumerate(bullets):
+            content = b.lstrip("•").strip()
+            weight  = "600" if i == 0 else "400"
+            mt      = "0" if i == 0 else "10px"
+            items_html += (
+                f'<li style="margin-top:{mt};list-style:none;padding-left:18px;'
+                f'position:relative;font-weight:{weight};line-height:1.65;color:{_BLK};{_F}">'
+                f'<span style="position:absolute;left:0;color:{_OG};'
+                f'font-weight:800;font-size:16px;line-height:1.2">•</span>'
+                f'{content}</li>'
+            )
+        _today    = date.today()
+        _fwd      = (7 - _today.weekday()) % 7 or 7
+        _next_mon = _today + timedelta(days=_fwd)
+        _next_str = f"Monday {_next_mon.day} {_next_mon.strftime('%b')}"
+        st.markdown(
+            f'<div style="border-top:2px solid {_OG};border-bottom:1px solid {_BRD};'
+            f'background:{_WHT};padding:28px 32px 24px;margin:8px 0">'
+            f'<ul style="margin:0;padding:0">{items_html}</ul>'
+            f'</div>'
+            f'<p style="font-size:11px;color:{_LGR};margin-top:7px;{_F}">'
+            f'Last updated: {updated} &nbsp;·&nbsp; Next refresh: {_next_str}</p>',
+            unsafe_allow_html=True,
+        )
         return
 
-    items_html = ""
-    for i, b in enumerate(bullets):
-        content   = b.lstrip("•").strip()
-        is_first  = (i == 0)
-        is_watch  = "What to watch:" in content
-        if is_watch:
-            content = content.replace(
-                "What to watch:",
-                f'<strong style="font-size:10px;letter-spacing:0.08em;'
-                f'text-transform:uppercase;color:{_BLK}">WHAT TO WATCH &nbsp;·&nbsp;</strong>',
-            )
-        weight = "600" if is_first or is_watch else "400"
-        mt     = "0" if i == 0 else "10px"
-        items_html += (
-            f'<li style="margin-top:{mt};list-style:none;padding-left:18px;'
-            f'position:relative;font-weight:{weight};line-height:1.65;'
-            f'color:{_BLK};{_F}">'
-            f'<span style="position:absolute;left:0;color:{_OG};'
-            f'font-weight:800;font-size:16px;line-height:1.2">•</span>'
-            f'{content}</li>'
-        )
-
+    # ── Structured sections renderer ───────────────────────────────────────────
     _today    = date.today()
     _fwd      = (7 - _today.weekday()) % 7 or 7
     _next_mon = _today + timedelta(days=_fwd)
     _next_str = f"Monday {_next_mon.day} {_next_mon.strftime('%b')}"
 
+    body_html        = ""
+    is_first_section = True
+
+    for sec in sections:
+        stype   = sec.get("type", "main_bullet")
+        header  = sec.get("header", "")
+        sub_bul = sec.get("sub_bullets", [])
+
+        if stype == "section_title":
+            # "Net Read" — orange small-caps divider + sub-bullets
+            body_html += (
+                f'<div style="margin-top:28px;padding-top:20px;'
+                f'border-top:1px solid {_BRD}">'
+                f'<p style="margin:0 0 10px;font-size:11px;font-weight:700;'
+                f'letter-spacing:0.08em;text-transform:uppercase;color:{_OG};{_F}">'
+                f'{_process_bold(header)}</p>'
+            )
+            for sb in sub_bul:
+                body_html += (
+                    f'<p style="margin:0 0 7px;font-size:14px;line-height:1.65;'
+                    f'font-weight:500;color:{_BLK};{_F}">{_process_bold(sb)}</p>'
+                )
+            body_html += '</div>'
+
+        else:
+            # main_bullet: orange • + header (split at " ; " for label/verdict styling)
+            mt = "0" if is_first_section else "22px"
+            if " ; " in header:
+                lbl_part, verd_part = header.split(" ; ", 1)
+                hdr_html = (
+                    f'<span style="font-weight:700;color:{_BLK}">'
+                    f'{_process_bold(lbl_part)}</span>'
+                    f'<span style="color:{_LGR}"> &nbsp;·&nbsp; </span>'
+                    f'<span style="font-weight:500;color:{_BLK}">'
+                    f'{_process_bold(verd_part)}</span>'
+                )
+            else:
+                hdr_html = (
+                    f'<span style="font-weight:700;color:{_BLK}">'
+                    f'{_process_bold(header)}</span>'
+                )
+            body_html += (
+                f'<div style="margin-top:{mt}">'
+                f'<p style="margin:0 0 7px;font-size:14px;line-height:1.5;{_F}">'
+                f'<span style="color:{_OG};font-weight:800;font-size:16px;'
+                f'margin-right:8px;line-height:1.2">•</span>'
+                f'{hdr_html}</p>'
+            )
+            for j, sb in enumerate(sub_bul):
+                mt_sb = "0" if j == 0 else "5px"
+                body_html += (
+                    f'<p style="margin:{mt_sb} 0 0 24px;font-size:13.5px;'
+                    f'line-height:1.65;color:{_DGR};font-weight:400;{_F}">'
+                    f'{_process_bold(sb)}</p>'
+                )
+            body_html += '</div>'
+
+        is_first_section = False
+
     st.markdown(
         f'<div style="border-top:2px solid {_OG};border-bottom:1px solid {_BRD};'
         f'background:{_WHT};padding:28px 32px 24px;margin:8px 0">'
-        f'<ul style="margin:0;padding:0">{items_html}</ul>'
+        f'{body_html}'
         f'</div>'
         f'<p style="font-size:11px;color:{_LGR};margin-top:7px;{_F}">'
         f'Last updated: {updated} &nbsp;·&nbsp; Next refresh: {_next_str}</p>',
