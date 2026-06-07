@@ -1256,11 +1256,27 @@ def render() -> None:
     # ── Weekly content cache refresh (Monday-keyed, idempotent) ──────────────
     _maybe_refresh_weekly()
 
-    # ── Background override ───────────────────────────────────────────────────
-    _bg_css = ("<style>"
-               ".stApp,.stApp>div,.block-container"
-               "{background-color:#FFFFFF!important}"
-               "</style>")
+    # ── Background + nav-pill color overrides ────────────────────────────────
+    _bg_css = (
+        "<style>"
+        ".stApp,.stApp>div,.block-container{background-color:#FFFFFF!important}"
+        # Active nav pill → brand orange #FF6B1A
+        "button[data-testid='baseButton-primary']{"
+        "background-color:#FF6B1A!important;"
+        "border-color:#FF6B1A!important;"
+        "color:#FFFFFF!important}"
+        "button[data-testid='baseButton-primary']:hover{"
+        "background-color:#e55e14!important;"
+        "border-color:#e55e14!important}"
+        # Inactive nav pill → white + light border
+        "button[data-testid='baseButton-secondary']{"
+        "background-color:#FFFFFF!important;"
+        "border-color:#E8E8E8!important;"
+        "color:#0A0A0A!important}"
+        "button[data-testid='baseButton-secondary']:hover{"
+        "border-color:#FF6B1A!important}"
+        "</style>"
+    )
     try:
         st.html(_bg_css)
     except AttributeError:
@@ -1349,10 +1365,10 @@ def render() -> None:
 
     # ── Section sub-nav (4 pills, matching IPOs tab pattern) ────────────────
     _SECTIONS = [
-        ("performance",  "📊 Performance"),
-        ("insights",     "✨ Z47 Insights"),
-        ("constituents", "🏢 Constituents"),
-        ("about",        "ℹ️ About"),
+        ("performance",  "Performance"),
+        ("insights",     "Z47 Insights"),
+        ("constituents", "Constituents"),
+        ("about",        "Methodology"),
     ]
     _section_ids = [s[0] for s in _SECTIONS]
 
@@ -1411,7 +1427,7 @@ def render() -> None:
         _s7_constituents(returns_1m, mcaps, price_cache, usdinr)
 
     elif _active == "about":
-        _section_label("ABOUT")
+        _section_label("METHODOLOGY")
         _s9_methodology()
 
     # ── Slim footer — always visible regardless of active section ─────────────
