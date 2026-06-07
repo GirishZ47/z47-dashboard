@@ -327,11 +327,10 @@ def _maybe_refresh_weekly() -> None:
 
 def _render_header_bar(df: pd.DataFrame, usdinr: float,
                        fetch_ts: str | None = None,
-                       fetch_age_s: float | None = None) -> None:
+                       fetch_age_s: float | None = None) -> bool:
     """
-    Data-freshness strip at top of page.
-    fetch_ts   : IST time string of the most recent _live_indices() fetch
-    fetch_age_s: seconds elapsed since that fetch
+    Data-freshness strip + inline refresh button.
+    Returns True if the refresh button was clicked (caller handles cache clear + rerun).
     Colors:
       green  = fresh (< 3 min)
       orange = approaching stale (3–10 min)
@@ -366,18 +365,24 @@ def _render_header_bar(df: pd.DataFrame, usdinr: float,
     mh_dot = (f'<span style="color:{_GRN};font-size:8px">●</span>&nbsp;MARKET OPEN&nbsp;·&nbsp;'
               if _is_market_hours() else "")
 
-    st.markdown(
-        f'<div style="text-align:right;font-size:10px;color:{_LGR};'
-        f'padding:2px 0 16px;{_F}">'
+    badge_html = (
+        f'<div style="font-size:10px;color:{_LGR};padding:2px 0 16px;{_F}">'
         f'{mh_dot}'
         f'<b style="color:{_DGR}">DATA</b>'
         f'&nbsp;·&nbsp;<span style="color:{idx_col}">Index: {idx_lbl}</span>'
         f'&nbsp;·&nbsp;Prices:&nbsp;<span style="color:{price_col}">{price_lbl}</span>'
         f'&nbsp;·&nbsp;FX: &#8377;{usdinr:.2f}'
         f'&nbsp;·&nbsp;Takeaway: {tk_updated}'
-        f'</div>',
-        unsafe_allow_html=True,
+        f'</div>'
     )
+
+    # Inline refresh button — sits to the right of the badge on the same row
+    _badge_col, _btn_col = st.columns([22, 1])
+    with _badge_col:
+        st.markdown(badge_html, unsafe_allow_html=True)
+    with _btn_col:
+        return bool(st.button("🔄", key="z47fs_force_refresh",
+                              help="Force refresh — fetch latest data now"))
 
 
 def _s1_hero(df: pd.DataFrame, nifty_live, sensex_live, usdinr, fx_chg) -> None:
@@ -1045,35 +1050,35 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Title row + force-refresh button ─────────────────────────────────────
-    _title_col, _btn_col = st.columns([11, 1])
-    with _title_col:
-        st.markdown(
-            f'<div style="padding:24px 0 4px">'
-            f'<h1 style="font-size:34px;font-weight:800;color:{_BLK};'
-            f'margin:0;letter-spacing:-0.5px;{_F}">'
-            f'Z47<em style="font-style:italic">fortyseven</em>'
-            f'</h1>'
-            f'<p style="font-size:14px;color:{_DGR};margin-top:5px;{_F}">'
-            f"India's index of 47 new-age tech and financial-services companies"
-            f'</p></div>',
-            unsafe_allow_html=True,
-        )
-    with _btn_col:
-        st.markdown("<div style='padding-top:28px'></div>", unsafe_allow_html=True)
-        if st.button("🔄", key="z47fs_force_refresh",
-                     help="Force-refresh all live data now"):
-            # Clear every live-data cache so next render refetches
-            _live_indices.clear()
-            _fetch_price.clear()
-            _fetch_1m_returns.clear()
-            _fetch_mcaps.clear()
-            # Clear the fetch-time record so the badge doesn't show stale time
-            for _k in ("z47fs_fetch_ts", "z47fs_fetch_epoch"):
-                st.session_state.pop(_k, None)
-            print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
-                  f"Force-refresh triggered by user")
-            st.rerun()
+    # ── Hero band ─────────────────────────────────────────────────────────────
+    st.markdown(
+        f'<div style="padding-top:32px">'
+        # Top rule (1.5px)
+        f'<div style="border-top:1.5px solid {_OG};margin-bottom:0"></div>'
+        # Title
+        f'<h1 style="font-size:48px;font-weight:800;color:{_BLK};'
+        f'letter-spacing:-0.02em;margin:28px 0 20px;line-height:1.05;{_F}">'
+        f'Z47<em style="font-style:italic">fortyseven</em></h1>'
+        # Middle rule (1px)
+        f'<div style="border-top:1px solid {_OG};margin-bottom:0"></div>'
+        # Tagline — orange, large
+        f'<p style="font-size:28px;font-weight:600;color:{_OG};'
+        f'line-height:1.25;margin:24px 0 14px;{_F}">'
+        f"Tracking the companies powering India&#x2019;s journey to a developed nation by 2047"
+        f'</p>'
+        # Subtitle — near-black italic
+        f'<p style="font-size:15px;font-weight:400;font-style:italic;color:{_BLK};'
+        f'line-height:1.5;margin:0 0 28px;{_F}">'
+        f'47 listed Indian new-age technology, consumer and new-economy '
+        f'financial-services companies'
+        f'</p>'
+        # Bottom rule (1.5px)
+        f'<div style="border-top:1.5px solid {_OG}"></div>'
+        f'</div>'
+        # Spacer below hero before stat cards
+        f'<div style="height:48px"></div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Load all live data in parallel ────────────────────────────────────────
     with st.spinner(""):
@@ -1131,8 +1136,18 @@ def render() -> None:
                st.session_state.get("z47fs_fetch_epoch", datetime.now(_IST_TZ).timestamp()))
     _saved_ts = st.session_state.get("z47fs_fetch_ts", _fetch_ts_str)
 
-    # ── Freshness strip ───────────────────────────────────────────────────────
-    _render_header_bar(df, usdinr, fetch_ts=_saved_ts, fetch_age_s=_age_s)
+    # ── Freshness strip + inline refresh button ──────────────────────────────
+    if _render_header_bar(df, usdinr, fetch_ts=_saved_ts, fetch_age_s=_age_s):
+        # Refresh button was clicked — clear all caches and rerun
+        _live_indices.clear()
+        _fetch_price.clear()
+        _fetch_1m_returns.clear()
+        _fetch_mcaps.clear()
+        for _k in ("z47fs_fetch_ts", "z47fs_fetch_epoch"):
+            st.session_state.pop(_k, None)
+        print(f"[REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] "
+              f"Force-refresh triggered by user")
+        st.rerun()
 
     # ── Sections ──────────────────────────────────────────────────────────────
 
