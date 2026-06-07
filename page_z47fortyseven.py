@@ -285,6 +285,79 @@ def _divider():
     )
 
 
+def _hero_band() -> None:
+    """Full hero band — repeated verbatim before each of the 4 sections."""
+    st.markdown(
+        f'<div style="border-top:1.5px solid {_OG};border-bottom:1.5px solid {_OG};'
+        f'padding:28px 0;display:flex;flex-direction:column;gap:28px">'
+        f'<h1 style="margin:0;padding:0;font-size:28px;font-weight:800;'
+        f'color:{_BLK};letter-spacing:-0.02em;line-height:1.1;{_F}">'
+        f'Z47<em style="font-style:italic">fortyseven</em></h1>'
+        f'<p style="margin:0;padding:0;font-size:28px;font-weight:600;'
+        f'color:{_OG};line-height:1.25;{_F}">'
+        f"Powering India&#x2019;s journey to a developed nation by 2047"
+        f'</p>'
+        f'<p style="margin:0;padding:0;font-size:15px;font-weight:400;'
+        f'font-style:italic;color:{_BLK};line-height:1.5;{_F}">'
+        f'Tracking 47 listed Indian new-age technology, consumer and new-economy '
+        f'financial-services companies'
+        f'</p>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _section_label(label: str) -> None:
+    """Orange small-caps section label — 24px top margin after hero band."""
+    st.markdown(
+        f'<p style="font-size:13px;font-weight:700;letter-spacing:0.05em;'
+        f'text-transform:uppercase;color:{_OG};margin:24px 0 20px;{_F}">{label}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def _section_spacer() -> None:
+    """80px gap between sections."""
+    st.markdown('<div style="height:80px"></div>', unsafe_allow_html=True)
+
+
+def _s_kissht_takeaway() -> None:
+    """Kissht IPO Takeaway — pulled from page_drhp.HARDCODED_IPO_TAKEAWAYS."""
+    text = ""
+    try:
+        from page_drhp import HARDCODED_IPO_TAKEAWAYS as _IPO_TK
+        text = _IPO_TK.get("Kissht (OnEMI Technology Solutions)", "")
+    except Exception as _e:
+        print(f"[z47fs kissht_takeaway] {_e}")
+    if not text:
+        return
+    st.markdown(
+        f'<p style="{_lbl("margin-top:24px")}">KISSHT IPO TAKEAWAY · MAY 2026</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div style="border-top:2px solid {_OG};border-bottom:1px solid {_BRD};'
+        f'background:{_WHT};padding:28px 32px 24px;margin:8px 0">'
+        f'<p style="font-size:14px;line-height:1.65;color:{_BLK};margin:0;{_F}">{text}</p>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _slim_footer() -> None:
+    """Slim centered disclaimer footer at page bottom."""
+    st.markdown(
+        f'<div style="text-align:center">'
+        f'<div style="border-top:1px solid {_OG};margin-bottom:32px"></div>'
+        f'<p style="font-size:12px;color:{_LGR};margin:0;{_F}">'
+        f'For informational purposes only. Not investment advice. &copy; 2026 Z47.'
+        f'</p>'
+        f'<div style="height:32px"></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Weekly refresh check
 # ─────────────────────────────────────────────────────────────────────────────
@@ -980,7 +1053,7 @@ def _s9_methodology() -> None:
     )
 
     # ── Sub-section 4: Disclosure ─────────────────────────────────────────────
-    s4 = _sub_section("DISCLOSURE", [
+    s4 = _sub_section("DISCLAIMER", [
         "For informational and discussion purposes only. Not investment advice. Past "
         "performance is not indicative of future results.",
     ])
@@ -1050,36 +1123,9 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Hero band ─────────────────────────────────────────────────────────────
-    # Flex column with gap:28px + padding:28px 0 guarantees equal spacing at
-    # every transition: top-rule→title, title→tagline, tagline→subtitle,
-    # subtitle→bottom-rule. margin:0 on each child kills browser defaults.
-    st.markdown(
-        f'<div style="padding-top:32px">'
-        f'<div style="'
-        f'border-top:1.5px solid {_OG};border-bottom:1.5px solid {_OG};'
-        f'padding:28px 0;display:flex;flex-direction:column;gap:28px">'
-        # Title
-        f'<h1 style="margin:0;padding:0;font-size:28px;font-weight:800;'
-        f'color:{_BLK};letter-spacing:-0.02em;line-height:1.1;{_F}">'
-        f'Z47<em style="font-style:italic">fortyseven</em></h1>'
-        # Tagline — orange, same weight as title
-        f'<p style="margin:0;padding:0;font-size:28px;font-weight:600;'
-        f'color:{_OG};line-height:1.25;{_F}">'
-        f"Powering India&#x2019;s journey to a developed nation by 2047"
-        f'</p>'
-        # Subtitle — near-black italic, 15px
-        f'<p style="margin:0;padding:0;font-size:15px;font-weight:400;'
-        f'font-style:italic;color:{_BLK};line-height:1.5;{_F}">'
-        f'Tracking 47 listed Indian new-age technology, consumer and new-economy '
-        f'financial-services companies'
-        f'</p>'
-        f'</div>'
-        f'</div>'
-        # Spacer below hero before stat cards
-        f'<div style="height:48px"></div>',
-        unsafe_allow_html=True,
-    )
+    # ── Hero band #1 — above PERFORMANCE section ─────────────────────────────
+    st.markdown('<div style="padding-top:32px"></div>', unsafe_allow_html=True)
+    _hero_band()
 
     # ── Load all live data in parallel ────────────────────────────────────────
     with st.spinner(""):
@@ -1150,34 +1196,43 @@ def render() -> None:
               f"Force-refresh triggered by user")
         st.rerun()
 
-    # ── Sections ──────────────────────────────────────────────────────────────
-
+    # ── SECTION 1: PERFORMANCE ───────────────────────────────────────────────
+    _section_label("PERFORMANCE")
     _s1_hero(df, nifty_live, sensex_live, usdinr, fx_chg)
     _divider()
-
     _s2_performance(df)
     _divider()
-
     _s3_returns(df)
     _divider()
-
-    _s4_takeaway()
-    _divider()
-
     if returns_1m:
         _s5_movers(returns_1m, name_map)
-        _divider()
-        _s6_1m_chart(returns_1m, name_map)
-        _divider()
     else:
         st.info("1-month return data loading — auto-refreshes every 3 minutes during market hours.")
-        _divider()
 
-    _s7_constituents(returns_1m, mcaps, price_cache, usdinr)
-    _divider()
+    # ── SECTION 2: Z47 INSIGHTS ──────────────────────────────────────────────
+    _section_spacer()
+    _hero_band()
+    _section_label("Z47 INSIGHTS")
+    _s4_takeaway()
+    _s_kissht_takeaway()
 
+    # ── SECTION 3: CONSTITUENTS ──────────────────────────────────────────────
+    _section_spacer()
+    _hero_band()
+    _section_label("CONSTITUENTS")
     _s8_sector()
     _divider()
+    if returns_1m:
+        _s6_1m_chart(returns_1m, name_map)
+        _divider()
+    _s7_constituents(returns_1m, mcaps, price_cache, usdinr)
 
+    # ── SECTION 4: ABOUT ─────────────────────────────────────────────────────
+    _section_spacer()
+    _hero_band()
+    _section_label("ABOUT")
     _s9_methodology()
-    _s10_footer(usdinr)
+
+    # ── SLIM FOOTER ───────────────────────────────────────────────────────────
+    _section_spacer()
+    _slim_footer()
