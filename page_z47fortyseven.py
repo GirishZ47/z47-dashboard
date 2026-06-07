@@ -473,6 +473,35 @@ def _s2_performance(df: pd.DataFrame) -> None:
         for col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
             plot[col] = plot[col] / base[col] * 100
 
+    # ── Stat strip — sits between period selector and chart ───────────────────
+    kw    = _period_kw(period)
+    z47_r = _pct_since(df, "z47_float",     **kw)
+    nif_r = _pct_since(df, "nifty_indexed",  **kw)
+    sen_r = _pct_since(df, "sensex_indexed", **kw)
+
+    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
+    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
+
+    _sep = (f'<span style="color:{_LGR};font-size:20px;font-weight:400;'
+            f'margin:0 12px"> · </span>')
+    _stat_items = [
+        (f'<span style="color:{_cc(z47_r)};font-size:20px;font-weight:600;{_F}">'
+         f'{_sign(z47_r)}</span>'
+         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Z47fortyseven</span>'),
+        (f'<span style="color:{_cc(nif_r)};font-size:20px;font-weight:600;{_F}">'
+         f'{_sign(nif_r)}</span>'
+         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Nifty 50</span>'),
+        (f'<span style="color:{_cc(sen_r)};font-size:20px;font-weight:600;{_F}">'
+         f'{_sign(sen_r)}</span>'
+         f'<span style="color:{_BLK};font-size:20px;font-weight:500;{_F}"> Sensex</span>'),
+    ]
+    st.markdown(
+        f'<div style="padding:16px 0 20px;line-height:1.4">'
+        + _sep.join(_stat_items) +
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
         name="Z47fortyseven", mode="lines",
@@ -490,33 +519,19 @@ def _s2_performance(df: pd.DataFrame) -> None:
         paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=360, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.0,
                     xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
-                    font=dict(size=12, color=_DGR)),
+                    font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1,
-                   showline=True, tickfont=dict(size=10, color=_LGR)),
+                   showline=True,
+                   tickfont=dict(size=14, family="Inter", color="#4A4A4A")),
         yaxis=dict(showgrid=True, gridcolor="#F5F5F5",
-                   showline=False, tickfont=dict(size=10, color=_LGR)),
+                   showline=False,
+                   tickfont=dict(size=14, family="Inter", color="#4A4A4A")),
         margin=dict(l=0, r=0, t=8, b=0),
         transition_duration=0,
     )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    kw    = _period_kw(period)
-    z47_r = _pct_since(df, "z47_float",     **kw)
-    nif_r = _pct_since(df, "nifty_indexed",  **kw)
-    sen_r = _pct_since(df, "sensex_indexed", **kw)
-    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
-    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
-    parts = [
-        f'<b style="color:{_cc(z47_r)}">{_sign(z47_r)}</b>&nbsp;Z47fortyseven',
-        f'<b style="color:{_cc(nif_r)}">{_sign(nif_r)}</b>&nbsp;Nifty 50',
-        f'<b style="color:{_cc(sen_r)}">{_sign(sen_r)}</b>&nbsp;Sensex',
-    ]
-    st.markdown(
-        f'<p style="font-size:13px;color:{_DGR};margin-top:6px;{_F}">' +
-        "&nbsp; · &nbsp;".join(parts) + "</p>",
-        unsafe_allow_html=True,
-    )
-    # Index freshness
+    # Index freshness caption (below chart)
     try:
         last_dt  = df["date"].max()
         age_days = (pd.Timestamp.today().normalize() - last_dt).days
