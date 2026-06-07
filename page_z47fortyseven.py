@@ -323,23 +323,87 @@ def _section_spacer() -> None:
 
 
 def _s_kissht_takeaway() -> None:
-    """Kissht IPO Takeaway — pulled from page_drhp.HARDCODED_IPO_TAKEAWAYS."""
-    text = ""
+    """Kissht IPO Takeaway — structured, from takeaway_constants.HARDCODED_IPO_TAKEAWAYS."""
+    tk_data = None
     try:
-        from page_drhp import HARDCODED_IPO_TAKEAWAYS as _IPO_TK
-        text = _IPO_TK.get("Kissht (OnEMI Technology Solutions)", "")
+        from takeaway_constants import HARDCODED_IPO_TAKEAWAYS as _IPO_TK
+        tk_data = _IPO_TK.get("KISSHT")
     except Exception as _e:
         print(f"[z47fs kissht_takeaway] {_e}")
-    if not text:
+    if not tk_data:
         return
+
+    sections   = tk_data.get("sections", [])
+    sec_label  = tk_data.get("section_label", "KISSHT IPO TAKEAWAY")
+    date_label = tk_data.get("date_range_label", "")
+    full_label = f"{sec_label} · {date_label}" if date_label else sec_label
+
+    # 24px gap between Monthly Takeaway and Kissht block
     st.markdown(
-        f'<p style="{_lbl("margin-top:24px")}">KISSHT IPO TAKEAWAY · MAY 2026</p>',
+        f'<div style="height:24px"></div>'
+        f'<p style="{_lbl()}">{full_label}</p>',
         unsafe_allow_html=True,
     )
+    if not sections:
+        return
+
+    body_html        = ""
+    is_first_section = True
+
+    for sec in sections:
+        stype   = sec.get("type", "main_bullet")
+        header  = sec.get("header", "")
+        sub_bul = sec.get("sub_bullets", [])
+
+        if stype == "section_title":
+            body_html += (
+                f'<div style="margin-top:28px;padding-top:20px;border-top:1px solid {_BRD}">'
+                f'<p style="margin:0 0 10px;font-size:11px;font-weight:700;'
+                f'letter-spacing:0.08em;text-transform:uppercase;color:{_OG};{_F}">'
+                f'{_process_bold(header)}</p>'
+            )
+            for sb in sub_bul:
+                body_html += (
+                    f'<p style="margin:0 0 7px;font-size:14px;line-height:1.65;'
+                    f'font-weight:500;color:{_BLK};{_F}">{_process_bold(sb)}</p>'
+                )
+            body_html += '</div>'
+        else:
+            mt = "0" if is_first_section else "22px"
+            if " ; " in header:
+                lbl_part, verd_part = header.split(" ; ", 1)
+                hdr_html = (
+                    f'<span style="font-weight:700;color:{_BLK}">{_process_bold(lbl_part)}</span>'
+                    f'<span style="color:{_LGR}"> &nbsp;·&nbsp; </span>'
+                    f'<span style="font-weight:500;color:{_BLK}">{_process_bold(verd_part)}</span>'
+                )
+            else:
+                hdr_html = (
+                    f'<span style="font-weight:700;color:{_BLK}">'
+                    f'{_process_bold(header)}</span>'
+                )
+            body_html += (
+                f'<div style="margin-top:{mt}">'
+                f'<p style="margin:0 0 7px;font-size:14px;line-height:1.5;{_F}">'
+                f'<span style="color:{_OG};font-weight:800;font-size:16px;'
+                f'margin-right:8px;line-height:1.2">•</span>'
+                f'{hdr_html}</p>'
+            )
+            for j, sb in enumerate(sub_bul):
+                mt_sb = "0" if j == 0 else "5px"
+                body_html += (
+                    f'<p style="margin:{mt_sb} 0 0 24px;font-size:13.5px;'
+                    f'line-height:1.65;color:{_DGR};font-weight:400;{_F}">'
+                    f'{_process_bold(sb)}</p>'
+                )
+            body_html += '</div>'
+
+        is_first_section = False
+
     st.markdown(
         f'<div style="border-top:2px solid {_OG};border-bottom:1px solid {_BRD};'
         f'background:{_WHT};padding:28px 32px 24px;margin:8px 0">'
-        f'<p style="font-size:14px;line-height:1.65;color:{_BLK};margin:0;{_F}">{text}</p>'
+        f'{body_html}'
         f'</div>',
         unsafe_allow_html=True,
     )

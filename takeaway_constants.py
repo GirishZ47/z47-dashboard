@@ -478,3 +478,61 @@ QUALITY SELF-CHECK before finalizing:
 - Is each bullet under 40 words?
 - Did I use any banned phrase or recommendation language?
 Regenerate any bullet that fails."""
+
+# ── IPO Takeaways — single source of truth for Z47fortyseven + IPOs tabs ──────
+# Key: short canonical name (e.g. "KISSHT"). Each entry has:
+#   company_key   — full name used in DRHP tab lookup
+#   date_range_label, section_label — rendered in both locations
+#   sections      — structured list consumed by both tab renderers
+#
+# VERBATIM CONTENT RULE: every sub-bullet is LOCKED after user sign-off.
+# DO NOT rephrase, smooth, or reorder. Add new IPOs as new dict entries.
+HARDCODED_IPO_TAKEAWAYS = {
+    "KISSHT": {
+        "date_range_label": "LISTED MAY 2026",
+        "section_label":    "KISSHT IPO TAKEAWAY",
+        "company_key":      "Kissht (OnEMI Technology Solutions)",
+        "sections": [
+            {
+                "type": "main_bullet",
+                "header": "The listing is a re-pricing event for digital lending, not just for Kissht.",
+                "sub_bullets": [
+                    "Investors are rewarding underwriting discipline over loan-book composition, signalling a more nuanced view of unsecured lending exposure.",
+                    "The implication is broader; every digital lender in the pipeline gets a defensible valuation anchor, and existing fintech lending books deserve a re-look on the same basis.",
+                ],
+            },
+            {
+                "type": "main_bullet",
+                "header": "The institutional buyer mix is the under-discussed signal.",
+                "sub_bullets": [
+                    "QIB demand was driven by long-only domestic AMCs rather than anchor-led FII flows or arbitrage capital, pointing to a more durable ownership base.",
+                    "With long-only domestic institutions anchoring the book, post-listing supply overhang is likely to be structurally lower.",
+                ],
+            },
+            {
+                "type": "main_bullet",
+                "header": "The deal structure reflects how Indian new-age IPOs are maturing.",
+                "sub_bullets": [
+                    "With 92% of the issue comprising primary capital and minimal promoter dilution, the structure signals a focus on funding growth rather than shareholder monetisation.",
+                    "Unlike the OFS-heavy IPOs of 2021–22, Kissht's primary-led structure minimises supply overhang and strengthens investor alignment.",
+                ],
+            },
+            {
+                "type": "main_bullet",
+                "header": "What breaks this thesis ; the bear case worth pricing.",
+                "sub_bullets": [
+                    "The re-rating hinges on credit performance; any adverse NPA surprise in Q1/Q2 FY27 could quickly bring back the unsecured-lending discount.",
+                    "The first two quarters post listing are the real test; the valuation is a thesis, not a proven model.",
+                ],
+            },
+            {
+                "type": "section_title",
+                "header": "Net Read",
+                "sub_bullets": [
+                    "Kissht's IPO is as much a test of how public markets price digital credit as it is a test of the company itself.",
+                    "The sustainability of the re-rating hinges on credit-cost discipline; that will determine whether this becomes a broader sector re-rating or remains a one-off exception.",
+                ],
+            },
+        ],
+    },
+}

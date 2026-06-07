@@ -45,6 +45,7 @@ try:
         HARDCODED_SECTOR_TAKEAWAYS,
         HARDCODED_RECENT_RESULTS,
         QUALITY_BAR_FEW_SHOT,
+        HARDCODED_IPO_TAKEAWAYS,
     )
 except Exception as _tc_err:
     import traceback as _tb
@@ -56,6 +57,7 @@ except Exception as _tc_err:
     HARDCODED_SECTOR_TAKEAWAYS  = {}
     HARDCODED_RECENT_RESULTS    = {}
     QUALITY_BAR_FEW_SHOT        = ""
+    HARDCODED_IPO_TAKEAWAYS     = {}
 
 # ── Persistent disk cache (survives container restarts) ───────────────────────
 # Falls back gracefully if /tmp is read-only or pickle fails — no crash.

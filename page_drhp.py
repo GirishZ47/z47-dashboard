@@ -12,27 +12,104 @@ from bs4 import BeautifulSoup
 from z47_assistant import render_z47_assistant
 
 # ── Feature 6: Hardcoded IPO Takeaways ───────────────────────────────────────
-HARDCODED_IPO_TAKEAWAYS = {
-    "Kissht (OnEMI Technology Solutions)": (
-        "Kissht's debut marks a watershed moment — the first BFSI IPO of FY2027 and a meaningful "
-        "re-rating of how public markets view digital NBFCs. "
-        "Listed at an 11.1% premium to its ₹171 issue price, the stock reflected genuine institutional "
-        "demand rather than speculative froth, with QIB books oversubscribed ~26× against overall 9.96× subscription. "
-        "Critically, exposure to unsecured loans turned out to be a POSITIVE — investors saw growth potential "
-        "and higher return metrics rather than pricing in the unsecured-book penalty applied to earlier fintech "
-        "listings; the market clearly distinguished Kissht as a digital NBFC play with real unit economics, "
-        "not a cash-burning new-economy story. "
-        "The shift toward longer-tenure, higher-yield loans and a growing AUM on a scalable lending engine "
-        "gave institutions the conviction to price the book at 1.4× P/B versus pre-IPO expectations of 1.0–1.1×. "
-        "At a ₹926 cr raise (92% primary), the deal was calibrated well — large enough for real price discovery, "
-        "small enough to avoid supply overhang. "
-        "The read-across for Aye, InCred, and the upcoming digital-lender pipeline is unambiguously constructive."
-    ),
-}
+# Single source of truth lives in takeaway_constants.HARDCODED_IPO_TAKEAWAYS.
+# Imported here so both the DRHP tab and Z47fortyseven tab pull from one place.
+try:
+    from takeaway_constants import HARDCODED_IPO_TAKEAWAYS
+except Exception as _tk_imp_err:
+    import traceback as _tb_drhp
+    print(f"[WARN page_drhp] takeaway_constants import failed: {_tk_imp_err}")
+    _tb_drhp.print_exc()
+    HARDCODED_IPO_TAKEAWAYS = {}
+
+
+def _get_ipo_takeaway_by_company(company_name: str) -> dict | None:
+    """Look up a structured IPO takeaway dict by company name (exact or partial match)."""
+    if not company_name:
+        return None
+    # 1. Exact match on company_key
+    for _v in HARDCODED_IPO_TAKEAWAYS.values():
+        if isinstance(_v, dict) and _v.get("company_key", "") == company_name:
+            return _v
+    # 2. Partial match (first word of company_name ⊂ company_key, case-insensitive)
+    _slug = company_name.split("(")[0].strip().lower()
+    for _v in HARDCODED_IPO_TAKEAWAYS.values():
+        if isinstance(_v, dict) and _slug in _v.get("company_key", "").lower():
+            return _v
+    return None
+
+
+import re as _re_drhp
+
+def _pb_drhp(text: str) -> str:
+    """Convert **text** bold markers to <strong> HTML."""
+    return _re_drhp.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+
+
+def render_ipo_takeaway_structured(tk_data: dict) -> None:
+    """Render a structured IPO takeaway dict in purple-gradient IPOs-tab style."""
+    sections   = tk_data.get("sections", [])
+    sec_label  = tk_data.get("section_label", "Z47 IPO Takeaway")
+    date_label = tk_data.get("date_range_label", "")
+    full_title = f"{sec_label} · {date_label}" if date_label else sec_label
+
+    body_html = ""
+    for sec in sections:
+        stype   = sec.get("type", "main_bullet")
+        header  = sec.get("header", "")
+        sub_bul = sec.get("sub_bullets", [])
+
+        if stype == "section_title":
+            body_html += (
+                "<div style='margin-top:16px;padding-top:12px;"
+                "border-top:1px solid #c4b5fd'>"
+                "<p style='margin:0 0 8px;font-size:11px;font-weight:700;"
+                "letter-spacing:0.08em;text-transform:uppercase;color:#6d28d9'>"
+                f"{_pb_drhp(header)}</p>"
+            )
+            for sb in sub_bul:
+                body_html += (
+                    "<p style='margin:0 0 6px;font-size:13.5px;line-height:1.65;"
+                    f"font-weight:500;color:#3b1f7a'>{_pb_drhp(sb)}</p>"
+                )
+            body_html += "</div>"
+        else:
+            if " ; " in header:
+                lbl_part, verd_part = header.split(" ; ", 1)
+                hdr_html = (
+                    f"<span style='font-weight:700'>{_pb_drhp(lbl_part)}</span>"
+                    f"<span style='color:#8b5cf6'> ; </span>"
+                    f"<span style='font-weight:500'>{_pb_drhp(verd_part)}</span>"
+                )
+            else:
+                hdr_html = f"<span style='font-weight:700'>{_pb_drhp(header)}</span>"
+            body_html += (
+                "<div style='margin-top:14px'>"
+                "<p style='margin:0 0 6px;font-size:14px;line-height:1.5;color:#3b1f7a'>"
+                "<span style='color:#7c3aed;font-weight:800;margin-right:6px'>•</span>"
+                f"{hdr_html}</p>"
+            )
+            for sb in sub_bul:
+                body_html += (
+                    "<p style='margin:0 0 4px 20px;font-size:13.5px;"
+                    f"line-height:1.65;color:#4c1d95'>{_pb_drhp(sb)}</p>"
+                )
+            body_html += "</div>"
+
+    st.markdown(
+        f"<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);"
+        f"border:1px solid #c4b5fd;border-radius:12px;padding:20px 24px;"
+        f"margin:12px 0;box-shadow:0 1px 6px rgba(124,58,237,.10)'>"
+        f"<div style='font-size:12px;font-weight:700;color:#6d28d9;letter-spacing:.06em;"
+        f"text-transform:uppercase;margin-bottom:12px'>💡 {full_title}</div>"
+        f"{body_html}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def _render_ipo_takeaway_box(text: str, title: str = "Z47 Takeaway", icon: str = "💡"):
-    """Render a purple-gradient IPO takeaway box in page_drhp context."""
+    """Render a flat-string IPO takeaway in purple-gradient style (legacy fallback)."""
     st.markdown(
         f"""<div style='background:linear-gradient(135deg,#f3f0ff,#ede9fe);
         border:1px solid #c4b5fd;border-radius:12px;padding:18px 22px;
@@ -687,9 +764,9 @@ def _show_company_summary(company_name: str):
     st.caption(f"Source: {src_label}")
 
     # ── Feature 6: IPO Takeaway (hardcoded, shown before divider) ────────────
-    _ipo_tk = HARDCODED_IPO_TAKEAWAYS.get(company_name)
+    _ipo_tk = _get_ipo_takeaway_by_company(company_name)
     if _ipo_tk:
-        _render_ipo_takeaway_box(_ipo_tk, title="Z47 Takeaway", icon="💡")
+        render_ipo_takeaway_structured(_ipo_tk)
 
     # Document link at the very top for quick access
     if doc_type == "CONFIDENTIAL":
