@@ -1054,22 +1054,20 @@ def render() -> None:
     st.markdown(
         f'<div style="padding-top:32px">'
         # Top rule (1.5px)
-        f'<div style="border-top:1.5px solid {_OG};margin-bottom:0"></div>'
-        # Title
-        f'<h1 style="font-size:48px;font-weight:800;color:{_BLK};'
-        f'letter-spacing:-0.02em;margin:28px 0 20px;line-height:1.05;{_F}">'
+        f'<div style="border-top:1.5px solid {_OG}"></div>'
+        # Title — smaller, ~30px
+        f'<h1 style="font-size:30px;font-weight:800;color:{_BLK};'
+        f'letter-spacing:-0.01em;margin:24px 0 24px;line-height:1.1;{_F}">'
         f'Z47<em style="font-style:italic">fortyseven</em></h1>'
-        # Middle rule (1px)
-        f'<div style="border-top:1px solid {_OG};margin-bottom:0"></div>'
-        # Tagline — orange, large
+        # Tagline — orange, large, prominent
         f'<p style="font-size:28px;font-weight:600;color:{_OG};'
-        f'line-height:1.25;margin:24px 0 14px;{_F}">'
-        f"Tracking the companies powering India&#x2019;s journey to a developed nation by 2047"
+        f'line-height:1.25;margin:0 0 24px;{_F}">'
+        f"Powering India&#x2019;s journey to a developed nation by 2047"
         f'</p>'
         # Subtitle — near-black italic
         f'<p style="font-size:15px;font-weight:400;font-style:italic;color:{_BLK};'
         f'line-height:1.5;margin:0 0 28px;{_F}">'
-        f'47 listed Indian new-age technology, consumer and new-economy '
+        f'Tracking 47 listed Indian new-age technology, consumer and new-economy '
         f'financial-services companies'
         f'</p>'
         # Bottom rule (1.5px)
