@@ -357,7 +357,7 @@ def _s_kissht_takeaway() -> None:
 
         if stype == "section_title":
             body_html += (
-                f'<div style="margin-top:28px;padding-top:20px;border-top:1px solid {_BRD}">'
+                f'<div style="margin-top:32px">'
                 f'<p style="margin:0 0 10px;font-size:11px;font-weight:700;'
                 f'letter-spacing:0.08em;text-transform:uppercase;color:{_OG};{_F}">'
                 f'{_process_bold(header)}</p>'
@@ -805,10 +805,9 @@ def _s4_takeaway() -> None:
         sub_bul = sec.get("sub_bullets", [])
 
         if stype == "section_title":
-            # "Net Read" — orange small-caps divider + sub-bullets
+            # "Net Read" — orange small-caps label + sub-bullets (no divider line)
             body_html += (
-                f'<div style="margin-top:28px;padding-top:20px;'
-                f'border-top:1px solid {_BRD}">'
+                f'<div style="margin-top:32px">'
                 f'<p style="margin:0 0 10px;font-size:11px;font-weight:700;'
                 f'letter-spacing:0.08em;text-transform:uppercase;color:{_OG};{_F}">'
                 f'{_process_bold(header)}</p>'
