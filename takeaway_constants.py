@@ -50,7 +50,7 @@ HARDCODED_INDEX_TAKEAWAY = {
             "type": "main_bullet",
             "header": "Market context ; the cohort proved it can absorb large institutional exits without dislocation.",
             "sub_bullets": [
-                "Large block supply across multiple cohort names cleared without dislocation in a tight window.",
+                "Large share-block sales across multiple cohort names cleared without price disruption in a tight window",
                 "The supply rotation from foreign VC exits to domestic MF demand is the structural story consensus is underweighting.",
                 "The price action through these prints tells you institutional demand for new-age India is no longer flow-driven; it’s becoming structural ownership.",
                 "Q4 FY26 prints split the cohort; profitable names traded up, loss-makers de-rated regardless of revenue ; profitability is now being rewarded over scale.",
@@ -497,7 +497,7 @@ HARDCODED_IPO_TAKEAWAYS = {
                 "type": "main_bullet",
                 "header": "The listing is a re-pricing event for digital lending, not just for Kissht.",
                 "sub_bullets": [
-                    "Investors are rewarding underwriting discipline over loan-book composition, signalling a more nuanced view of unsecured lending exposure.",
+                    "Investors are rewarding underwriting discipline and asset quality over loan-book composition, signalling a more nuanced view of unsecured lending exposure.",
                     "The implication is broader; every digital lender in the pipeline gets a defensible valuation anchor, and existing fintech lending books deserve a re-look on the same basis.",
                 ],
             },
@@ -519,7 +519,7 @@ HARDCODED_IPO_TAKEAWAYS = {
             },
             {
                 "type": "main_bullet",
-                "header": "What breaks this thesis ; the bear case worth pricing.",
+                "header": "Where the thesis breaks",
                 "sub_bullets": [
                     "The re-rating hinges on credit performance; any adverse NPA surprise in Q1/Q2 FY27 could quickly bring back the unsecured-lending discount.",
                     "The first two quarters post listing are the real test; the valuation is a thesis, not a proven model.",
