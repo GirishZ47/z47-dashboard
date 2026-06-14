@@ -634,7 +634,21 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     )
 
     # ── Full-width chart ───────────────────────────────────────────────────────
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig, use_container_width=True, config={
+        "displayModeBar": True,
+        "modeBarButtonsToRemove": [
+            "zoom2d", "pan2d", "select2d", "lasso2d",
+            "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d",
+            "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines",
+        ],
+        "toImageButtonOptions": {
+            "format":   "png",
+            "filename": "z47fortyseven_performance",
+            "height":   500,
+            "width":    1200,
+            "scale":    2,
+        },
+    })
     try:
         last_dt  = df["date"].max()
         age_days = (pd.Timestamp.today().normalize() - last_dt).days
