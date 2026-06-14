@@ -527,9 +527,10 @@ def _s1_hero(df: pd.DataFrame, n500_live, usdinr, fx_chg) -> None:
 
 def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     fx_chg=None) -> None:
-    """Section 2 — 70/30 layout: chart left, 2×2 stat blocks right."""
-    # ── Index name HTML helper ─────────────────────────────────────────────────
-    _idx_name_html = 'Z47^<em style="font-style:italic">fortyseven</em>'
+    """Section 2 — 65/35 layout: chart left (with period figures), 2×2 stat blocks right."""
+    _idx_html = 'Z47^<em style="font-style:italic">fortyseven</em>'
+    _idx_vs   = ('Z47^<em style="font-style:italic">fortyseven</em>'
+                 ' VS NIFTY&nbsp;500')
 
     st.markdown(
         f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
@@ -542,6 +543,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                       index=0, horizontal=True, label_visibility="collapsed",
                       key="z47fs_period")
 
+    # Slice data for selected period
     if period == "All":
         plot = df.copy()
     elif period == "YTD":
@@ -557,32 +559,15 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         for col in ["z47_float", "n500_indexed"]:
             plot[col] = plot[col] / base[col] * 100
 
-    # ── Build chart ────────────────────────────────────────────────────────────
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
-        name="Z47^fortyseven", mode="lines",
-        line=dict(color=_OG, width=2.5),
-        hovertemplate="%{x|%d %b %Y} · Z47: %{y:.1f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=plot["date"], y=plot["n500_indexed"],
-        name="Nifty 500", mode="lines",
-        line=dict(color="#1F77B4", width=1.8),
-        hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
-    fig.update_layout(
-        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=380, hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.0,
-                    xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
-                    font=dict(size=13, color=_DGR, family="Inter")),
-        xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1,
-                   showline=True,
-                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
-        yaxis=dict(showgrid=True, gridcolor="#F5F5F5",
-                   showline=False,
-                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
-        margin=dict(l=0, r=0, t=8, b=0),
-        transition_duration=0,
-    )
+    # FIX 3 — period-responsive return figures (update when period selector changes)
+    kw    = _period_kw(period)
+    z47_r = _pct_since(df, "z47_float",    **kw)
+    n5_r  = _pct_since(df, "n500_indexed", **kw)
 
-    # ── Stat block data ────────────────────────────────────────────────────────
+    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
+    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
+
+    # Stat block data (right column — always "since Jan 2024" spread and live values)
     last    = df.iloc[-1]
     now_ts  = _now_ist_str()
     z47_v   = float(last["z47_float"])
@@ -594,24 +579,50 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                else (f"{spread:.1f}pp behind" if spread is not None else "—"))
     s_color = _GRN if (spread or 0) >= 0 else _RED
 
-    def _stat_card(label_html: str, val_str: str, delta_v, delta_suffix: str,
-                   sub: str, delta_custom_html: str = "") -> str:
-        delta_h = delta_custom_html or _delta_html(delta_v, suffix=delta_suffix, size=13)
-        return (
-            f'<div style="{_card_wrap("min-height:112px;display:flex;flex-direction:column;gap:4px")}">'
-            f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
-            f'text-transform:uppercase;color:{_OG};{_F}">{label_html}</div>'
-            f'<div style="font-size:28px;font-weight:800;color:{_BLK};'
-            f'line-height:1.05;{_F}">{val_str}</div>'
-            f'{delta_h}'
-            f'<div style="font-size:10px;color:{_LGR};{_F}">{sub}</div>'
-            f'</div>'
-        )
+    # ── Build chart ────────────────────────────────────────────────────────────
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
+        name="Z47^fortyseven", mode="lines",
+        line=dict(color=_OG, width=2.5),
+        hovertemplate="%{x|%d %b %Y} · Z47: %{y:.1f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=plot["date"], y=plot["n500_indexed"],
+        name="Nifty 500", mode="lines",
+        line=dict(color="#1F77B4", width=1.8),
+        hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
+    fig.update_layout(
+        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=340, hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.0,
+                    xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
+                    font=dict(size=13, color=_DGR, family="Inter")),
+        xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True,
+                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
+        yaxis=dict(showgrid=True, gridcolor="#F5F5F5", showline=False,
+                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
+        margin=dict(l=0, r=0, t=8, b=0),
+        transition_duration=0,
+    )
 
-    # ── 70/30 two-column layout ────────────────────────────────────────────────
-    col_chart, col_stats = st.columns([7, 3], gap="medium")
+    # FIX 1+2 — 65/35 split with large gutter; right column uses pure HTML grid
+    col_chart, col_stats = st.columns([13, 7], gap="large")
 
     with col_chart:
+        # FIX 3 — period-responsive inline return figures above chart
+        _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
+                 f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
+        _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
+        st.markdown(
+            f'<div style="display:flex;gap:40px;padding:8px 0 14px;align-items:flex-start">'
+            f'<div>'
+            f'<p style="{_pl_s}">{_idx_html}</p>'
+            f'<p style="{_pv_s};color:{_cc(z47_r)}">{_sign(z47_r)}</p>'
+            f'</div>'
+            f'<div>'
+            f'<p style="{_pl_s}">Nifty 500</p>'
+            f'<p style="{_pv_s};color:{_cc(n5_r)}">{_sign(n5_r)}</p>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         try:
             last_dt  = df["date"].max()
@@ -624,37 +635,61 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
             pass
 
     with col_stats:
-        # Top row
-        r1a, r1b = st.columns(2, gap="small")
-        with r1a:
-            st.markdown(
-                _stat_card(_idx_name_html, f"{z47_v:.1f}", z47_all, "%",
-                           f"Since Jan 2024"),
-                unsafe_allow_html=True)
-        with r1b:
-            n5_str = f"{n500_live:,.0f}" if n500_live else "—"
-            st.markdown(
-                _stat_card("Nifty 500", n5_str, n5_ytd, "%", f"YTD · {now_ts}"),
-                unsafe_allow_html=True)
-        # Bottom row
-        r2a, r2b = st.columns(2, gap="small")
-        with r2a:
-            st.markdown(
-                f'<div style="{_card_wrap("min-height:112px;display:flex;flex-direction:column;gap:4px")}">'
-                f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
-                f'text-transform:uppercase;color:{_OG};{_F}">Z47 VS NIFTY 500</div>'
-                f'<div style="font-size:18px;font-weight:700;color:{s_color};'
-                f'margin:4px 0 2px;{_F}">{s_str}</div>'
-                f'<div style="font-size:11px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
-                f'<div style="font-size:10px;color:{_LGR};{_F}">Return spread</div>'
-                f'</div>',
-                unsafe_allow_html=True)
-        with r2b:
-            fx_str = f"₹{usdinr:.2f}" if usdinr else "—"
-            st.markdown(
-                _stat_card("USD / INR", fx_str, fx_chg, "%",
-                           f"Daily change · {now_ts}"),
-                unsafe_allow_html=True)
+        # FIX 1 — single HTML grid: no nested st.columns, full width control
+        # white-space:nowrap on labels and values prevents mid-word breaks
+        _cp  = (f"background:{_WHT};border:1px solid {_BRD};border-radius:8px;"
+                f"padding:14px 12px;display:flex;flex-direction:column;gap:4px")
+        _lc  = (f"font-size:9px;font-weight:700;letter-spacing:0.07em;"
+                f"text-transform:uppercase;color:{_OG};white-space:nowrap;"
+                f"overflow:hidden;text-overflow:ellipsis;{_F}")
+        _lc_vs = (f"font-size:8px;font-weight:700;letter-spacing:0.06em;"
+                  f"text-transform:uppercase;color:{_OG};white-space:nowrap;"
+                  f"overflow:hidden;text-overflow:ellipsis;{_F}")
+        _vc  = (f"font-size:22px;font-weight:800;color:{_BLK};"
+                f"line-height:1.05;white-space:nowrap;{_F}")
+        _sc  = f"font-size:9px;color:{_LGR};white-space:nowrap;{_F}"
+
+        n5_str = f"{n500_live:,.0f}" if n500_live else "—"
+        fx_str = f"₹{usdinr:.2f}"   if usdinr    else "—"
+        z47_d  = _delta_html(z47_all, suffix="%", size=12)
+        n5_d   = _delta_html(n5_ytd,  suffix="%", size=12)
+        fx_d   = _delta_html(fx_chg,  suffix="%", size=12)
+
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;'
+            f'grid-auto-rows:1fr;gap:8px">'
+            # Card 1 — Z47^fortyseven
+            f'<div style="{_cp}">'
+            f'<div style="{_lc}">{_idx_html}</div>'
+            f'<div style="{_vc}">{z47_v:.1f}</div>'
+            f'{z47_d}'
+            f'<div style="{_sc}">Since Jan 2024</div>'
+            f'</div>'
+            # Card 2 — Nifty 500
+            f'<div style="{_cp}">'
+            f'<div style="{_lc}">Nifty 500</div>'
+            f'<div style="{_vc}">{n5_str}</div>'
+            f'{n5_d}'
+            f'<div style="{_sc}">YTD · {now_ts}</div>'
+            f'</div>'
+            # Card 3 — Z47^fortyseven vs Nifty 500
+            f'<div style="{_cp}">'
+            f'<div style="{_lc_vs}">{_idx_vs}</div>'
+            f'<div style="font-size:16px;font-weight:700;color:{s_color};'
+            f'white-space:nowrap;line-height:1.1;{_F}">{s_str}</div>'
+            f'<div style="font-size:10px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
+            f'<div style="{_sc}">Cumulative return spread</div>'
+            f'</div>'
+            # Card 4 — USD / INR
+            f'<div style="{_cp}">'
+            f'<div style="{_lc}">USD / INR</div>'
+            f'<div style="{_vc}">{fx_str}</div>'
+            f'{fx_d}'
+            f'<div style="{_sc}">Daily change · {now_ts}</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def _s3_returns(df: pd.DataFrame) -> None:
