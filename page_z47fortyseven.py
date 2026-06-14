@@ -283,7 +283,7 @@ def _hero_band() -> None:
         f'padding:28px 0;display:flex;flex-direction:column;gap:28px">'
         f'<h1 style="margin:0;padding:0;font-size:28px;font-weight:800;'
         f'color:{_BLK};letter-spacing:-0.02em;line-height:1.1;{_F}">'
-        f'Z47<em style="font-style:italic">fortyseven</em></h1>'
+        f'Z47^<em style="font-style:italic">fortyseven</em></h1>'
         f'<p style="margin:0;padding:0;font-size:28px;font-weight:600;'
         f'color:{_OG};line-height:1.25;{_F}">'
         f"Powering India&#x2019;s journey to a developed nation by 2047"
@@ -501,7 +501,7 @@ def _render_header_bar(df: pd.DataFrame, usdinr: float,
               if _is_market_hours() else "")
 
     badge_html = (
-        f'<div style="font-size:10px;color:{_LGR};padding:2px 0 16px;{_F}">'
+        f'<div style="font-size:10px;color:{_LGR};padding:2px 0 8px;{_F}">'
         f'{mh_dot}'
         f'<b style="color:{_DGR}">DATA</b>'
         f'&nbsp;·&nbsp;<span style="color:{idx_col}">Index: {idx_lbl}</span>'
@@ -521,65 +521,16 @@ def _render_header_bar(df: pd.DataFrame, usdinr: float,
 
 
 def _s1_hero(df: pd.DataFrame, n500_live, usdinr, fx_chg) -> None:
-    """Section 1 — 4 live stat cards with proper inline-styled card containers."""
-    last     = df.iloc[-1]
-    z47_v    = last["z47_float"]
-    now_ts   = _now_ist_str()
-
-    z47_all = _pct_since(df, "z47_float",    all_time=True)
-    n5_all  = _pct_since(df, "n500_indexed", all_time=True)
-    n5_ytd  = _pct_since(df, "n500_indexed", ytd=True)
-
-    spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
-    s_str   = (f"+{spread:.1f}pp ahead" if spread and spread >= 0
-               else (f"{spread:.1f}pp behind" if spread is not None else "—"))
-    s_color = _GRN if (spread or 0) >= 0 else _RED
-
-    def _card_html(label: str, val_str: str, delta_v, delta_suffix: str,
-                   sub: str, delta_custom_html: str = "") -> str:
-        delta_h = delta_custom_html or _delta_html(delta_v, suffix=delta_suffix, size=13)
-        return (
-            f'<div style="{_card_wrap("min-height:128px;display:flex;flex-direction:column;gap:5px")}">'
-            f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
-            f'text-transform:uppercase;color:{_OG};{_F}">{label}</div>'
-            f'<div style="font-size:34px;font-weight:800;color:{_BLK};'
-            f'line-height:1.05;{_F}">{val_str}</div>'
-            f'{delta_h}'
-            f'<div style="font-size:10px;color:{_LGR};{_F}">{sub}</div>'
-            f'</div>'
-        )
-
-    c1, c2, c3, c4 = st.columns(4, gap="small")
-    with c1:
-        st.markdown(_card_html("Z47fortyseven", f"{z47_v:.1f}", z47_all, "%",
-                               f"Since Jan 2024 · {now_ts}"),
-                    unsafe_allow_html=True)
-    with c2:
-        n5_str = f"{n500_live:,.0f}" if n500_live else "—"
-        st.markdown(_card_html("Nifty 500", n5_str, n5_ytd, "%",
-                               f"YTD · {now_ts}"),
-                    unsafe_allow_html=True)
-    with c3:
-        st.markdown(
-            f'<div style="{_card_wrap("min-height:128px;display:flex;flex-direction:column;gap:5px")}">'
-            f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
-            f'text-transform:uppercase;color:{_OG};{_F}">Z47 VS NIFTY 500</div>'
-            f'<div style="font-size:20px;font-weight:700;color:{s_color};'
-            f'margin:4px 0 2px;{_F}">{s_str}</div>'
-            f'<div style="font-size:12px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
-            f'<div style="font-size:10px;color:{_LGR};{_F}">Cumulative return spread</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    with c4:
-        fx_str = f"₹{usdinr:.2f}" if usdinr else "—"
-        st.markdown(_card_html("USD / INR", fx_str, fx_chg, "%",
-                               f"Daily change · {now_ts}"),
-                    unsafe_allow_html=True)
+    """Section 1 — kept for API compatibility but rendering is done inside _s2_performance."""
+    pass
 
 
-def _s2_performance(df: pd.DataFrame) -> None:
-    """Section 2 — Index performance chart + period selector."""
+def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
+                    fx_chg=None) -> None:
+    """Section 2 — 70/30 layout: chart left, 2×2 stat blocks right."""
+    # ── Index name HTML helper ─────────────────────────────────────────────────
+    _idx_name_html = 'Z47^<em style="font-style:italic">fortyseven</em>'
+
     st.markdown(
         f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
         f'<h2 style="font-size:22px;font-weight:700;color:{_BLK};'
@@ -606,37 +557,10 @@ def _s2_performance(df: pd.DataFrame) -> None:
         for col in ["z47_float", "n500_indexed"]:
             plot[col] = plot[col] / base[col] * 100
 
-    # ── Stat blocks — two clean label/value blocks above the chart ─────────
-    kw    = _period_kw(period)
-    z47_r = _pct_since(df, "z47_float",    **kw)
-    n5_r  = _pct_since(df, "n500_indexed", **kw)
-
-    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
-    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
-
-    _lbl_s  = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
-               f"text-transform:uppercase;color:{_LGR};margin:0 0 4px;{_F}")
-    _val_s  = f"font-size:22px;font-weight:700;margin:0;line-height:1.1;{_F}"
-
-    def _block(label, v):
-        return (
-            f'<div style="display:inline-block;vertical-align:top;margin-right:64px">'
-            f'<p style="{_lbl_s}">{label}</p>'
-            f'<p style="{_val_s};color:{_cc(v)}">{_sign(v)}</p>'
-            f'</div>'
-        )
-
-    st.markdown(
-        f'<div style="padding:16px 0 24px">'
-        + _block("Z47fortyseven", z47_r)
-        + _block("Nifty 500",     n5_r)
-        + f'</div>',
-        unsafe_allow_html=True,
-    )
-
+    # ── Build chart ────────────────────────────────────────────────────────────
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
-        name="Z47fortyseven", mode="lines",
+        name="Z47^fortyseven", mode="lines",
         line=dict(color=_OG, width=2.5),
         hovertemplate="%{x|%d %b %Y} · Z47: %{y:.1f}<extra></extra>"))
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["n500_indexed"],
@@ -644,7 +568,7 @@ def _s2_performance(df: pd.DataFrame) -> None:
         line=dict(color="#1F77B4", width=1.8),
         hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
     fig.update_layout(
-        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=360, hovermode="x unified",
+        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=380, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.0,
                     xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
                     font=dict(size=13, color=_DGR, family="Inter")),
@@ -657,18 +581,80 @@ def _s2_performance(df: pd.DataFrame) -> None:
         margin=dict(l=0, r=0, t=8, b=0),
         transition_duration=0,
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    # Index freshness caption (below chart)
-    try:
-        last_dt  = df["date"].max()
-        age_days = (pd.Timestamp.today().normalize() - last_dt).days
-        msg      = f"Index history through: {last_dt.strftime('%d %b %Y')} · auto-updates daily"
-        if age_days > 3:
-            msg += f" · ⚠️ {age_days} days old, check logs"
-        st.caption(msg)
-    except Exception:
-        pass
+    # ── Stat block data ────────────────────────────────────────────────────────
+    last    = df.iloc[-1]
+    now_ts  = _now_ist_str()
+    z47_v   = float(last["z47_float"])
+    z47_all = _pct_since(df, "z47_float",    all_time=True)
+    n5_all  = _pct_since(df, "n500_indexed", all_time=True)
+    n5_ytd  = _pct_since(df, "n500_indexed", ytd=True)
+    spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
+    s_str   = (f"+{spread:.1f}pp ahead" if spread and spread >= 0
+               else (f"{spread:.1f}pp behind" if spread is not None else "—"))
+    s_color = _GRN if (spread or 0) >= 0 else _RED
+
+    def _stat_card(label_html: str, val_str: str, delta_v, delta_suffix: str,
+                   sub: str, delta_custom_html: str = "") -> str:
+        delta_h = delta_custom_html or _delta_html(delta_v, suffix=delta_suffix, size=13)
+        return (
+            f'<div style="{_card_wrap("min-height:112px;display:flex;flex-direction:column;gap:4px")}">'
+            f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
+            f'text-transform:uppercase;color:{_OG};{_F}">{label_html}</div>'
+            f'<div style="font-size:28px;font-weight:800;color:{_BLK};'
+            f'line-height:1.05;{_F}">{val_str}</div>'
+            f'{delta_h}'
+            f'<div style="font-size:10px;color:{_LGR};{_F}">{sub}</div>'
+            f'</div>'
+        )
+
+    # ── 70/30 two-column layout ────────────────────────────────────────────────
+    col_chart, col_stats = st.columns([7, 3], gap="medium")
+
+    with col_chart:
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        try:
+            last_dt  = df["date"].max()
+            age_days = (pd.Timestamp.today().normalize() - last_dt).days
+            msg      = f"Index history through: {last_dt.strftime('%d %b %Y')} · auto-updates daily"
+            if age_days > 3:
+                msg += f" · ⚠️ {age_days} days old, check logs"
+            st.caption(msg)
+        except Exception:
+            pass
+
+    with col_stats:
+        # Top row
+        r1a, r1b = st.columns(2, gap="small")
+        with r1a:
+            st.markdown(
+                _stat_card(_idx_name_html, f"{z47_v:.1f}", z47_all, "%",
+                           f"Since Jan 2024"),
+                unsafe_allow_html=True)
+        with r1b:
+            n5_str = f"{n500_live:,.0f}" if n500_live else "—"
+            st.markdown(
+                _stat_card("Nifty 500", n5_str, n5_ytd, "%", f"YTD · {now_ts}"),
+                unsafe_allow_html=True)
+        # Bottom row
+        r2a, r2b = st.columns(2, gap="small")
+        with r2a:
+            st.markdown(
+                f'<div style="{_card_wrap("min-height:112px;display:flex;flex-direction:column;gap:4px")}">'
+                f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
+                f'text-transform:uppercase;color:{_OG};{_F}">Z47 VS NIFTY 500</div>'
+                f'<div style="font-size:18px;font-weight:700;color:{s_color};'
+                f'margin:4px 0 2px;{_F}">{s_str}</div>'
+                f'<div style="font-size:11px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
+                f'<div style="font-size:10px;color:{_LGR};{_F}">Return spread</div>'
+                f'</div>',
+                unsafe_allow_html=True)
+        with r2b:
+            fx_str = f"₹{usdinr:.2f}" if usdinr else "—"
+            st.markdown(
+                _stat_card("USD / INR", fx_str, fx_chg, "%",
+                           f"Daily change · {now_ts}"),
+                unsafe_allow_html=True)
 
 
 def _s3_returns(df: pd.DataFrame) -> None:
@@ -684,7 +670,7 @@ def _s3_returns(df: pd.DataFrame) -> None:
         ("Since Jan 2024", {"all_time": True}),
     ]
     rows_cfg = [
-        ("Z47fortyseven", "z47_float"),
+        ('Z47^<em style="font-style:italic">fortyseven</em>', "z47_float"),
         ("Nifty 500",      "n500_indexed"),
     ]
 
@@ -1152,7 +1138,7 @@ def _s9_methodology() -> None:
             "Added to the index from their first full trading day post-listing, provided all "
             "other criteria are met at that date",
         ],
-        intro="A company qualifies for Z47fortyseven if it meets ALL of the following:",
+        intro='A company qualifies for Z47^<em>fortyseven</em> if it meets ALL of the following:',
     )
 
     # ── Sub-section 3: Review Policy ──────────────────────────────────────────
@@ -1166,7 +1152,7 @@ def _s9_methodology() -> None:
             "Refinements to the methodology itself as the index matures",
         ],
         intro=(
-            "The constituent list is not static. Z47fortyseven is reviewed quarterly and "
+            'The constituent list is not static. Z47^<em>fortyseven</em> is reviewed quarterly and '
             "may be updated to reflect:"
         ),
     )
@@ -1205,7 +1191,7 @@ def _s10_footer(usdinr: float) -> None:
         f'</p></div>'
         f'<div style="padding:28px 0 16px;text-align:center;border-top:1px solid {_BRD}">'
         f'<p style="font-size:12px;color:{_LGR};line-height:1.75;max-width:680px;'
-        f'margin:0 auto;{_F}">The Z47fortyseven Index is published by Z47 for informational '
+        f'margin:0 auto;{_F}">The Z47^<em>fortyseven</em> Index is published by Z47 for informational '
         f'and discussion purposes only. It does not constitute investment advice. Past '
         f'performance is not indicative of future results. Constituent data and prices '
         f'are sourced from public exchanges and third-party data providers.</p>'
@@ -1284,7 +1270,7 @@ def render() -> None:
     )
 
     # ── Hero band — rendered ONCE at the top regardless of active section ──────
-    st.markdown('<div style="padding-top:32px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding-top:16px"></div>', unsafe_allow_html=True)
     _hero_band()
 
     # ── Load data — session-state cache avoids refetch on pill switches ──────
@@ -1434,7 +1420,7 @@ def render() -> None:
         )
     _active = st.session_state.z47fs_section
 
-    st.markdown('<div style="height:32px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
     # Each pill sizes to its label text; trailing gap keeps the strip left-aligned.
     # use_container_width=False lets each button shrink to content width so
     # "Methodology" is never forced into a narrow fixed-width box.
@@ -1458,9 +1444,7 @@ def render() -> None:
     # ── Active section content ────────────────────────────────────────────────
     if _active == "performance":
         _section_label("PERFORMANCE")
-        _s1_hero(df, n500_live, usdinr, fx_chg)
-        _divider()
-        _s2_performance(df)
+        _s2_performance(df, n500_live, usdinr, fx_chg)
         _divider()
         _s3_returns(df)
         _divider()
