@@ -622,27 +622,28 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         transition_duration=0,
     )
 
-    # FIX 1+2 — 65/35 split with large gutter; right column uses pure HTML grid
+    # Period figures rendered ABOVE the columns so both columns start at same vertical level
+    _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
+             f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
+    _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
+    st.markdown(
+        f'<div style="display:flex;gap:40px;padding:8px 0 14px;align-items:flex-start">'
+        f'<div>'
+        f'<p style="{_pl_s}">{_idx_html}</p>'
+        f'<p style="{_pv_s};color:{_cc(z47_r)}">{_sign(z47_r)}</p>'
+        f'</div>'
+        f'<div>'
+        f'<p style="{_pl_s}">Nifty 500</p>'
+        f'<p style="{_pv_s};color:{_cc(n5_r)}">{_sign(n5_r)}</p>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 65/35 split — both columns now start at the same level (period figures above)
     col_chart, col_stats = st.columns([13, 7], gap="large")
 
     with col_chart:
-        # FIX 3 — period-responsive inline return figures above chart
-        _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
-                 f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
-        _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
-        st.markdown(
-            f'<div style="display:flex;gap:40px;padding:8px 0 14px;align-items:flex-start">'
-            f'<div>'
-            f'<p style="{_pl_s}">{_idx_html}</p>'
-            f'<p style="{_pv_s};color:{_cc(z47_r)}">{_sign(z47_r)}</p>'
-            f'</div>'
-            f'<div>'
-            f'<p style="{_pl_s}">Nifty 500</p>'
-            f'<p style="{_pv_s};color:{_cc(n5_r)}">{_sign(n5_r)}</p>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         try:
             last_dt  = df["date"].max()
@@ -677,7 +678,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
 
         st.markdown(
             f'<div style="display:grid;grid-template-columns:1fr 1fr;'
-            f'grid-auto-rows:1fr;gap:8px">'
+            f'grid-template-rows:1fr 1fr;height:340px;gap:8px">'
             # Card 1 — Z47^fortyseven
             f'<div style="{_cp}">'
             f'<div style="{_lc}">{_idx_html}</div>'
