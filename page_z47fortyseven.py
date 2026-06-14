@@ -528,9 +528,10 @@ def _s1_hero(df: pd.DataFrame, n500_live, usdinr, fx_chg) -> None:
 def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     fx_chg=None) -> None:
     """Section 2 — 65/35 layout: chart left (with period figures), 2×2 stat blocks right."""
-    _idx_html = 'Z47^<em style="font-style:italic">fortyseven</em>'
-    _idx_vs   = ('Z47^<em style="font-style:italic">fortyseven</em>'
-                 ' VS NIFTY&nbsp;500')
+    # text-transform:none on <em> overrides any parent text-transform:uppercase
+    _em       = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+    _idx_html = f'Z47^{_em}'
+    _idx_vs   = f'Z47^{_em} VS NIFTY&nbsp;500'
 
     st.markdown(
         f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
@@ -579,6 +580,25 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                else (f"{spread:.1f}pp behind" if spread is not None else "—"))
     s_color = _GRN if (spread or 0) >= 0 else _RED
 
+    # ── Period-specific axis configuration ────────────────────────────────────
+    if period == "All":
+        _x_kw = dict(dtick="M3", tick0="2024-01-01", tickformat="%b %Y",
+                     tickfont=dict(size=10, family="Inter", color="#4A4A4A"))
+        _y_kw = dict(range=[98, 152], dtick=10, tick0=100,
+                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+    elif period == "1Y":
+        _x_kw = dict(dtick="M2", tickformat="%b %Y",
+                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+    elif period in ("6M", "YTD", "3M"):
+        _x_kw = dict(dtick="M1", tickformat="%b %Y",
+                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+    else:  # 1M
+        _x_kw = dict(tickformat="%d %b",
+                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+
     # ── Build chart ────────────────────────────────────────────────────────────
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
@@ -595,9 +615,9 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
                     font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True,
-                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
+                   **_x_kw),
         yaxis=dict(showgrid=True, gridcolor="#F5F5F5", showline=False,
-                   tickfont=dict(size=12, family="Inter", color="#4A4A4A")),
+                   **_y_kw),
         margin=dict(l=0, r=0, t=8, b=0),
         transition_duration=0,
     )
