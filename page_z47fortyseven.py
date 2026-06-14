@@ -201,6 +201,15 @@ def _fetch_1m_returns() -> dict[str, float]:
         return {}
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _chart_png(fig_json: str) -> bytes:
+    """Render a Plotly figure JSON to a PNG bytes object (kaleido). Cached 1 h."""
+    import plotly.io as pio
+    return pio.from_json(fig_json).to_image(
+        format="png", width=1200, height=500, scale=2,
+    )
+
+
 @st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — market caps
 def _fetch_mcaps() -> dict:
     """Live market caps for all 47 companies."""
@@ -547,9 +556,12 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         unsafe_allow_html=True,
     )
 
-    period = st.radio("Period", ["All", "1M", "3M", "6M", "1Y", "YTD"],
-                      index=0, horizontal=True, label_visibility="collapsed",
-                      key="z47fs_period")
+    _tc, _dc = st.columns([9, 1], vertical_alignment="center")
+    with _tc:
+        period = st.radio("Period", ["All", "1M", "3M", "6M", "1Y", "YTD"],
+                          index=0, horizontal=True, label_visibility="collapsed",
+                          key="z47fs_period")
+    _dl_slot = _dc.empty()   # filled with download button after fig is built
 
     # ── Slice & rebase ─────────────────────────────────────────────────────────
     # (must happen before period-responsive indicator so _pct_since uses right window)
@@ -633,22 +645,22 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         transition_duration=0,
     )
 
+    # ── Download button (fills the placeholder next to the period radio) ────────
+    try:
+        _png = _chart_png(fig.to_json())
+        _dl_slot.download_button(
+            label="📷",
+            data=_png,
+            file_name="z47fortyseven_performance.png",
+            mime="image/png",
+            help="Download chart as PNG",
+            key="z47fs_dl_btn",
+        )
+    except Exception:
+        pass   # silently omit if kaleido unavailable
+
     # ── Full-width chart ───────────────────────────────────────────────────────
-    st.plotly_chart(fig, use_container_width=True, config={
-        "displayModeBar": True,
-        "modeBarButtonsToRemove": [
-            "zoom2d", "pan2d", "select2d", "lasso2d",
-            "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d",
-            "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines",
-        ],
-        "toImageButtonOptions": {
-            "format":   "png",
-            "filename": "z47fortyseven_performance",
-            "height":   500,
-            "width":    1200,
-            "scale":    2,
-        },
-    })
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     try:
         last_dt  = df["date"].max()
         age_days = (pd.Timestamp.today().normalize() - last_dt).days
