@@ -201,15 +201,6 @@ def _fetch_1m_returns() -> dict[str, float]:
         return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def _chart_png(fig_json: str) -> bytes:
-    """Render a Plotly figure JSON to a PNG bytes object (kaleido). Cached 1 h."""
-    import plotly.io as pio
-    return pio.from_json(fig_json).to_image(
-        format="png", width=1200, height=500, scale=2,
-    )
-
-
 @st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — market caps
 def _fetch_mcaps() -> dict:
     """Live market caps for all 47 companies."""
@@ -556,12 +547,60 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         unsafe_allow_html=True,
     )
 
-    _tc, _dc = st.columns([9, 1], vertical_alignment="center")
+    _tc, _dc = st.columns([9, 1])
     with _tc:
         period = st.radio("Period", ["All", "1M", "3M", "6M", "1Y", "YTD"],
                           index=0, horizontal=True, label_visibility="collapsed",
                           key="z47fs_period")
-    _dl_slot = _dc.empty()   # filled with download button after fig is built
+    with _dc:
+        # Camera button placed inline with the period toggle.
+        # JavaScript calls window.parent.Plotly.downloadImage, temporarily
+        # expanding the bottom margin so the legend row is included in the PNG.
+        st.components.v1.html("""
+<div style="padding:2px 0 0 6px;display:flex;align-items:center;height:38px">
+  <button id="z47cam" title="Download chart as PNG"
+    style="background:#fff;border:1px solid #D8D8D8;border-radius:6px;
+           padding:5px 9px;cursor:pointer;color:#444;font-size:15px;
+           line-height:1;font-family:sans-serif">
+    &#128247;
+  </button>
+</div>
+<script>
+document.getElementById('z47cam').addEventListener('click', function() {
+  var btn = this;
+  btn.disabled = true;
+  var p = window.parent;
+  if (!p || !p.Plotly) { btn.disabled = false; return; }
+  var charts = p.document.querySelectorAll(
+    '[data-testid="stPlotlyChart"] .js-plotly-plot'
+  );
+  if (!charts.length) { btn.disabled = false; return; }
+  var gd = charts[0];
+  var P = p.Plotly;
+  var origH = 400, origMB = 48;
+  try { origH  = gd._fullLayout.height     || 400; } catch(e) {}
+  try { origMB = gd._fullLayout.margin.b   || 48;  } catch(e) {}
+  // Expand bottom margin before export so the legend is not cut off
+  P.relayout(gd, {height: 520, 'margin.b': 100})
+    .then(function() {
+      return P.downloadImage(gd, {
+        format: 'png',
+        filename: 'z47fortyseven_performance',
+        width: 1200,
+        scale: 2
+      });
+    })
+    .then(function() {
+      P.relayout(gd, {height: origH, 'margin.b': origMB});
+      btn.disabled = false;
+    })
+    .catch(function() {
+      try { P.relayout(gd, {height: origH, 'margin.b': origMB}); } catch(e) {}
+      btn.disabled = false;
+    });
+});
+</script>
+""", height=42)
 
     # ── Slice & rebase ─────────────────────────────────────────────────────────
     # (must happen before period-responsive indicator so _pct_since uses right window)
@@ -644,20 +683,6 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         margin=dict(l=0, r=0, t=8, b=48),
         transition_duration=0,
     )
-
-    # ── Download button (fills the placeholder next to the period radio) ────────
-    try:
-        _png = _chart_png(fig.to_json())
-        _dl_slot.download_button(
-            label="📷",
-            data=_png,
-            file_name="z47fortyseven_performance.png",
-            mime="image/png",
-            help="Download chart as PNG",
-            key="z47fs_dl_btn",
-        )
-    except Exception:
-        pass   # silently omit if kaleido unavailable
 
     # ── Full-width chart ───────────────────────────────────────────────────────
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
