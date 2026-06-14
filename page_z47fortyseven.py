@@ -892,28 +892,29 @@ def _s4_takeaway(override_tk=None) -> None:
     )
 
 
-def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
+def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
+                          usdinr=85.0, price_cache=None) -> dict:
     """Build a fresh monthly takeaway dict from live data for draft/review."""
     from datetime import date, timedelta
 
     today    = date.today()
     start_dt = today - timedelta(days=30)
-    window   = (f"{start_dt.day} {start_dt.strftime('%b')} – "
-                f"{today.day} {today.strftime('%b %Y')}")
+    window   = (f"{start_dt.day} {start_dt.strftime(‘%b’)} – "
+                f"{today.day} {today.strftime(‘%b %Y’)}")
 
     z_ret  = _pct_since(df, "z47_float",    days=30) or 0.0
     n_ret  = _pct_since(df, "n500_indexed", days=30) or 0.0
     spread = round(z_ret - n_ret, 1)
 
     if spread > 0:
-        cond = ("The cohort outpaced the broad index; company-specific fundamentals "
+        cond = ("The cohort outpaced the broad index as company-specific fundamentals "
                 "outweighed the macro and flow pressures weighing on the wider market.")
     elif spread < 0:
-        cond = ("The cohort lagged the broad index; near-term pressure on its larger "
-                "sectors outweighed domestic-demand resilience this month.")
+        cond = ("The cohort lagged the broad index as near-term pressure on its larger "
+                "sectors outweighed its domestic-demand resilience this month.")
     else:
-        cond = ("The cohort tracked the broad index over the month; "
-                "company-specific moves offset each other across sectors.")
+        cond = ("The cohort tracked the broad index over the month, with company-specific "
+                "moves offsetting across sectors.")
 
     sector_map = {
         "Consumer / Consumer Tech": "Consumer Tech",
@@ -929,17 +930,17 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
     vsr = {k: v for k, v in sr.items() if v is not None}
     if vsr:
         bs = max(vsr, key=vsr.get); ws = min(vsr, key=vsr.get)
-        sector_line = (f"Among the four sectors; {bs} led at "
-                       f"{'+' if vsr[bs] >= 0 else ''}{vsr[bs]:.1f}% "
+        sector_line = (f"Among the four sectors, {bs} led at "
+                       f"{‘+’ if vsr[bs] >= 0 else ‘’}{vsr[bs]:.1f}% "
                        f"while {ws} trailed at {vsr[ws]:.1f}%.")
     else:
         sector_line = "Sector breakdown unavailable for this window."
 
-    _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+    _em  = ‘<em style="font-style:italic;text-transform:none">fortyseven</em>’
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
     s1 = [
-        (f"Z47^{_em} returned {z_ret:+.1f}% over the month versus Nifty 500’s "
-         f"{n_ret:+.1f}%; {abs(spread):.1f} pp {_ahd}."),
+        (f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500’s "
+         f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."),
         cond,
         sector_line,
     ]
@@ -974,12 +975,56 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
     s3 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2g]
     s4 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2l]
 
-    s6 = list(MONTHLY_TAKEAWAY_MACRO) + [
-        f"[Update: INR trading volume across cohort for {window}; "
-        f"requires Block and Bulk Deals data]",
-        f"[Update: largest block deal for {window}; "
-        f"requires Block and Bulk Deals data]",
-    ]
+    # ── Section 6 bullets 3-4: block deals data ───────────────────────────────
+    _cut30 = start_dt.isoformat()
+    _cut60 = (today - timedelta(days=60)).isoformat()
+    s6_vol   = "[Trading volume data unavailable for this window]"
+    s6_block = "[No block deals data available for this window]"
+    try:
+        from page_block_deals import _fetch_nse_csv_history as _bd_hist
+        _all = _bd_hist(days=60) or []
+        _d30 = [d for d in _all if str(d.get("Date", ""))[:10] >= _cut30]
+        _d60 = [d for d in _all if _cut60 <= str(d.get("Date", ""))[:10] < _cut30]
+        _vol30 = sum(d.get("Value (₹ Cr)", 0) or 0 for d in _d30)
+        _vol60 = sum(d.get("Value (₹ Cr)", 0) or 0 for d in _d60)
+        _vol_usd = _vol30 / max(usdinr * 100, 1)
+        if _vol60 > 0:
+            _mom = round((_vol30 - _vol60) / _vol60 * 100, 0)
+            _ud  = "up" if _mom >= 0 else "down"
+            s6_vol = (f"{_vol_usd:.2f} bn dollars of cohort shares traded over the month, "
+                      f"{_ud} {abs(int(_mom))}% versus the prior month.")
+        elif _vol30 > 0:
+            s6_vol = f"{_vol_usd:.2f} bn dollars of cohort shares traded over the month."
+        if _d30:
+            _lg   = max(_d30, key=lambda d: d.get("Value (₹ Cr)", 0) or 0)
+            _co   = (_lg.get("Company")
+                     or name_map.get(_lg.get("Symbol", ""), _lg.get("Symbol", "Unknown")))
+            _val  = _lg.get("Value (₹ Cr)", 0) or 0
+            _qty  = _lg.get("Quantity", 0) or 0
+            _px   = _lg.get("Price (₹)", 0) or 0
+            _tk   = _lg.get("Symbol", "")
+            _dp_s = ""
+            if price_cache and _tk in price_cache:
+                try:
+                    _pc = price_cache[_tk]
+                    if isinstance(_pc, pd.DataFrame) and not _pc.empty:
+                        for _col in ("close", "Close", "4. close"):
+                            if _col in _pc.columns:
+                                _curr = float(_pc[_col].dropna().iloc[-1])
+                                if _curr > 0 and _px > 0:
+                                    _d_pct = round((_px - _curr) / _curr * 100, 1)
+                                    _dp    = "premium" if _d_pct >= 0 else "discount"
+                                    _dp_s  = (f", at a {abs(_d_pct):.1f}% {_dp} "
+                                              f"to the prevailing price")
+                                break
+                except Exception:
+                    pass
+            s6_block = (f"Largest block: {_co}, {_val:.0f} Cr across "
+                        f"{_qty:,} shares at ₹{_px:.2f}{_dp_s}.")
+    except Exception:
+        pass
+
+    s6 = list(MONTHLY_TAKEAWAY_MACRO) + [s6_vol, s6_block]
 
     sections = [
         {"type": "main_bullet",   "header": f"Index performance ; Z47^{_em} vs Nifty 500",
@@ -992,7 +1037,7 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
          "sub_bullets": s4},
         {"type": "main_bullet",   "header": "Key themes ; latest results",
          "sub_bullets": list(MONTHLY_TAKEAWAY_THEMES)},
-        {"type": "main_bullet",   "header": "Market and macro context",
+        {"type": "main_bullet",   "header": "Market &amp; macro context",
          "sub_bullets": s6},
         {"type": "section_title", "header": "Net Read",
          "sub_bullets": list(MONTHLY_TAKEAWAY_NET_READ)},
@@ -1002,7 +1047,7 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
         "section_label":    "MONTHLY TAKEAWAY",
         "window":           window,
         "date_range_label": window.upper(),
-        "updated":          f"{today.day} {today.strftime('%b %Y')}",
+        "updated":          f"{today.day} {today.strftime(‘%b %Y’)}",
         "sections":         sections,
     }
     return {
@@ -1015,7 +1060,8 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
     }
 
 
-def _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> None:
+def _s4_monthly_takeaway(df, returns_1m, mcaps, name_map,
+                         usdinr=85.0, price_cache=None) -> None:
     """Monthly Takeaway with draft generation and publish workflow."""
     _DK   = "z47_monthly_draft"
     draft = st.session_state.get(_DK)
@@ -1071,7 +1117,8 @@ def _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> None:
         )
         if st.button("Generate draft", key="gen_monthly"):
             with st.spinner("Generating…"):
-                _d = _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr)
+                _d = _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
+                                           usdinr, price_cache)
             st.session_state[_DK] = _d
             st.rerun()
 
@@ -1697,7 +1744,7 @@ def render() -> None:
 
     elif _active == "insights":
         _section_label("Z47 INSIGHTS")
-        _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr)
+        _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr, price_cache)
         _s_kissht_takeaway()
 
     elif _active == "constituents":

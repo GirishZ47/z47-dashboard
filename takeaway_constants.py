@@ -550,42 +550,38 @@ HARDCODED_IPO_TAKEAWAYS = {
         "sections": [
             {
                 "type": "main_bullet",
-                "header": "The listing is a re-pricing event for digital lending, not just for Kissht.",
-                "sub_bullets": [
-                    "Investors are rewarding underwriting discipline and asset quality over loan-book composition, signalling a more nuanced view of unsecured lending exposure.",
-                    "The implication is broader; every digital lender in the pipeline gets a defensible valuation anchor, and existing fintech lending books deserve a re-look on the same basis.",
-                ],
+                "header": ("A modest listing pop followed by strong post-listing gains reinforced "
+                           "the market's preference for asset quality and disciplined underwriting "
+                           "over pure loan-book growth."),
+                "sub_bullets": [],
             },
             {
                 "type": "main_bullet",
-                "header": "The institutional buyer mix is the under-discussed signal.",
-                "sub_bullets": [
-                    "QIB demand was driven by long-only domestic AMCs rather than anchor-led FII flows or arbitrage capital, pointing to a more durable ownership base.",
-                    "With long-only domestic institutions anchoring the book, post-listing supply overhang is likely to be structurally lower.",
-                ],
+                "header": ("The listing helped reset perceptions around unsecured lending, creating "
+                           "a constructive valuation anchor for the issuers that follow."),
+                "sub_bullets": [],
             },
             {
                 "type": "main_bullet",
-                "header": "The deal structure reflects how Indian new-age IPOs are maturing.",
-                "sub_bullets": [
-                    "With 92% of the issue comprising primary capital and minimal promoter dilution, the structure signals a focus on funding growth rather than shareholder monetisation.",
-                    "Unlike the OFS-heavy IPOs of 2021–22, Kissht's primary-led structure minimises supply overhang and strengthens investor alignment.",
-                ],
+                "header": ("The buyer mix was a notable positive, with strong participation from "
+                           "long-only domestic institutions supporting a more durable post-listing "
+                           "ownership base."),
+                "sub_bullets": [],
             },
             {
                 "type": "main_bullet",
-                "header": "Where the thesis breaks",
-                "sub_bullets": [
-                    "The re-rating hinges on credit performance; any adverse NPA surprise in Q1/Q2 FY27 could quickly bring back the unsecured-lending discount.",
-                    "The first two quarters post listing are the real test; the valuation is a thesis, not a proven model.",
-                ],
+                "header": ("The IPO structure reflected improving market discipline, with "
+                           "predominantly primary capital raised to fund growth rather than provide "
+                           "liquidity to existing shareholders."),
+                "sub_bullets": [],
             },
             {
                 "type": "section_title",
                 "header": "Net Read",
                 "sub_bullets": [
-                    "Kissht's IPO is as much a test of how public markets price digital credit as it is a test of the company itself.",
-                    "The sustainability of the re-rating hinges on credit-cost discipline; that will determine whether this becomes a broader sector re-rating or remains a one-off exception.",
+                    ("The listing broadened what public markets are willing to underwrite, with "
+                     "strong investor demand reinforcing confidence in digitally native lenders "
+                     "built on underwriting quality and asset performance."),
                 ],
             },
         ],
