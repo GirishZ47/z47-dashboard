@@ -549,9 +549,12 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     n5_d   = _delta_html(n5_all,  suffix="%", size=14)
     fx_d   = _delta_html(fx_chg,  suffix="%", size=14)
 
-    # ── FIX 1: align-items:start → cards hug content, no empty bottom band ────
+    # ── FIX 1: CSS grid rows force identical 4-row layout across all blocks ──────
+    # grid-template-rows: label | value | 22px change% slot | sub-caption
+    # Block 3 inserts an empty <div> in the change% slot so rows stay aligned
     _cp    = (f"background:{_WHT};border:1px solid {_BRD};border-radius:8px;"
-              f"padding:20px 16px;display:flex;flex-direction:column;gap:5px")
+              f"padding:20px 16px;display:grid;"
+              f"grid-template-rows:auto auto 22px auto;row-gap:5px")
     _lc    = (f"font-size:10px;font-weight:700;letter-spacing:0.08em;"
               f"text-transform:uppercase;color:{_OG};{_F}")
     _lc_vs = (f"font-size:9px;font-weight:700;letter-spacing:0.06em;"
@@ -584,6 +587,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         f'<div style="{_lc_vs}">{_idx_vs}</div>'
         f'<div style="font-size:22px;font-weight:700;color:{s_color};'
         f'white-space:nowrap;line-height:1.1;{_F}">{s_str}</div>'
+        f'<div></div>'
         f'<div style="{_sc}">Since 1 Jan 2024</div>'
         f'</div>'
         # Card 4 — USD / INR
@@ -653,7 +657,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
 
     _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
-             f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
+             f"text-transform:uppercase;color:{_LGR};margin:0 0 8px;{_F}")
     _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
     st.markdown(
         f'<div style="display:flex;gap:40px;padding:10px 0 12px;align-items:flex-start">'
@@ -677,14 +681,14 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
     # FIX 4: legend at bottom-centre, below x-axis labels
     fig.update_layout(
-        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=360, hovermode="x unified",
+        paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=400, hovermode="x unified",
         legend=dict(orientation="h", yanchor="top", y=-0.18,
                     xanchor="center", x=0.5,
                     bgcolor="rgba(255,255,255,0)",
                     font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True,
                    ticklen=6, tickcolor="rgba(0,0,0,0)", **_x_kw),
-        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)", showline=False, **_y_kw),
+        yaxis=dict(showgrid=True, gridcolor="#EBEBEB", showline=False, **_y_kw),
         margin=dict(l=0, r=0, t=8, b=48),
         transition_duration=0,
     )
@@ -719,11 +723,12 @@ def _s3_returns(df: pd.DataFrame) -> None:
         ("Nifty 500",      "n500_indexed"),
     ]
 
-    th_s  = (f"padding:10px 16px;text-align:center;font-size:11px;font-weight:600;"
+    th_s  = (f"width:13%;padding:10px 16px;text-align:center;font-size:11px;font-weight:600;"
              f"letter-spacing:0.05em;color:{_LGR};background:{_WHT};"
              f"border-bottom:1px solid {_BRD};text-transform:uppercase;{_F}")
-    th_l  = f"text-align:left;{th_s};min-width:150px"
-    tbl   = (f'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    th_l  = f"text-align:left;{th_s};width:auto"
+    tbl   = (f'<div style="overflow-x:auto">'
+             f'<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
              f'<thead><tr><th style="{th_l}"></th>')
     for lbl, _ in periods:
         tbl += f'<th style="{th_s}">{lbl}</th>'
