@@ -142,8 +142,8 @@ BORDER  = "#ccdaea"   # soft blue-grey border
 # ── Canonical chart line colors — use EVERYWHERE for consistency ──────────────
 # Sampled from the Z47'47 overview chart (make_perf_chart) which is the reference
 C_Z47     = "#c2410c"   # Z47'47  — darker red-orange, solid
-C_NIFTY   = "#1d4ed8"   # Nifty 50 — blue, solid
-C_SENSEX  = "#15803d"   # Sensex   — green, solid
+C_NIFTY   = "#1d4ed8"   # Nifty 500 — blue, solid
+C_SENSEX  = "#15803d"   # Sensex   — green, solid (used in fundamentals chart only)
 C_COMPANY = "#ff7f0e"   # Individual company — bright orange, dashed
 
 st.markdown(f"""
@@ -253,7 +253,7 @@ def load_history() -> pd.DataFrame:
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_live_indices() -> tuple:
-    nifty = sensex = None
+    n500 = None
     headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com/"}
     try:
         s = requests.Session()
@@ -261,19 +261,15 @@ def fetch_live_indices() -> tuple:
         r = s.get("https://www.nseindia.com/api/allIndices", headers=headers, timeout=8)
         if r.status_code == 200:
             for idx in r.json().get("data", []):
-                if idx.get("index") == "NIFTY 50":
-                    nifty = float(idx["last"])
+                if idx.get("index") == "NIFTY 500":
+                    n500 = float(idx["last"])
     except Exception:
         pass
     try:
-        nifty = nifty or float(yf.Ticker("^NSEI").fast_info.last_price)
+        n500 = n500 or float(yf.Ticker("^CRSLDX").fast_info.last_price)
     except Exception:
         pass
-    try:
-        sensex = float(yf.Ticker("^BSESN").fast_info.last_price)
-    except Exception:
-        pass
-    return nifty, sensex
+    return (n500,)
 
 
 @st.cache_data(ttl=300, show_spinner=False)   # was 3600 — FX moves, needs 5-min refresh
@@ -1211,7 +1207,7 @@ def get_z47_index_takeaway_v2(monday_key: str = "") -> str | None:
     prompt = (
         _NO_PREAMBLE
         + f"Analyze the rolling 30-day period from {_sd} to {_ed}. "
-        "Search for: Z47'47 index 30-day performance vs Nifty 50 and Sensex, top performers "
+        "Search for: Z47'47 index 30-day performance vs Nifty 500, top performers "
         "and laggards in Indian new-age tech (with the WHY behind each move — results, deals, "
         "regulatory events), macro events relevant to the cohort (RBI policy, SEBI actions, "
         "tariff/trade events, FII flows), significant block/bulk deals, lock-in expiries, "
@@ -1220,7 +1216,7 @@ def get_z47_index_takeaway_v2(monday_key: str = "") -> str | None:
         "FORMAT: Each section starts with the header line, then 2-5 sub-points on new lines. "
         "Use a semicolon (;) — NOT an em-dash — to separate the label from the verdict in "
         "section headers 1, 2, and 3.\n\n"
-        "SECTION 1 — Header: 'Index performance ; <one-line verdict on Z47 vs Nifty and Sensex>'\n"
+        "SECTION 1 — Header: 'Index performance ; <one-line verdict on Z47 vs Nifty 500>'\n"
         "  Sub-points: Z47 move + benchmark comparison with specific %s. "
         "Structural reason cohort outperformed or underperformed.\n\n"
         "SECTION 2 — Header: 'Market context ; <one-line structural read on supply/demand dynamics>'\n"
@@ -2532,7 +2528,7 @@ def _fetch_company_price_data(ticker_sym: str, period: str) -> pd.DataFrame:
     start = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
     try:
         df = yf.download(
-            [ticker_sym, "^NSEI", "^BSESN"],
+            [ticker_sym, "^CRSLDX"],
             start=start,
             auto_adjust=True,
             progress=False,
@@ -2543,7 +2539,7 @@ def _fetch_company_price_data(ticker_sym: str, period: str) -> pd.DataFrame:
 
 
 def render_company_performance_chart(company_name: str, ticker_sym: str):
-    """Performance chart tab for company deep dive — vs Nifty 50, Sensex and Z47 Index."""
+    """Performance chart tab for company deep dive — vs Nifty 500 and Z47 Index."""
     period = st.radio(
         "Period", ["1M", "3M", "6M", "1Y", "All"],
         horizontal=True, key=f"perf_period_{ticker_sym}"
@@ -2564,7 +2560,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
             return
 
         # Rename columns for clarity
-        col_map = {ticker_sym: company_name, "^NSEI": "Nifty 50", "^BSESN": "Sensex"}
+        col_map = {ticker_sym: company_name, "^CRSLDX": "Nifty 500"}
         close = close.rename(columns=col_map)
         close = close.dropna(how="all")
 
@@ -2581,8 +2577,7 @@ def render_company_performance_chart(company_name: str, ticker_sym: str):
         # Company line: bright orange dashed — distinct from the darker Z47'47 solid line
         _line_styles = {
             company_name: dict(color=C_COMPANY, width=2.5, dash="dash"),
-            "Nifty 50":   dict(color=C_NIFTY,   width=2),
-            "Sensex":     dict(color=C_SENSEX,   width=2),
+            "Nifty 500":  dict(color=C_NIFTY,   width=2),
         }
         for col in rebased.columns:
             if col in rebased:
@@ -2980,10 +2975,10 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
 
 # ── Utility ───────────────────────────────────────────────────────────────────
 
-def build_extended_df(hist, nifty_live, sensex_live):
+def build_extended_df(hist, n500_live):
     """
     Extend the history CSV with ALL missing trading days up to today.
-    Uses yfinance to fetch Nifty + Sensex for each missing day and scales
+    Uses yfinance to fetch Nifty 500 for each missing day and scales
     Z47 proportionally from the last known anchor point.
     Falls back to a single-today row if yfinance is unavailable.
     """
@@ -2993,20 +2988,16 @@ def build_extended_df(hist, nifty_live, sensex_live):
     if last_date >= today:
         return hist
 
-    nb_base  = float(last.get("nifty_abs")  or 0)
-    sb_base  = float(last.get("sensex_abs") or 0)
+    nb_base  = float(last.get("n500_abs")  or 0)
     z47_base = float(last["z47_float"])
-    ni_base  = float(last["nifty_indexed"])
-    si_base  = float(last["sensex_indexed"])
+    ni_base  = float(last["n500_indexed"])
     z47mc_b  = float(last.get("z47_mcap")  or z47_base)
 
     new_rows: list[dict] = []
     try:
         gap_start = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         gap_end   = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        nf = yf.download("^NSEI",  start=gap_start, end=gap_end,
-                         progress=False, auto_adjust=True)
-        sf = yf.download("^BSESN", start=gap_start, end=gap_end,
+        nf = yf.download("^CRSLDX", start=gap_start, end=gap_end,
                          progress=False, auto_adjust=True)
 
         def _close_series(df_yfin: "pd.DataFrame") -> "pd.Series":
@@ -3018,7 +3009,6 @@ def build_extended_df(hist, nifty_live, sensex_live):
             return df_yfin["Close"].squeeze() if "Close" in df_yfin.columns else df_yfin.iloc[:, 0]
 
         nf_close = _close_series(nf)
-        sf_close = _close_series(sf)
 
         for dt in nf_close.index:
             dt_norm = pd.Timestamp(dt).normalize()
@@ -3028,17 +3018,12 @@ def build_extended_df(hist, nifty_live, sensex_live):
             if not nb_new or not nb_base:
                 continue
             ratio  = nb_new / nb_base
-            try:    sb_new = float(sf_close.loc[dt])
-            except: sb_new = sb_base * ratio
-            si_new = si_base * (sb_new / sb_base) if sb_base else si_base * ratio
             new_rows.append({
-                "date":           dt_norm,
-                "z47_float":      round(z47_base * ratio, 4),
-                "z47_mcap":       round(z47mc_b  * ratio, 4),
-                "nifty_indexed":  round(ni_base  * ratio, 4),
-                "sensex_indexed": round(si_new,           4),
-                "nifty_abs":      round(nb_new, 2),
-                "sensex_abs":     round(sb_new, 2),
+                "date":         dt_norm,
+                "z47_float":    round(z47_base * ratio, 4),
+                "z47_mcap":     round(z47mc_b  * ratio, 4),
+                "n500_indexed": round(ni_base  * ratio, 4),
+                "n500_abs":     round(nb_new, 2),
             })
         if new_rows:
             print(f"[build_extended_df] filled {len(new_rows)} missing trading days "
@@ -3048,16 +3033,12 @@ def build_extended_df(hist, nifty_live, sensex_live):
 
     if not new_rows:
         # Fallback: single today row using live prices already in memory
-        ratio  = (nifty_live / nb_base) if nb_base and nifty_live else 1.0
-        sb_td  = sensex_live or (sb_base * ratio)
-        si_td  = si_base * (sb_td / sb_base) if sb_base else si_base * ratio
+        ratio  = (n500_live / nb_base) if nb_base and n500_live else 1.0
         new_rows = [{"date": today,
-                     "z47_float":      round(z47_base * ratio, 4),
-                     "z47_mcap":       round(z47mc_b  * ratio, 4),
-                     "nifty_indexed":  round(ni_base  * ratio, 4),
-                     "sensex_indexed": round(si_td,            4),
-                     "nifty_abs":      nifty_live or nb_base,
-                     "sensex_abs":     sb_td}]
+                     "z47_float":    round(z47_base * ratio, 4),
+                     "z47_mcap":     round(z47mc_b  * ratio, 4),
+                     "n500_indexed": round(ni_base  * ratio, 4),
+                     "n500_abs":     n500_live or nb_base}]
 
     new_df = pd.DataFrame(new_rows).sort_values("date")
     return pd.concat([hist, new_df], ignore_index=True)
@@ -3130,15 +3111,14 @@ def make_perf_chart(df, period):
         plot = df[df["date"] >= cutoff].copy()
 
     if not plot.empty and period != "All":
-        for col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
+        for col in ["z47_float", "n500_indexed"]:
             b = plot[col].iloc[0]
             if b: plot[col] = plot[col] / b * 100
 
     fig = go.Figure()
     for col, name, color, width in [
-        ("z47_float",      "Z47'47",  C_Z47,    2.5),
-        ("nifty_indexed",  "Nifty 50", C_NIFTY, 2.0),
-        ("sensex_indexed", "Sensex",   C_SENSEX, 2.0),
+        ("z47_float",     "Z47'47",   C_Z47,   2.5),
+        ("n500_indexed",  "Nifty 500", C_NIFTY, 2.0),
     ]:
         fig.add_trace(go.Scatter(
             x=plot["date"], y=plot[col], name=name,
@@ -3167,16 +3147,16 @@ def make_perf_chart(df, period):
 
 # ── AI Chat helpers ───────────────────────────────────────────────────────────
 
-def build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live):
+def build_data_context(df, returns_1m, live_mktcaps, usdinr, n500_live):
     last = df.iloc[-1]
     last_date = pd.Timestamp(last["date"]).strftime("%d %b %Y")
 
-    z47_now   = round(float(last["z47_float"]), 2)
-    z47_ytd   = pct_since(df, "z47_float", ytd=True)
-    z47_1y    = pct_since(df, "z47_float", days=365)
-    z47_all   = pct_since(df, "z47_float")
-    nifty_ytd = pct_since(df, "nifty_indexed", ytd=True)
-    nifty_all = pct_since(df, "nifty_indexed")
+    z47_now  = round(float(last["z47_float"]), 2)
+    z47_ytd  = pct_since(df, "z47_float", ytd=True)
+    z47_1y   = pct_since(df, "z47_float", days=365)
+    z47_all  = pct_since(df, "z47_float")
+    n5_ytd   = pct_since(df, "n500_indexed", ytd=True)
+    n5_all   = pct_since(df, "n500_indexed")
 
     total_mcap_inr = 0.0
     for c in COMPANIES:
@@ -3204,15 +3184,14 @@ def build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_
         "",
         "--- INDEX LEVELS ---",
         f"Z47'47: {z47_now:.1f} (rebased to 100 on 1 Jan 2024)",
-        f"Nifty 50 (live): {nifty_live:,.0f}" if nifty_live else "Nifty 50: unavailable",
-        f"Sensex (live): {sensex_live:,.0f}" if sensex_live else "Sensex: unavailable",
+        f"Nifty 500 (live): {n500_live:,.0f}" if n500_live else "Nifty 500: unavailable",
         "",
         "--- Z47 PERFORMANCE ---",
         f"YTD: {z47_ytd:+.1f}%" if z47_ytd else "YTD: N/A",
         f"1 Year: {z47_1y:+.1f}%" if z47_1y else "1 Year: N/A",
         f"Since Jan 2024: {z47_all:+.1f}%" if z47_all else "Since Jan 2024: N/A",
-        f"vs Nifty 50 (YTD): {(z47_ytd or 0) - (nifty_ytd or 0):+.1f} pp",
-        f"vs Nifty 50 (Since Jan 2024): {(z47_all or 0) - (nifty_all or 0):+.1f} pp",
+        f"vs Nifty 500 (YTD): {(z47_ytd or 0) - (n5_ytd or 0):+.1f} pp",
+        f"vs Nifty 500 (Since Jan 2024): {(z47_all or 0) - (n5_all or 0):+.1f} pp",
         "",
         "--- TOTAL MARKET CAP ---",
         f"Total constituent market cap: ₹{total_mcap_inr/1e6:.2f} Tn  (${total_mcap_inr/usdinr/1e6:.2f} Tn USD)",
@@ -3283,9 +3262,9 @@ def call_ai_response(messages: list, data_context: str) -> str:
 
 def main_mobile():
     hist = load_history()
-    nifty_live, sensex_live = fetch_live_indices()
+    (n500_live,) = fetch_live_indices()
     usdinr = get_usdinr()
-    df = build_extended_df(hist, nifty_live, sensex_live)
+    df = build_extended_df(hist, n500_live)
     last = df.iloc[-1]
     last_date_str = pd.Timestamp(last["date"]).strftime("%d %b %Y")
 
@@ -3295,10 +3274,10 @@ def main_mobile():
         live_mktcaps = fetch_market_caps()
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
-    z47_ret    = pct_since(df, "z47_float")
-    nifty_ret  = pct_since(df, "nifty_indexed")
-    outperf    = round(z47_ret - nifty_ret, 1) if z47_ret is not None and nifty_ret is not None else None
-    z47_ytd    = pct_since(df, "z47_float", ytd=True)
+    z47_ret  = pct_since(df, "z47_float")
+    n5_ret   = pct_since(df, "n500_indexed")
+    outperf  = round(z47_ret - n5_ret, 1) if z47_ret is not None and n5_ret is not None else None
+    z47_ytd  = pct_since(df, "z47_float", ytd=True)
 
     # ── Header ──────────────────────────────────────────────────────
     st.markdown(
@@ -3312,8 +3291,7 @@ def main_mobile():
 
     # ── KPI cards 2×2 ───────────────────────────────────────────────
     c1, c2 = st.columns(2)
-    nifty_disp  = f"{nifty_live:,.0f}"  if nifty_live  else f"{last['nifty_indexed']:.1f}"
-    sensex_disp = f"{sensex_live:,.0f}" if sensex_live else f"{last['sensex_indexed']:.1f}"
+    n5_disp = f"{n500_live:,.0f}" if n500_live else f"{last['n500_indexed']:.1f}"
     oc  = "delta-pos" if outperf and outperf > 0 else "delta-neg"
     oa  = "▲" if outperf and outperf > 0 else "▼"
 
@@ -3323,17 +3301,13 @@ def main_mobile():
             f'<div class="mobile-kpi-value">{last["z47_float"]:.1f}</div>'
             f'{delta_html(z47_ret)}</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Sensex</div>'
-            f'<div class="mobile-kpi-value">{sensex_disp}</div>'
-            f'{delta_html(pct_since(df, "sensex_indexed"))}</div>', unsafe_allow_html=True)
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Nifty 500</div>'
+            f'<div class="mobile-kpi-value">{n5_disp}</div>'
+            f'{delta_html(n5_ret)}</div>', unsafe_allow_html=True)
     with c2:
-        st.markdown(
-            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Nifty 50</div>'
-            f'<div class="mobile-kpi-value">{nifty_disp}</div>'
-            f'{delta_html(nifty_ret)}</div>', unsafe_allow_html=True)
         ow = "outperforms" if outperf and outperf > 0 else "underperforms"
         st.markdown(
-            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47 vs Nifty</div>'
+            f'<div class="mobile-kpi"><div class="mobile-kpi-label">Z47 vs Nifty 500</div>'
             f'<div class="mobile-kpi-value" style="font-size:15px">Z47 {ow}</div>'
             f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf or 0):.1f} pp</div></div>',
             unsafe_allow_html=True)
@@ -3360,7 +3334,7 @@ def main_mobile():
     if submitted and user_input.strip():
         prompt = user_input.strip()
         st.session_state.mob_chat.append({"role": "user", "content": prompt})
-        data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live)
+        data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, n500_live)
         msgs_for_api = [{"role": m["role"], "content": m["content"]}
                         for m in st.session_state.mob_chat]
         with st.chat_message("assistant"):
@@ -3783,9 +3757,9 @@ def render_index_fundamentals(metrics: dict) -> None:
 def _run_z47_desktop():
     """Desktop Z47 Index page — wrapped by main() for crash safety."""
     hist = load_history()
-    nifty_live, sensex_live = fetch_live_indices()
+    (n500_live,) = fetch_live_indices()
     usdinr = get_usdinr()
-    df = build_extended_df(hist, nifty_live, sensex_live)
+    df = build_extended_df(hist, n500_live)
 
     last          = df.iloc[-1]
     last_date_str = pd.Timestamp(last["date"]).strftime("%d %b %Y")
@@ -3845,7 +3819,7 @@ def _run_z47_desktop():
     if submitted and user_input.strip():
         prompt = user_input.strip()
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
-        data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live)
+        data_ctx = build_data_context(df, returns_1m, live_mktcaps, usdinr, n500_live)
         msgs_for_api = [{"role": m["role"], "content": m["content"]}
                         for m in st.session_state.chat_messages]
         with st.chat_message("assistant"):
@@ -3864,20 +3838,17 @@ def _run_z47_desktop():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── KPI cards (live values) ──────────────────────────────────────────────
-    z47_ret    = pct_since(df, "z47_float")
-    nifty_ret  = pct_since(df, "nifty_indexed")
-    sensex_ret = pct_since(df, "sensex_indexed")
-    outperf    = round(z47_ret - nifty_ret, 1) \
-                 if z47_ret is not None and nifty_ret is not None else None
+    z47_ret  = pct_since(df, "z47_float")
+    n5_ret   = pct_since(df, "n500_indexed")
+    outperf  = round(z47_ret - n5_ret, 1) \
+               if z47_ret is not None and n5_ret is not None else None
 
-    nifty_disp  = f"{nifty_live:,.0f}"  if nifty_live  else f"{last['nifty_indexed']:.1f}"
-    sensex_disp = f"{sensex_live:,.0f}" if sensex_live else f"{last['sensex_indexed']:.1f}"
+    n5_disp = f"{n500_live:,.0f}" if n500_live else f"{last['n500_indexed']:.1f}"
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     for col, label, value, ret in [
-        (c1, "Z47'47",  f"{last['z47_float']:.1f}", z47_ret),
-        (c2, "Nifty 50 (Live)", nifty_disp,                  nifty_ret),
-        (c3, "Sensex (Live)",   sensex_disp,                 sensex_ret),
+        (c1, "Z47'47",          f"{last['z47_float']:.1f}", z47_ret),
+        (c2, "Nifty 500 (Live)", n5_disp,                   n5_ret),
     ]:
         with col:
             st.markdown(
@@ -3892,12 +3863,12 @@ def _run_z47_desktop():
     oc = "delta-pos" if outperf and outperf > 0 else "delta-neg"
     oa = "▲" if outperf and outperf > 0 else "▼"
     ow = "outperforms" if outperf and outperf > 0 else "underperforms"
-    with c4:
+    with c3:
         st.markdown(
             f'<div class="metric-card">'
-            f'<div class="metric-label">Z47 vs Nifty 50</div>'
+            f'<div class="metric-label">Z47 vs Nifty 500</div>'
             f'<div class="metric-value" style="font-size:20px">Z47 {ow}</div>'
-            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf or 0):.1f} pp vs Nifty</div>'
+            f'<div class="{oc}" style="margin-top:4px">{oa} {abs(outperf or 0):.1f} pp vs Nifty 500</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -3919,7 +3890,7 @@ def _run_z47_desktop():
         _plot = df[df["date"] >= _cutoff].copy()
 
     if not _plot.empty and period != "All":
-        for _col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
+        for _col in ["z47_float", "n500_indexed"]:
             _b = _plot[_col].iloc[0]
             if _b:
                 _plot[_col] = _plot[_col] / _b * 100
@@ -3966,13 +3937,11 @@ def _run_z47_desktop():
             f"</div></div>"
         )
 
-    rb1, rb2, rb3 = st.columns(3)
+    rb1, rb2 = st.columns(2)
     with rb1:
-        st.markdown(_rebase_card("Z47'47", "z47_float",      C_Z47), unsafe_allow_html=True)
+        st.markdown(_rebase_card("Z47'47",   "z47_float",    C_Z47),   unsafe_allow_html=True)
     with rb2:
-        st.markdown(_rebase_card("Nifty 50",       "nifty_indexed",  "#1d4ed8"), unsafe_allow_html=True)
-    with rb3:
-        st.markdown(_rebase_card("Sensex",         "sensex_indexed", "#15803d"), unsafe_allow_html=True)
+        st.markdown(_rebase_card("Nifty 500", "n500_indexed", C_NIFTY), unsafe_allow_html=True)
     st.markdown("<div style='margin-bottom:12px'></div>", unsafe_allow_html=True)
 
     # Chart uses the same period already selected above
@@ -4061,9 +4030,8 @@ def _run_z47_desktop():
     st.markdown('<div class="section-header">Returns Summary</div>', unsafe_allow_html=True)
 
     ret_periods = [("1M", 30), ("3M", 90), ("6M", 180), ("1Y", 365)]
-    idx_cols    = [("Z47'47", "z47_float"),
-                   ("Nifty 50", "nifty_indexed"),
-                   ("Sensex",   "sensex_indexed")]
+    idx_cols    = [("Z47'47",   "z47_float"),
+                   ("Nifty 500", "n500_indexed")]
 
     th = "padding:10px 16px;color:#8b6d4a;font-size:12px;font-weight:600"
     header = (f"<tr style='background:{BG_ALT}'>"
@@ -4102,7 +4070,7 @@ def _run_z47_desktop():
     # ── Valuation Multiples Line Chart (Change 3) ────────────────────────────
     if _all_fund:
         try:
-            st.markdown('<div class="section-header">Valuation Multiples Trend — Z47 vs Nifty vs Sensex</div>',
+            st.markdown('<div class="section-header">Valuation Multiples Trend — Z47 vs Nifty 50 vs Sensex</div>',
                         unsafe_allow_html=True)
             render_multiples_line_chart(_all_fund)
         except Exception as _mc_err:
@@ -4579,7 +4547,7 @@ def _run_z47_desktop():
         our calculation reflects that correctly. Data sourced from NSE / NYSE via Yahoo Finance.<br><br>
         <b style='color:#1a0f00'>NASDAQ Stocks</b> — MakeMyTrip (MMYT) and Freshworks (FRSH) priced in USD,
         converted to INR at the live exchange rate.<br><br>
-        <b style='color:#1a0f00'>Base Date</b> — 1 January 2024 = 100 for Z47'47, Nifty 50, and Sensex.
+        <b style='color:#1a0f00'>Base Date</b> — 1 January 2024 = 100 for Z47'47 and Nifty 500.
     </div>
     """, unsafe_allow_html=True)
 
@@ -4590,7 +4558,7 @@ def _run_z47_desktop():
     render_z47_assistant(
         context="z47_index",
         label="💬 Ask Z47 Assistant",
-        extra_context=build_data_context(df, returns_1m, live_mktcaps, usdinr, nifty_live, sensex_live),
+        extra_context=build_data_context(df, returns_1m, live_mktcaps, usdinr, n500_live),
     )
 
 

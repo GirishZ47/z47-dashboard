@@ -82,10 +82,8 @@ def _card_wrap(extra=""):
 
 @st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — matches "updated hourly" claim
 def _live_indices() -> tuple:
-    nifty = sensex = usdinr = fx_chg = None
-    try:    nifty  = round(float(yf.Ticker("^NSEI").fast_info.last_price), 2)
-    except: pass
-    try:    sensex = round(float(yf.Ticker("^BSESN").fast_info.last_price), 2)
+    n500 = usdinr = fx_chg = None
+    try:    n500   = round(float(yf.Ticker("^CRSLDX").fast_info.last_price), 2)
     except: pass
     try:
         fxt   = yf.Ticker("USDINR=X")
@@ -96,7 +94,7 @@ def _live_indices() -> tuple:
             fx_chg = round((usdinr / prev - 1) * 100, 2) if prev else None
     except:
         usdinr = 85.0
-    return nifty, sensex, usdinr or 85.0, fx_chg
+    return n500, usdinr or 85.0, fx_chg
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -106,53 +104,45 @@ def _load_history() -> pd.DataFrame:
     return df.sort_values("date").reset_index(drop=True)
 
 
-def _extend_history(hist: pd.DataFrame, nifty_live, sensex_live) -> pd.DataFrame:
+def _extend_history(hist: pd.DataFrame, n500_live) -> pd.DataFrame:
     """Fill all missing trading days via yfinance ratio-scaling."""
     last      = hist.iloc[-1]
     today     = pd.Timestamp.today().normalize()
     last_date = pd.Timestamp(last["date"]).normalize()
     if last_date >= today:
         return hist
-    nb_base = float(last.get("nifty_abs")  or 0)
-    sb_base = float(last.get("sensex_abs") or 0)
+    nb_base = float(last.get("n500_abs")  or 0)
     z47_b   = float(last["z47_float"])
-    ni_b    = float(last["nifty_indexed"])
-    si_b    = float(last["sensex_indexed"])
+    ni_b    = float(last["n500_indexed"])
     z47mc_b = float(last.get("z47_mcap") or z47_b)
     new_rows: list[dict] = []
     try:
         s  = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
         e  = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        nf = yf.download("^NSEI",  start=s, end=e, progress=False, auto_adjust=True)
-        sf = yf.download("^BSESN", start=s, end=e, progress=False, auto_adjust=True)
+        nf = yf.download("^CRSLDX", start=s, end=e, progress=False, auto_adjust=True)
         def _cls(d):
             if d.empty: return pd.Series(dtype=float)
             if isinstance(d.columns, pd.MultiIndex): return d["Close"].squeeze()
             return d["Close"].squeeze() if "Close" in d.columns else d.iloc[:, 0]
-        nfc = _cls(nf); sfc = _cls(sf)
+        nfc = _cls(nf)
         for dt in nfc.index:
             dn = pd.Timestamp(dt).normalize()
             if dn <= last_date: continue
             nb_new = float(nfc.loc[dt])
             if not nb_new or not nb_base: continue
             r = nb_new / nb_base
-            try:    sb_new = float(sfc.loc[dt])
-            except: sb_new = sb_base * r
-            si_new = si_b * (sb_new / sb_base) if sb_base else si_b * r
             new_rows.append({"date": dn,
                 "z47_float": round(z47_b*r,4), "z47_mcap": round(z47mc_b*r,4),
-                "nifty_indexed": round(ni_b*r,4), "sensex_indexed": round(si_new,4),
-                "nifty_abs": round(nb_new,2), "sensex_abs": round(sb_new,2)})
+                "n500_indexed": round(ni_b*r,4),
+                "n500_abs": round(nb_new,2)})
     except Exception as _e:
         print(f"[z47fs extend_history] {_e}")
     if not new_rows:
-        ratio = (nifty_live / nb_base) if nb_base and nifty_live else 1.0
-        sb_td = sensex_live or (sb_base * ratio)
-        si_td = si_b * (sb_td / sb_base) if sb_base else si_b * ratio
+        ratio = (n500_live / nb_base) if nb_base and n500_live else 1.0
         new_rows = [{"date": today, "z47_float": round(z47_b*ratio,4),
             "z47_mcap": round(z47mc_b*ratio,4),
-            "nifty_indexed": round(ni_b*ratio,4), "sensex_indexed": round(si_td,4),
-            "nifty_abs": nifty_live or nb_base, "sensex_abs": sb_td}]
+            "n500_indexed": round(ni_b*ratio,4),
+            "n500_abs": n500_live or nb_base}]
     return pd.concat([hist, pd.DataFrame(new_rows).sort_values("date")], ignore_index=True)
 
 
@@ -530,19 +520,17 @@ def _render_header_bar(df: pd.DataFrame, usdinr: float,
                               help="Force refresh — fetch latest data now"))
 
 
-def _s1_hero(df: pd.DataFrame, nifty_live, sensex_live, usdinr, fx_chg) -> None:
-    """Section 1 — 5 live stat cards with proper inline-styled card containers."""
+def _s1_hero(df: pd.DataFrame, n500_live, usdinr, fx_chg) -> None:
+    """Section 1 — 4 live stat cards with proper inline-styled card containers."""
     last     = df.iloc[-1]
     z47_v    = last["z47_float"]
     now_ts   = _now_ist_str()
 
-    z47_all = _pct_since(df, "z47_float",     all_time=True)
-    nif_all = _pct_since(df, "nifty_indexed",  all_time=True)
-    sen_all = _pct_since(df, "sensex_indexed", all_time=True)
-    nif_ytd = _pct_since(df, "nifty_indexed",  ytd=True)
-    sen_ytd = _pct_since(df, "sensex_indexed", ytd=True)
+    z47_all = _pct_since(df, "z47_float",    all_time=True)
+    n5_all  = _pct_since(df, "n500_indexed", all_time=True)
+    n5_ytd  = _pct_since(df, "n500_indexed", ytd=True)
 
-    spread  = round(z47_all - nif_all, 1) if z47_all is not None and nif_all is not None else None
+    spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
     s_str   = (f"+{spread:.1f}pp ahead" if spread and spread >= 0
                else (f"{spread:.1f}pp behind" if spread is not None else "—"))
     s_color = _GRN if (spread or 0) >= 0 else _RED
@@ -561,26 +549,21 @@ def _s1_hero(df: pd.DataFrame, nifty_live, sensex_live, usdinr, fx_chg) -> None:
             f'</div>'
         )
 
-    c1, c2, c3, c4, c5 = st.columns(5, gap="small")
+    c1, c2, c3, c4 = st.columns(4, gap="small")
     with c1:
         st.markdown(_card_html("Z47fortyseven", f"{z47_v:.1f}", z47_all, "%",
                                f"Since Jan 2024 · {now_ts}"),
                     unsafe_allow_html=True)
     with c2:
-        nf_str = f"{nifty_live:,.0f}" if nifty_live else "—"
-        st.markdown(_card_html("Nifty 50", nf_str, nif_ytd, "%",
+        n5_str = f"{n500_live:,.0f}" if n500_live else "—"
+        st.markdown(_card_html("Nifty 500", n5_str, n5_ytd, "%",
                                f"YTD · {now_ts}"),
                     unsafe_allow_html=True)
     with c3:
-        sx_str = f"{sensex_live:,.0f}" if sensex_live else "—"
-        st.markdown(_card_html("Sensex", sx_str, sen_ytd, "%",
-                               f"YTD · {now_ts}"),
-                    unsafe_allow_html=True)
-    with c4:
         st.markdown(
             f'<div style="{_card_wrap("min-height:128px;display:flex;flex-direction:column;gap:5px")}">'
             f'<div style="font-size:10px;font-weight:700;letter-spacing:0.09em;'
-            f'text-transform:uppercase;color:{_OG};{_F}">Z47 VS NIFTY 50</div>'
+            f'text-transform:uppercase;color:{_OG};{_F}">Z47 VS NIFTY 500</div>'
             f'<div style="font-size:20px;font-weight:700;color:{s_color};'
             f'margin:4px 0 2px;{_F}">{s_str}</div>'
             f'<div style="font-size:12px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
@@ -588,7 +571,7 @@ def _s1_hero(df: pd.DataFrame, nifty_live, sensex_live, usdinr, fx_chg) -> None:
             f'</div>',
             unsafe_allow_html=True,
         )
-    with c5:
+    with c4:
         fx_str = f"₹{usdinr:.2f}" if usdinr else "—"
         st.markdown(_card_html("USD / INR", fx_str, fx_chg, "%",
                                f"Daily change · {now_ts}"),
@@ -620,14 +603,13 @@ def _s2_performance(df: pd.DataFrame) -> None:
 
     if not plot.empty:
         base = plot.iloc[0]
-        for col in ["z47_float", "nifty_indexed", "sensex_indexed"]:
+        for col in ["z47_float", "n500_indexed"]:
             plot[col] = plot[col] / base[col] * 100
 
-    # ── Stat blocks — three clean label/value blocks above the chart ─────────
+    # ── Stat blocks — two clean label/value blocks above the chart ─────────
     kw    = _period_kw(period)
-    z47_r = _pct_since(df, "z47_float",     **kw)
-    nif_r = _pct_since(df, "nifty_indexed",  **kw)
-    sen_r = _pct_since(df, "sensex_indexed", **kw)
+    z47_r = _pct_since(df, "z47_float",    **kw)
+    n5_r  = _pct_since(df, "n500_indexed", **kw)
 
     def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
     def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
@@ -647,8 +629,7 @@ def _s2_performance(df: pd.DataFrame) -> None:
     st.markdown(
         f'<div style="padding:16px 0 24px">'
         + _block("Z47fortyseven", z47_r)
-        + _block("Nifty 50",      nif_r)
-        + _block("Sensex",        sen_r)
+        + _block("Nifty 500",     n5_r)
         + f'</div>',
         unsafe_allow_html=True,
     )
@@ -658,14 +639,10 @@ def _s2_performance(df: pd.DataFrame) -> None:
         name="Z47fortyseven", mode="lines",
         line=dict(color=_OG, width=2.5),
         hovertemplate="%{x|%d %b %Y} · Z47: %{y:.1f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=plot["date"], y=plot["nifty_indexed"],
-        name="Nifty 50", mode="lines",
+    fig.add_trace(go.Scatter(x=plot["date"], y=plot["n500_indexed"],
+        name="Nifty 500", mode="lines",
         line=dict(color="#1F77B4", width=1.8),
-        hovertemplate="%{x|%d %b %Y} · Nifty: %{y:.1f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=plot["date"], y=plot["sensex_indexed"],
-        name="Sensex", mode="lines",
-        line=dict(color="#2CA02C", width=1.8),
-        hovertemplate="%{x|%d %b %Y} · Sensex: %{y:.1f}<extra></extra>"))
+        hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
     fig.update_layout(
         paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=360, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.0,
@@ -708,8 +685,7 @@ def _s3_returns(df: pd.DataFrame) -> None:
     ]
     rows_cfg = [
         ("Z47fortyseven", "z47_float"),
-        ("Nifty 50",       "nifty_indexed"),
-        ("Sensex",         "sensex_indexed"),
+        ("Nifty 500",      "n500_indexed"),
     ]
 
     th_s  = (f"padding:10px 16px;text-align:center;font-size:11px;font-weight:600;"
@@ -1140,20 +1116,21 @@ def _s9_methodology() -> None:
     s1 = _sub_section("METHODOLOGY", [
         "47 listed Indian new-age technology and new-economy financial-services companies "
         "selected for their role in India's transition to a developed economy by 2047",
-        "Equal-weighted index, rebased to 100 on 1 January 2024",
+        "Free-float market-capitalisation weighted index, rebased to 100 on 1 January 2024; "
+        "individual constituent weight capped at 10% (iterative redistribution)",
         "For constituents listed after 1 January 2024, included from their first full "
         "trading day post-listing; no synthetic pre-listing prices are used",
-        "<b>Constituent changes &mdash; divisor adjustment.</b> When a constituent is added, "
-        "removed, or replaced, the index divisor is adjusted on the effective date so that "
-        "the index level is unchanged at the moment of the change. The constituent change is "
-        "value-neutral; subsequent index movements reflect only price changes of the new basket. "
-        "This ensures the historical index series is continuous and free of artificial jumps "
-        "from basket reconstitution.",
+        "<b>Constituent changes &mdash; portfolio units adjustment.</b> When a constituent is "
+        "added, removed, or replaced, constituent units are recalculated on the effective date "
+        "so that the index level is unchanged at the moment of the change. The constituent "
+        "change is value-neutral; subsequent index movements reflect only price changes of "
+        "the new basket. This ensures the historical index series is continuous and free of "
+        "artificial jumps from basket reconstitution.",
         "Constituents reviewed quarterly &mdash; additions on listing, removals on delisting, "
         "prolonged suspension, or classification change",
         "Price data sourced from NSE / BSE via Yahoo Finance with 5-minute live refresh "
         "during market hours",
-        "Returns computed in INR terms; benchmark comparisons against Nifty 50 and BSE Sensex",
+        "Returns computed in INR terms; benchmark comparison against Nifty 500",
         "Sector classification: Fintech / Financial Services &nbsp;·&nbsp; "
         "Consumer / Consumer Tech &nbsp;·&nbsp; B2B &nbsp;·&nbsp; SaaS / AI",
         "Data refresh cadence &mdash; prices: 5 min &nbsp;·&nbsp; index level: daily "
@@ -1333,10 +1310,10 @@ def render() -> None:
 
         with st.spinner(""):
             try:
-                nifty_live, sensex_live, usdinr, fx_chg = _live_indices()
+                n500_live, usdinr, fx_chg = _live_indices()
             except Exception as _e:
                 _fetch_errors.append(f"indices:{_e}")
-                nifty_live = sensex_live = fx_chg = None
+                n500_live = fx_chg = None
                 usdinr = float(_prev.get("usdinr") or 85.0)
 
             try:
@@ -1369,7 +1346,7 @@ def render() -> None:
                     price_cache[_ftk] = _fpd
 
             try:
-                df = _extend_history(hist, nifty_live, sensex_live) if not hist.empty else pd.DataFrame()
+                df = _extend_history(hist, n500_live) if not hist.empty else pd.DataFrame()
             except Exception as _e:
                 _fetch_errors.append(f"extend_history:{_e}")
                 df = hist if not hist.empty else pd.DataFrame()
@@ -1382,7 +1359,7 @@ def render() -> None:
         if not df.empty:
             # Success — store fresh data and update timestamp
             _ss["z47fs_cache"] = {
-                "df": df, "nifty_live": nifty_live, "sensex_live": sensex_live,
+                "df": df, "n500_live": n500_live,
                 "usdinr": usdinr, "fx_chg": fx_chg,
                 "returns_1m": returns_1m, "mcaps": mcaps,
                 "price_cache": price_cache, "name_map": name_map,
@@ -1396,11 +1373,10 @@ def render() -> None:
         elif _have_cache:
             # Fresh fetch produced no usable data — fall back to stale cache
             _c = _prev
-            df          = _c["df"];          nifty_live  = _c["nifty_live"]
-            sensex_live = _c["sensex_live"]; usdinr      = _c["usdinr"]
-            fx_chg      = _c["fx_chg"];      returns_1m  = _c["returns_1m"]
-            mcaps       = _c["mcaps"];       price_cache = _c["price_cache"]
-            name_map    = _c["name_map"]
+            df          = _c["df"];          n500_live   = _c["n500_live"]
+            usdinr      = _c["usdinr"];      fx_chg      = _c["fx_chg"]
+            returns_1m  = _c["returns_1m"];  mcaps       = _c["mcaps"]
+            price_cache = _c["price_cache"]; name_map    = _c["name_map"]
             st.warning(
                 f"⚠️ Live refresh failed — showing last available data "
                 f"from {_ss.get('z47fs_fetch_ts', '—')}. "
@@ -1419,11 +1395,10 @@ def render() -> None:
     else:
         # ── Fast path: serve from session-state cache (pill switch / hot rerun) ─
         _c          = _ss["z47fs_cache"]
-        df          = _c["df"];          nifty_live  = _c["nifty_live"]
-        sensex_live = _c["sensex_live"]; usdinr      = _c["usdinr"]
-        fx_chg      = _c["fx_chg"];      returns_1m  = _c["returns_1m"]
-        mcaps       = _c["mcaps"];       price_cache = _c["price_cache"]
-        name_map    = _c["name_map"]
+        df          = _c["df"];          n500_live   = _c["n500_live"]
+        usdinr      = _c["usdinr"];      fx_chg      = _c["fx_chg"]
+        returns_1m  = _c["returns_1m"];  mcaps       = _c["mcaps"]
+        price_cache = _c["price_cache"]; name_map    = _c["name_map"]
 
     # ── Freshness badge — timestamp from actual fetch, not current time ───────
     _saved_ts = _ss.get("z47fs_fetch_ts", "—")
@@ -1483,7 +1458,7 @@ def render() -> None:
     # ── Active section content ────────────────────────────────────────────────
     if _active == "performance":
         _section_label("PERFORMANCE")
-        _s1_hero(df, nifty_live, sensex_live, usdinr, fx_chg)
+        _s1_hero(df, n500_live, usdinr, fx_chg)
         _divider()
         _s2_performance(df)
         _divider()

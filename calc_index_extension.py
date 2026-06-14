@@ -86,17 +86,16 @@ for df in [closes, opens]:
 closes = closes.sort_index()
 opens  = opens.sort_index()
 
-# Fetch Nifty/Sensex
-print("Fetching Nifty/Sensex...")
-idx_raw = yf.download(['^NSEI', '^BSESN'], start='2026-05-07', end='2026-05-16',
+# Fetch Nifty 500
+print("Fetching Nifty 500...")
+idx_raw = yf.download(['^CRSLDX'], start='2026-05-07', end='2026-05-16',
                       auto_adjust=True, progress=False, timeout=30)
 idx_closes = idx_raw['Close'].copy()
 idx_closes.index = pd.to_datetime(idx_closes.index)
 if idx_closes.index.tz is not None:
     idx_closes.index = idx_closes.index.tz_localize(None)
 
-NIFTY_BASE  = 21741.90
-SENSEX_BASE = 72271.94
+N500_BASE = 19418.40   # 2024-01-02 base value (same as rebuild_index.py)
 
 # ── Load existing history ─────────────────────────────────────────────────────
 df_hist = pd.read_csv('z47_history.csv', parse_dates=['date'])
@@ -168,27 +167,22 @@ for dt in trading_dates:
     idx_m = round(pv_m / DIV_NEW_M, 4)
 
     try:
-        nifty_abs  = float(idx_closes.loc[dt, '^NSEI'])
-        sensex_abs = float(idx_closes.loc[dt, '^BSESN'])
+        n500_abs_v = float(idx_closes.loc[dt].squeeze())
     except Exception:
-        nifty_abs = sensex_abs = None
+        n500_abs_v = None
 
-    nifty_idx  = round(nifty_abs  / NIFTY_BASE  * 100, 4) if nifty_abs  else None
-    sensex_idx = round(sensex_abs / SENSEX_BASE * 100, 4) if sensex_abs else None
-    na_r = round(nifty_abs,  2) if nifty_abs  else None
-    sa_r = round(sensex_abs, 2) if sensex_abs else None
+    n500_idx = round(n500_abs_v / N500_BASE * 100, 4) if n500_abs_v else None
+    na_r     = round(n500_abs_v, 2)                   if n500_abs_v else None
 
     new_rows.append({
-        'date':          dt.strftime('%Y-%m-%d'),
-        'z47_float':     idx_f,
-        'z47_mcap':      idx_m,
-        'nifty_indexed': nifty_idx,
-        'sensex_indexed':sensex_idx,
-        'nifty_abs':     na_r,
-        'sensex_abs':    sa_r,
+        'date':         dt.strftime('%Y-%m-%d'),
+        'z47_float':    idx_f,
+        'z47_mcap':     idx_m,
+        'n500_indexed': n500_idx,
+        'n500_abs':     na_r,
     })
     print(f"  {dt.date()}: z47_float={idx_f:.4f}  z47_mcap={idx_m:.4f}  "
-          f"nifty={na_r}  sensex={sa_r}")
+          f"n500={na_r}")
 
 # ── Verify continuity ─────────────────────────────────────────────────────────
 if new_rows:
@@ -204,8 +198,7 @@ to_append = [r for r in new_rows if r['date'] not in existing_dates]
 print(f"\nAppending {len(to_append)} new rows to z47_history.csv")
 
 with open('z47_history.csv', 'a', newline='') as f:
-    fieldnames = ['date','z47_float','z47_mcap','nifty_indexed',
-                  'sensex_indexed','nifty_abs','sensex_abs']
+    fieldnames = ['date','z47_float','z47_mcap','n500_indexed','n500_abs']
     import csv
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     for row in to_append:
