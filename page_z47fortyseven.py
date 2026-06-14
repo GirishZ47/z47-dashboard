@@ -527,58 +527,13 @@ def _s1_hero(df: pd.DataFrame, n500_live, usdinr, fx_chg) -> None:
 
 def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     fx_chg=None) -> None:
-    """Section 2 — horizontal stat strip on top, full-width chart below."""
+    """Section 2 — PERFORMANCE heading → stat strip → INDEX PERFORMANCE → full-width chart."""
     _em       = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _idx_html = f'Z47^{_em}'
     _idx_vs   = f'Z47^{_em} VS NIFTY&nbsp;500'
 
-    st.markdown(
-        f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
-        f'<h2 style="font-size:22px;font-weight:700;color:{_BLK};'
-        f'margin:0 0 16px;{_F}">Rebased to 100 · 1 January 2024</h2>',
-        unsafe_allow_html=True,
-    )
-
-    period = st.radio("Period", ["All", "1M", "3M", "6M", "1Y", "YTD"],
-                      index=0, horizontal=True, label_visibility="collapsed",
-                      key="z47fs_period")
-
-    # ── Slice & rebase ─────────────────────────────────────────────────────────
-    if period == "All":
-        plot = df.copy()
-    elif period == "YTD":
-        yr   = df["date"].iloc[-1].year
-        plot = df[df["date"] >= pd.Timestamp(yr, 1, 1)].copy()
-    else:
-        days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
-        cut  = df["date"].iloc[-1] - pd.Timedelta(days=days)
-        plot = df[df["date"] >= cut].copy()
-
-    if not plot.empty:
-        base = plot.iloc[0]
-        for col in ["z47_float", "n500_indexed"]:
-            plot[col] = plot[col] / base[col] * 100
-
-    # ── Period-responsive return figures ──────────────────────────────────────
-    kw    = _period_kw(period)
-    z47_r = _pct_since(df, "z47_float",    **kw)
-    n5_r  = _pct_since(df, "n500_indexed", **kw)
-
-    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
-    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
-
-    _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
-             f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
-    _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
-    st.markdown(
-        f'<div style="display:flex;gap:40px;padding:4px 0 16px;align-items:flex-start">'
-        f'<div><p style="{_pl_s}">{_idx_html}</p>'
-        f'<p style="{_pv_s};color:{_cc(z47_r)}">{_sign(z47_r)}</p></div>'
-        f'<div><p style="{_pl_s}">Nifty 500</p>'
-        f'<p style="{_pv_s};color:{_cc(n5_r)}">{_sign(n5_r)}</p></div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    # ── FIX 2: "PERFORMANCE" heading sits above the stat strip ────────────────
+    st.markdown(f'<p style="{_lbl()}">PERFORMANCE</p>', unsafe_allow_html=True)
 
     # ── Stat block data ────────────────────────────────────────────────────────
     last    = df.iloc[-1]
@@ -597,7 +552,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     n5_d   = _delta_html(n5_all,  suffix="%", size=14)
     fx_d   = _delta_html(fx_chg,  suffix="%", size=14)
 
-    # ── Horizontal stat strip — 4 equal columns, full width ───────────────────
+    # ── FIX 1: align-items:start → cards hug content, no empty bottom band ────
     _cp    = (f"background:{_WHT};border:1px solid {_BRD};border-radius:8px;"
               f"padding:20px 16px;display:flex;flex-direction:column;gap:5px")
     _lc    = (f"font-size:10px;font-weight:700;letter-spacing:0.08em;"
@@ -610,7 +565,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
 
     st.markdown(
         f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;'
-        f'gap:12px;margin-bottom:20px">'
+        f'align-items:start;gap:12px;margin-bottom:24px">'
         # Card 1 — Z47^fortyseven
         f'<div style="{_cp}">'
         f'<div style="{_lc}">{_idx_html}</div>'
@@ -644,7 +599,36 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         unsafe_allow_html=True,
     )
 
-    # ── Period-specific axis config — full-width chart, larger fonts ───────────
+    # ── FIX 2: "INDEX PERFORMANCE" sub-heading sits below the strip ───────────
+    # FIX 3: h2 margin reduced (0 0 8px) so gap to period toggle is tight
+    st.markdown(
+        f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
+        f'<h2 style="font-size:22px;font-weight:700;color:{_BLK};'
+        f'margin:0 0 8px;{_F}">Rebased to 100 · 1 January 2024</h2>',
+        unsafe_allow_html=True,
+    )
+
+    period = st.radio("Period", ["All", "1M", "3M", "6M", "1Y", "YTD"],
+                      index=0, horizontal=True, label_visibility="collapsed",
+                      key="z47fs_period")
+
+    # ── Slice & rebase ─────────────────────────────────────────────────────────
+    if period == "All":
+        plot = df.copy()
+    elif period == "YTD":
+        yr   = df["date"].iloc[-1].year
+        plot = df[df["date"] >= pd.Timestamp(yr, 1, 1)].copy()
+    else:
+        days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
+        cut  = df["date"].iloc[-1] - pd.Timedelta(days=days)
+        plot = df[df["date"] >= cut].copy()
+
+    if not plot.empty:
+        base = plot.iloc[0]
+        for col in ["z47_float", "n500_indexed"]:
+            plot[col] = plot[col] / base[col] * 100
+
+    # ── Period-specific axis config ────────────────────────────────────────────
     _tf = dict(family="Inter", color="#4A4A4A")
     if period == "All":
         _x_end = plot["date"].max().strftime("%Y-%m-%d") if not plot.empty else "2026-12-31"
@@ -673,14 +657,16 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         name="Nifty 500", mode="lines",
         line=dict(color="#1F77B4", width=1.8),
         hovertemplate="%{x|%d %b %Y} · Nifty 500: %{y:.1f}<extra></extra>"))
+    # FIX 4: legend at bottom-centre, below x-axis labels
     fig.update_layout(
         paper_bgcolor=_WHT, plot_bgcolor=_WHT, height=360, hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.0,
-                    xanchor="right", x=1, bgcolor="rgba(255,255,255,0.9)",
+        legend=dict(orientation="h", yanchor="top", y=-0.18,
+                    xanchor="center", x=0.5,
+                    bgcolor="rgba(255,255,255,0)",
                     font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True, **_x_kw),
         yaxis=dict(showgrid=True, gridcolor="#F5F5F5", showline=False, **_y_kw),
-        margin=dict(l=0, r=0, t=8, b=0),
+        margin=dict(l=0, r=0, t=8, b=48),
         transition_duration=0,
     )
 
