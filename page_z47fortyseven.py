@@ -51,9 +51,17 @@ def _is_market_hours() -> bool:
 from companies import COMPANIES, yf_ticker
 
 try:
-    from takeaway_constants import HARDCODED_INDEX_TAKEAWAY
+    from takeaway_constants import (
+        HARDCODED_INDEX_TAKEAWAY,
+        MONTHLY_TAKEAWAY_WHY, MONTHLY_TAKEAWAY_THEMES,
+        MONTHLY_TAKEAWAY_MACRO, MONTHLY_TAKEAWAY_NET_READ,
+    )
 except Exception:
     HARDCODED_INDEX_TAKEAWAY = {"text": "", "window": "", "updated": "", "icon": ""}
+    MONTHLY_TAKEAWAY_WHY = {}
+    MONTHLY_TAKEAWAY_THEMES = []
+    MONTHLY_TAKEAWAY_MACRO  = []
+    MONTHLY_TAKEAWAY_NET_READ = []
 
 # ── Brand palette ─────────────────────────────────────────────────────────────
 _OG  = "#FF6B1A"
@@ -755,9 +763,9 @@ def _process_bold(text: str) -> str:
     return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
 
 
-def _s4_takeaway() -> None:
+def _s4_takeaway(override_tk=None) -> None:
     """Section 4 — Monthly takeaway, structured multi-section renderer."""
-    tk       = HARDCODED_INDEX_TAKEAWAY
+    tk       = override_tk if override_tk is not None else HARDCODED_INDEX_TAKEAWAY
     window   = tk.get("window", "")
     updated  = tk.get("updated", "")
     sections = tk.get("sections")
@@ -884,6 +892,190 @@ def _s4_takeaway() -> None:
     )
 
 
+def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> dict:
+    """Build a fresh monthly takeaway dict from live data for draft/review."""
+    from datetime import date, timedelta
+
+    today    = date.today()
+    start_dt = today - timedelta(days=30)
+    window   = (f"{start_dt.day} {start_dt.strftime('%b')} – "
+                f"{today.day} {today.strftime('%b %Y')}")
+
+    z_ret  = _pct_since(df, "z47_float",    days=30) or 0.0
+    n_ret  = _pct_since(df, "n500_indexed", days=30) or 0.0
+    spread = round(z_ret - n_ret, 1)
+
+    if spread > 0:
+        cond = ("The cohort outpaced the broad index; company-specific fundamentals "
+                "outweighed the macro and flow pressures weighing on the wider market.")
+    elif spread < 0:
+        cond = ("The cohort lagged the broad index; near-term pressure on its larger "
+                "sectors outweighed domestic-demand resilience this month.")
+    else:
+        cond = ("The cohort tracked the broad index over the month; "
+                "company-specific moves offset each other across sectors.")
+
+    sector_map = {
+        "Consumer / Consumer Tech": "Consumer Tech",
+        "Fintech / Financial Services": "Fintech",
+        "B2B": "B2B",
+        "SaaS / AI": "SaaS/AI",
+    }
+    sr = {}
+    for full, short in sector_map.items():
+        tks = [c["ticker"] for c in COMPANIES if c["sector"] == full]
+        vs  = [returns_1m[t] for t in tks if returns_1m.get(t) is not None]
+        sr[short] = round(sum(vs) / len(vs), 1) if vs else None
+    vsr = {k: v for k, v in sr.items() if v is not None}
+    if vsr:
+        bs = max(vsr, key=vsr.get); ws = min(vsr, key=vsr.get)
+        sector_line = (f"Among the four sectors; {bs} led at "
+                       f"{'+' if vsr[bs] >= 0 else ''}{vsr[bs]:.1f}% "
+                       f"while {ws} trailed at {vsr[ws]:.1f}%.")
+    else:
+        sector_line = "Sector breakdown unavailable for this window."
+
+    _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+    _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
+    s1 = [
+        (f"Z47^{_em} returned {z_ret:+.1f}% over the month versus Nifty 500’s "
+         f"{n_ret:+.1f}%; {abs(spread):.1f} pp {_ahd}."),
+        cond,
+        sector_line,
+    ]
+
+    def _wt(c):
+        mc = mcaps.get(c["ticker"])
+        if mc:
+            v = mc.get("mc", 0)
+            if mc.get("currency", "INR") != "INR":
+                v = v * usdinr
+            return v
+        return c.get("mkt_cap_mn", 0)
+
+    top3 = sorted(COMPANIES, key=_wt, reverse=True)[:3]
+    s2 = []
+    for c in top3:
+        tk_  = c["ticker"]
+        nm   = name_map.get(tk_, c["name"])
+        ret  = returns_1m.get(tk_)
+        rs   = f"{ret:+.1f}%" if ret is not None else "—"
+        why  = MONTHLY_TAKEAWAY_WHY.get(tk_, f"[Update why for {nm}]")
+        s2.append(f"{nm} {rs}; {why}")
+
+    valid_r = {t: v for t, v in returns_1m.items() if v is not None and not pd.isna(v)}
+    top2g   = sorted(valid_r.items(), key=lambda x: -x[1])[:2]
+    top2l   = sorted(valid_r.items(), key=lambda x:  x[1])[:2]
+
+    def _wl(t):
+        nm = name_map.get(t, t)
+        return MONTHLY_TAKEAWAY_WHY.get(t, f"[Update why for {nm}]")
+
+    s3 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2g]
+    s4 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2l]
+
+    s6 = list(MONTHLY_TAKEAWAY_MACRO) + [
+        f"[Update: INR trading volume across cohort for {window}; "
+        f"requires Block and Bulk Deals data]",
+        f"[Update: largest block deal for {window}; "
+        f"requires Block and Bulk Deals data]",
+    ]
+
+    sections = [
+        {"type": "main_bullet",   "header": f"Index performance ; Z47^{_em} vs Nifty 500",
+         "sub_bullets": s1},
+        {"type": "main_bullet",   "header": "Largest constituents ; the names that anchor the index",
+         "sub_bullets": s2},
+        {"type": "main_bullet",   "header": "Top gainers",
+         "sub_bullets": s3},
+        {"type": "main_bullet",   "header": "Top laggards",
+         "sub_bullets": s4},
+        {"type": "main_bullet",   "header": "Key themes ; latest results",
+         "sub_bullets": list(MONTHLY_TAKEAWAY_THEMES)},
+        {"type": "main_bullet",   "header": "Market and macro context",
+         "sub_bullets": s6},
+        {"type": "section_title", "header": "Net Read",
+         "sub_bullets": list(MONTHLY_TAKEAWAY_NET_READ)},
+    ]
+
+    takeaway = {
+        "section_label":    "MONTHLY TAKEAWAY",
+        "window":           window,
+        "date_range_label": window.upper(),
+        "updated":          f"{today.day} {today.strftime('%b %Y')}",
+        "sections":         sections,
+    }
+    return {
+        "takeaway": takeaway,
+        "status":   "draft",
+        "window":   window,
+        "z_ret":    z_ret,
+        "n_ret":    n_ret,
+        "spread":   spread,
+    }
+
+
+def _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr=85.0) -> None:
+    """Monthly Takeaway with draft generation and publish workflow."""
+    _DK   = "z47_monthly_draft"
+    draft = st.session_state.get(_DK)
+    _em   = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+
+    if draft:
+        z  = draft.get("z_ret", 0.0)
+        n  = draft.get("n_ret", 0.0)
+        sp = draft.get("spread", 0.0)
+        _dir = "outperformed" if sp > 0 else "underperformed" if sp < 0 else "matched"
+        st.markdown(
+            f'<div style="background:#FFF8F3;border:1.5px solid {_OG};border-radius:8px;'
+            f'padding:16px 20px;margin:0 0 12px">'
+            f'<p style="font-size:11px;font-weight:700;color:{_OG};margin:0 0 8px;{_F}">'
+            f'DRAFT &nbsp;·&nbsp; NOT PUBLISHED &nbsp;·&nbsp; '
+            f'{draft.get("window","")}</p>'
+            f'<p style="font-size:13px;font-weight:600;color:{_BLK};margin:0 0 8px;{_F}">'
+            f'Reviewer checklist; verify before publishing:</p>'
+            f'<ul style="font-size:13px;color:{_DGR};margin:0 0 0 4px;'
+            f'padding-left:18px;line-height:1.8;{_F}">'
+            f'<li>Spread sign: Z47^{_em} {z:+.1f}% vs Nifty 500 {n:+.1f}%'
+            f' → {_dir} by {abs(sp):.1f} pp</li>'
+            f'<li>Section 2 names and weights match the Constituents table for this window</li>'
+            f'<li>Section 3 and 4 names and percentages are identical to the Top Movers panel</li>'
+            f'<li>Each "why" is verified against that month\'s news and results</li>'
+            f'<li>Section 6 bullets 3 and 4 placeholders updated with actual trading data</li>'
+            f'</ul>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        _pc1, _pc2 = st.columns(2, gap="small")
+        with _pc1:
+            if st.button("Publish takeaway", key="pub_monthly", type="primary"):
+                st.session_state["z47_monthly_published"] = draft["takeaway"]
+                st.session_state[_DK] = None
+                st.rerun()
+        with _pc2:
+            if st.button("Discard draft", key="dis_monthly"):
+                st.session_state[_DK] = None
+                st.rerun()
+        _s4_takeaway(override_tk=draft["takeaway"])
+    else:
+        published = st.session_state.get("z47_monthly_published")
+        _s4_takeaway(override_tk=published)
+
+    with st.expander("Generate new monthly draft", expanded=False):
+        st.markdown(
+            f'<p style="font-size:13px;color:{_DGR};margin:0;{_F}">'
+            f'Generates a draft from live data (index returns, constituents, '
+            f'sector averages). Review the checklist, then publish to make it '
+            f'live for this session.</p>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Generate draft", key="gen_monthly"):
+            with st.spinner("Generating…"):
+                _d = _gen_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr)
+            st.session_state[_DK] = _d
+            st.rerun()
+
+
 def _s5_movers(returns_1m: dict, name_map: dict) -> None:
     """Section 5 — Top 5 gainers & losers: card wrapper, no ticker column."""
     st.markdown(f'<p style="{_lbl()}">TOP MOVERS · LAST MONTH</p>', unsafe_allow_html=True)
@@ -917,7 +1109,7 @@ def _s5_movers(returns_1m: dict, name_map: dict) -> None:
     with c1:
         st.markdown(_table_html(top5g, "Top Gainers", _GRN), unsafe_allow_html=True)
     with c2:
-        st.markdown(_table_html(top5l, "Top Losers",  _RED), unsafe_allow_html=True)
+        st.markdown(_table_html(top5l, "Top Laggards", _RED), unsafe_allow_html=True)
 
 
 def _s6_1m_chart(returns_1m: dict, name_map: dict) -> None:
@@ -1505,7 +1697,7 @@ def render() -> None:
 
     elif _active == "insights":
         _section_label("Z47 INSIGHTS")
-        _s4_takeaway()
+        _s4_monthly_takeaway(df, returns_1m, mcaps, name_map, usdinr)
         _s_kissht_takeaway()
 
     elif _active == "constituents":

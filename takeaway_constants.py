@@ -94,6 +94,61 @@ HARDCODED_INDEX_TAKEAWAY = {
     ],
 }
 
+# ── Monthly Takeaway generation constants ────────────────────────────────────
+# Used by _gen_monthly_takeaway() in page_z47fortyseven.py.
+# Add a ticker key for every company that could appear in sections 2/3/4;
+# missing tickers fall back to "[Update why for {name}]" at generation time.
+MONTHLY_TAKEAWAY_WHY = {
+    "ETERNAL":    ("continued reinvestment in quick commerce weighed on near-term "
+                   "sentiment; Blinkit delivered its first profitable quarter."),
+    "GROWW":      ("strong broking and margin-trading momentum supported performance; "
+                   "elevated valuations moderated further gains."),
+    "LENSKART":   ("continued store densification and margin expansion kept it among "
+                   "the stronger-performing large-weight constituents."),
+    "CARTRADE":   ("strong execution in its consumer auto marketplace and a cash-rich "
+                   "balance sheet supported sustained investor interest."),
+    "OLAELEC":    ("a sharp gross-margin turnaround driven by the Gen-3 platform and "
+                   "in-house cell manufacturing supported the stock despite softer "
+                   "revenue growth."),
+    "WAKEFIT":    ("margin compression from higher raw-material and marketing costs, "
+                   "coupled with significant post-lock-in share supply, drove a sharp "
+                   "correction despite continued revenue growth."),
+    "MAPMYINDIA": ("muted revenue growth and slower government project execution kept "
+                   "the stock under pressure."),
+}
+
+# Section 5 — Key themes; verbatim bullets (update each monthly refresh)
+MONTHLY_TAKEAWAY_THEMES = [
+    ("Operating performance best captures the cohort's underlying progress this quarter; "
+     "reported profit was shaped by one-off items and reinvestment."),
+    ("Profit growth outpaced revenue across the cohort, reflecting improving operating "
+     "leverage as businesses scaled."),
+    ("AI is emerging as both a cost lever and a growth lever; the more significant value "
+     "creation is coming from businesses using it to reshape demand, not just improve "
+     "efficiency."),
+    ("The lending cohort grew earnings while improving asset quality, as stronger "
+     "underwriting discipline drove a more resilient growth profile."),
+    ("Cash generation is increasingly defining success across the cohort, letting market "
+     "leaders fund acquisitions and expansion from their own balance sheets."),
+]
+
+# Section 6 — hardcoded macro bullets (bullets 1-2); bullets 3-4 are auto-placeholders
+MONTHLY_TAKEAWAY_MACRO = [
+    ("Supply rotation from foreign VC exits to domestic institutional demand continued; "
+     "large block sales cleared without dislocation, and ownership is becoming structural "
+     "rather than flow-driven."),
+    ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
+     "continued digital adoption across India remains a meaningful offset for much of the "
+     "cohort."),
+]
+
+# Net Read — 2 hardcoded bullets (update each monthly refresh)
+MONTHLY_TAKEAWAY_NET_READ = [
+    "The cohort absorbed significant institutional supply without meaningful market dislocation.",
+    ("Performance dispersion widened, with profitability and earnings quality increasingly "
+     "distinguishing the strongest performers from the rest."),
+]
+
 # ── Z47'47 Valuation Perspective ─────────────────────────────────────────────
 HARDCODED_VALUATION_TAKEAWAY = {
     "header":  "Z47 47 VALUATION PERSPECTIVE · 4 MAY TO 3 JUN 2026",
