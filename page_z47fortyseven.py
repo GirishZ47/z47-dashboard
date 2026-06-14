@@ -790,7 +790,7 @@ def _build_sections_html(sections: list) -> str:
                 )
             else:
                 hdr_html = (
-                    f'<span style="font-weight:400;color:{_BLK}">'
+                    f'<span style="font-weight:700;color:{_BLK}">'
                     f'{_process_bold(header)}</span>'
                 )
             body_html += (
@@ -862,7 +862,7 @@ def _s4_takeaway(override_tk=None) -> None:
                 f'font-weight:800;font-size:16px;line-height:1.2">•</span>'
                 f'{content}</li>'
             )
-        _today    = date.today()
+        _today    = datetime.now(_pytz.timezone("Asia/Kolkata")).date()
         _fwd      = (7 - _today.weekday()) % 7 or 7
         _next_mon = _today + timedelta(days=_fwd)
         _next_str = f"Monday {_next_mon.day} {_next_mon.strftime('%b')}"
@@ -878,7 +878,7 @@ def _s4_takeaway(override_tk=None) -> None:
         return
 
     # ── Structured sections renderer ───────────────────────────────────────────
-    _today    = date.today()
+    _today    = datetime.now(_pytz.timezone("Asia/Kolkata")).date()
     _fwd      = (7 - _today.weekday()) % 7 or 7
     _next_mon = _today + timedelta(days=_fwd)
     _next_str = f"Monday {_next_mon.day} {_next_mon.strftime('%b')}"

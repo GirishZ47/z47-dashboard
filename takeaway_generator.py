@@ -270,12 +270,15 @@ def generate() -> dict:
         bs   = max(vsr, key=vsr.get)
         ws   = min(vsr, key=vsr.get)
         _desc    = _DESCRIPTOR.get(bs, bs.lower())
-        _ws_sign = f"+{vsr[ws]:.1f}%" if vsr[ws] >= 0 else f"{vsr[ws]:.1f}%"
+        _bs_v = round(vsr[bs], 1) + 0.0
+        _bs_sign = "roughly flat" if _bs_v == 0.0 else (f"+{_bs_v:.1f}%" if _bs_v > 0 else f"{_bs_v:.1f}%")
+        _ws_v = round(vsr[ws], 1) + 0.0
+        _ws_sign = "roughly flat" if _ws_v == 0.0 else (f"+{_ws_v:.1f}%" if _ws_v > 0 else f"{_ws_v:.1f}%")
         sector_line = (
             f"{bs} was the best-performing sector in the cohort at "
-            f"+{vsr[bs]:.1f}%, while {ws} was the weakest at "
-            f"{_ws_sign}, reflecting a clear investor preference for "
-            f"{_desc} this month."
+            f"{_bs_sign}, while {ws} was the weakest at "
+            f"{_ws_sign}, reflecting growing investor interest in "
+            f"{_desc}."
         )
 
     if spread > 0:
@@ -287,8 +290,9 @@ def generate() -> dict:
         cond = (f"The cohort lagged the broad index as weakness in {_ws_name} "
                 f"outweighed its broader domestic-demand resilience this month.")
     else:
-        cond = ("The cohort tracked the broad index over the month, with company-specific "
-                "moves offsetting across sectors.")
+        cond = ("Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> "
+                "kept pace with the broader market despite a tougher macro backdrop, with its "
+                "domestic-demand orientation continuing to cushion global cyclical pressures.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
