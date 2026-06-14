@@ -547,8 +547,8 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     z47_all = _pct_since(df, "z47_float",    all_time=True)
     n5_all  = _pct_since(df, "n500_indexed", all_time=True)
     spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
-    s_str   = (f"+{spread:.1f}% ahead" if spread and spread >= 0
-               else (f"{spread:.1f}% behind" if spread is not None else "—"))
+    s_str   = (f"+{spread:.1f}%" if spread and spread >= 0
+               else (f"{spread:.1f}%" if spread is not None else "—"))
     s_color = _GRN if (spread or 0) >= 0 else _RED
 
     n5_str = f"{n500_live:,.0f}" if n500_live else "—"
@@ -593,8 +593,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         # Card 3 — Z47^fortyseven vs Nifty 500
         f'<div style="{_cp}">'
         f'<div style="{_lc_vs}">{_idx_vs}</div>'
-        f'<div style="font-size:22px;font-weight:700;color:{s_color};'
-        f'white-space:nowrap;line-height:1.1;{_F}">{s_str}</div>'
+        f'<div style="{_vc};color:{s_color}">{s_str}</div>'
         f'<div></div>'
         f'<div style="{_sc}">Since 1 Jan 2024</div>'
         f'</div>'
@@ -696,7 +695,8 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     font=dict(size=13, color=_DGR, family="Inter")),
         xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True,
                    ticklen=6, tickcolor="rgba(0,0,0,0)", **_x_kw),
-        yaxis=dict(showgrid=True, gridcolor="#EBEBEB", showline=False, **_y_kw),
+        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.06)", gridwidth=0.5,
+                   zeroline=False, showline=False, **_y_kw),
         margin=dict(l=0, r=0, t=8, b=48),
         transition_duration=0,
     )
