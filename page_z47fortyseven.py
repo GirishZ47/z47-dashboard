@@ -532,9 +532,6 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     _idx_html = f'Z47^{_em}'
     _idx_vs   = f'Z47^{_em} VS NIFTY&nbsp;500'
 
-    # ── FIX 2: "PERFORMANCE" heading sits above the stat strip ────────────────
-    st.markdown(f'<p style="{_lbl()}">PERFORMANCE</p>', unsafe_allow_html=True)
-
     # ── Stat block data ────────────────────────────────────────────────────────
     last    = df.iloc[-1]
     now_ts  = _now_ist_str()
@@ -563,9 +560,11 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
               f"line-height:1.05;white-space:nowrap;{_F}")
     _sc    = f"font-size:11px;color:{_LGR};{_F}"
 
+    # max-width constrains total strip width; grid stretch (default) = equal heights
     st.markdown(
+        f'<div style="max-width:880px">'
         f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;'
-        f'align-items:start;gap:12px;margin-bottom:24px">'
+        f'gap:12px;margin-bottom:24px">'
         # Card 1 — Z47^fortyseven
         f'<div style="{_cp}">'
         f'<div style="{_lc}">{_idx_html}</div>'
@@ -595,14 +594,12 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         f'{fx_d}'
         f'<div style="{_sc}">Daily change · {now_ts}</div>'
         f'</div>'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    # ── FIX 2: "INDEX PERFORMANCE" sub-heading sits below the strip ───────────
-    # FIX 3: h2 margin reduced (0 0 8px) so gap to period toggle is tight
     st.markdown(
-        f'<p style="{_lbl()}">INDEX PERFORMANCE</p>'
         f'<h2 style="font-size:22px;font-weight:700;color:{_BLK};'
         f'margin:0 0 8px;{_F}">Rebased to 100 · 1 January 2024</h2>',
         unsafe_allow_html=True,
