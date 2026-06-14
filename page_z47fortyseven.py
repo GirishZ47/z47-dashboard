@@ -899,8 +899,8 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
 
     today    = date.today()
     start_dt = today - timedelta(days=30)
-    window   = (f"{start_dt.day} {start_dt.strftime(‘%b’)} – "
-                f"{today.day} {today.strftime(‘%b %Y’)}")
+    window   = (f"{start_dt.day} {start_dt.strftime('%b')} – "
+                f"{today.day} {today.strftime('%b %Y')}")
 
     z_ret  = _pct_since(df, "z47_float",    days=30) or 0.0
     n_ret  = _pct_since(df, "n500_indexed", days=30) or 0.0
@@ -931,15 +931,15 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
     if vsr:
         bs = max(vsr, key=vsr.get); ws = min(vsr, key=vsr.get)
         sector_line = (f"Among the four sectors, {bs} led at "
-                       f"{‘+’ if vsr[bs] >= 0 else ‘’}{vsr[bs]:.1f}% "
+                       f"{'+' if vsr[bs] >= 0 else ''}{vsr[bs]:.1f}% "
                        f"while {ws} trailed at {vsr[ws]:.1f}%.")
     else:
         sector_line = "Sector breakdown unavailable for this window."
 
-    _em  = ‘<em style="font-style:italic;text-transform:none">fortyseven</em>’
+    _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
     s1 = [
-        (f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500’s "
+        (f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500's "
          f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."),
         cond,
         sector_line,
@@ -1047,7 +1047,7 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
         "section_label":    "MONTHLY TAKEAWAY",
         "window":           window,
         "date_range_label": window.upper(),
-        "updated":          f"{today.day} {today.strftime(‘%b %Y’)}",
+        "updated":          f"{today.day} {today.strftime('%b %Y')}",
         "sections":         sections,
     }
     return {
