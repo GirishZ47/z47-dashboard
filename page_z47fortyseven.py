@@ -576,28 +576,29 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     n5_all  = _pct_since(df, "n500_indexed", all_time=True)
     n5_ytd  = _pct_since(df, "n500_indexed", ytd=True)
     spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
-    s_str   = (f"+{spread:.1f}pp ahead" if spread and spread >= 0
-               else (f"{spread:.1f}pp behind" if spread is not None else "—"))
+    s_str   = (f"+{spread:.1f}% ahead" if spread and spread >= 0
+               else (f"{spread:.1f}% behind" if spread is not None else "—"))
     s_color = _GRN if (spread or 0) >= 0 else _RED
 
     # ── Period-specific axis configuration ────────────────────────────────────
+    # FIX 4: for "All", set range explicitly so Jan 2024 (the rebased origin) is visible
+    _tf = dict(family="Inter", color="#4A4A4A")
     if period == "All":
+        _x_end = plot["date"].max().strftime("%Y-%m-%d") if not plot.empty else "2026-12-31"
         _x_kw = dict(dtick="M3", tick0="2024-01-01", tickformat="%b %Y",
-                     tickfont=dict(size=10, family="Inter", color="#4A4A4A"))
+                     range=["2023-12-15", _x_end],
+                     tickfont=dict(size=10, **_tf))
         _y_kw = dict(range=[98, 152], dtick=10, tick0=100,
-                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+                     tickfont=dict(size=11, **_tf))
     elif period == "1Y":
-        _x_kw = dict(dtick="M2", tickformat="%b %Y",
-                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
-        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _x_kw = dict(dtick="M2", tickformat="%b %Y", tickfont=dict(size=11, **_tf))
+        _y_kw = dict(tickfont=dict(size=11, **_tf))
     elif period in ("6M", "YTD", "3M"):
-        _x_kw = dict(dtick="M1", tickformat="%b %Y",
-                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
-        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _x_kw = dict(dtick="M1", tickformat="%b %Y", tickfont=dict(size=11, **_tf))
+        _y_kw = dict(tickfont=dict(size=11, **_tf))
     else:  # 1M
-        _x_kw = dict(tickformat="%d %b",
-                     tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
-        _y_kw = dict(tickfont=dict(size=11, family="Inter", color="#4A4A4A"))
+        _x_kw = dict(tickformat="%d %b", tickfont=dict(size=11, **_tf))
+        _y_kw = dict(tickfont=dict(size=11, **_tf))
 
     # ── Build chart ────────────────────────────────────────────────────────────
     fig = go.Figure()
@@ -673,12 +674,14 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         n5_str = f"{n500_live:,.0f}" if n500_live else "—"
         fx_str = f"₹{usdinr:.2f}"   if usdinr    else "—"
         z47_d  = _delta_html(z47_all, suffix="%", size=12)
-        n5_d   = _delta_html(n5_ytd,  suffix="%", size=12)
+        n5_d   = _delta_html(n5_all,  suffix="%", size=12)   # FIX 2: since Jan 2024, not YTD
         fx_d   = _delta_html(fx_chg,  suffix="%", size=12)
 
+        # FIX 1: grid-auto-rows:auto + align-items:start → cards hug their content,
+        # no forced height, no empty bottom space; all four cards identical padding/structure
         st.markdown(
             f'<div style="display:grid;grid-template-columns:1fr 1fr;'
-            f'grid-template-rows:1fr 1fr;height:340px;gap:8px">'
+            f'grid-auto-rows:auto;align-items:start;gap:8px">'
             # Card 1 — Z47^fortyseven
             f'<div style="{_cp}">'
             f'<div style="{_lc}">{_idx_html}</div>'
@@ -686,12 +689,12 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
             f'{z47_d}'
             f'<div style="{_sc}">Since Jan 2024</div>'
             f'</div>'
-            # Card 2 — Nifty 500
+            # Card 2 — Nifty 500  (FIX 2: same basis as Z47 card — since Jan 2024)
             f'<div style="{_cp}">'
             f'<div style="{_lc}">Nifty 500</div>'
             f'<div style="{_vc}">{n5_str}</div>'
             f'{n5_d}'
-            f'<div style="{_sc}">YTD · {now_ts}</div>'
+            f'<div style="{_sc}">Since Jan 2024</div>'
             f'</div>'
             # Card 3 — Z47^fortyseven vs Nifty 500
             f'<div style="{_cp}">'
