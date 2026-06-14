@@ -100,23 +100,16 @@ def _fetch_returns_1m() -> dict:
 # ---------------------------------------------------------------------------
 
 def _fetch_volume_and_context():
-    """OHLCV for volume MoM + Nifty 500 1M return + USD/INR."""
-    tickers_yf = [yf_ticker(c) for c in COMPANIES]
-    tk_map     = {yf_ticker(c): c["ticker"] for c in COMPANIES}
-    all_ticks  = tickers_yf + ["^CRSLDX", "USDINR=X"]
+    """Nifty 500 1M return + USD/INR."""
+    all_ticks = ["^CRSLDX", "USDINR=X"]
     raw = yf.download(all_ticks, period="70d", progress=False, auto_adjust=True)
 
     if not isinstance(raw.columns, pd.MultiIndex):
-        return 0.0, 0.0, 85.0, 0.0
+        return 85.0, 0.0
 
     closes  = raw["Close"]
-    volumes = raw["Volume"]
     today_dt = date.today()
     start30  = pd.Timestamp(today_dt - timedelta(days=30))
-    start60  = pd.Timestamp(today_dt - timedelta(days=60))
-    idx = pd.to_datetime(closes.index).tz_localize(None)
-    mask30 = idx >= start30
-    mask60 = (idx >= start60) & (idx < start30)
 
     usdinr = 85.0
     if "USDINR=X" in closes.columns:
@@ -131,20 +124,7 @@ def _fetch_volume_and_context():
         if len(n_30) >= 2:
             n500_ret = round((float(n_30.iloc[-1]) / float(n_30.iloc[0]) - 1) * 100, 2)
 
-    # Volume: only stocks with data in BOTH windows (avoids pre-listing distortion)
-    const_cols  = [t for t in tickers_yf if t in closes.columns and t in volumes.columns]
-    daily_val   = closes[const_cols] * volumes[const_cols]
-    stocks_both = [col for col in daily_val.columns
-                   if daily_val[col][mask30].notna().any()
-                   and daily_val[col][mask60].notna().any()]
-    if stocks_both:
-        vol_30d = float(daily_val[stocks_both][mask30].sum().sum())
-        vol_60d = float(daily_val[stocks_both][mask60].sum().sum())
-    else:
-        vol_30d = float(daily_val[const_cols][mask30].sum().sum())
-        vol_60d = 0.0
-
-    return vol_30d, vol_60d, usdinr, n500_ret
+    return usdinr, n500_ret
 
 
 def _fetch_mcaps():
@@ -227,8 +207,8 @@ def generate() -> dict:
     print("[gen] fetching 1M returns (canonical — matches _fetch_1m_returns)...")
     returns_1m = _fetch_returns_1m()
 
-    print("[gen] fetching volume + market context...")
-    vol_30d, vol_60d, usdinr, n500_ret = _fetch_volume_and_context()
+    print("[gen] fetching market context...")
+    usdinr, n500_ret = _fetch_volume_and_context()
 
     print("[gen] fetching market caps...")
     mcaps = _fetch_mcaps()
@@ -328,20 +308,7 @@ def generate() -> dict:
     s3 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t)}" for t, p in top2g]
     s4 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t)}" for t, p in top2l]
 
-    # Section 6 bullet 3: volume
-    s6_vol = None
-    if vol_30d > 0:
-        bn30  = vol_30d / (usdinr * 1e9)
-        if vol_60d > 0:
-            mom_v = round((vol_30d - vol_60d) / vol_60d * 100, 0)
-            ud_v  = "up" if mom_v >= 0 else "down"
-            s6_vol = (f"{bn30:.1f} bn dollars of cohort shares traded "
-                      f"over the month, {ud_v} {abs(int(mom_v))}% "
-                      f"versus the prior month.")
-        else:
-            s6_vol = f"{bn30:.1f} bn dollars of cohort shares traded over the month."
-
-    # Section 6 bullet 4: block deal
+    # Section 6 bullet 3: block deal
     s6_block = None
     try:
         import sys
@@ -365,7 +332,7 @@ def generate() -> dict:
     except Exception as _be:
         print(f"[gen] block deals skipped: {_be}")
 
-    s6 = list(MONTHLY_TAKEAWAY_MACRO) + [b for b in [s6_vol, s6_block] if b]
+    s6 = list(MONTHLY_TAKEAWAY_MACRO) + ([s6_block] if s6_block else [])
 
     sections = [
         {"type": "main_bullet",
