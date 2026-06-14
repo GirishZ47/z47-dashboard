@@ -800,94 +800,77 @@ _FALLBACK_DEALS = [
 
 def _fetch_nse_csv_history(days=90):
     """
-    Fetch block/bulk deal CSVs from NSE archives.
-    Uses a session with NSE homepage cookies for better success rate.
-    Checks last 45 calendar days (≈ 30 trading days).
+    Fetch today's block/bulk deals from NSE non-dated CSV endpoints.
+    NSE archive ZIPs (bd{DDMMYYYY}.zip) return HTTP 404 since mid-June 2026.
+    Falls back to always-current non-dated CSVs for the latest trading session.
     """
-    import zipfile, io as _io
+    from io import StringIO as _SIO
     all_rows = []
     today = datetime.now().date()
     _arch_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/octet-stream,application/zip,*/*;q=0.8",
+        "Accept": "text/csv,text/plain,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
         "Referer": "https://www.nseindia.com/",
-        "Connection": "keep-alive",
     }
-    # Warm a session with NSE cookies — improves archive CDN hit rate
-    _sess = requests.Session()
-    try:
-        _sess.get("https://www.nseindia.com", headers=_arch_headers, timeout=6)
-    except Exception:
-        pass  # proceed without cookies — CDN often still serves the zips
-
     _px_keys_h = [
+        "Trade Price / Wght. Avg. Price",
         "Trade Price / Wt. Avg. Price",
         "Trade Price / Wght Avg Price",
         "Trade Price/Wt. Avg. Price",
         "Wt. Avg. Price", "PRICE", "Price", "Rate", "Avg. Price",
     ]
-
-    for delta in range(min(days * 2, 90)):  # check up to 90 calendar days
-        dt = today - timedelta(days=delta)
-        if dt.weekday() >= 5:  # skip weekends
-            continue
-        dd = dt.strftime("%d%m%Y")
-        for deal_type, url_template in [
-            ("Block", f"https://nsearchives.nseindia.com/content/equities/bd{dd}.zip"),
-            ("Bulk",  f"https://nsearchives.nseindia.com/content/equities/bulk{dd}.zip"),
-        ]:
-            try:
-                r = _sess.get(url_template, headers=_arch_headers, timeout=15)
-                if r.status_code != 200 or not r.content:
-                    continue
-                zf = zipfile.ZipFile(_io.BytesIO(r.content))
-                for name in zf.namelist():
-                    if not name.endswith(".csv"):
-                        continue
-                    df_csv = pd.read_csv(
-                        _io.StringIO(zf.read(name).decode("utf-8", errors="ignore"))
-                    )
-                    df_csv.columns = [c.strip() for c in df_csv.columns]
-                    for _, row in df_csv.iterrows():
-                        sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
-                        if sym not in Z47_SYMBOLS:
-                            continue
-                        try:
-                            qty_i = int(float(
-                                str(row.get("Quantity Traded", row.get("QTY", 0))
-                                    ).replace(",", "")
-                            ))
-                        except Exception:
-                            qty_i = 0
-                        _px_raw = next(
-                            (row.get(k) for k in _px_keys_h if row.get(k) is not None), 0
-                        )
-                        try:
-                            px = float(
-                                str(_px_raw).replace(",", "").replace("₹", "").strip() or 0
-                            )
-                        except Exception:
-                            px = 0.0
-                        ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper()
-                        all_rows.append({
-                            "Date":           dt.strftime("%Y-%m-%d"),
-                            "Deal Type":      deal_type,
-                            "Symbol":         sym,
-                            "Company":        Z47_NAME_MAP.get(sym, sym),
-                            "Client / Party": str(row.get("Client Name",
-                                                          row.get("CLIENT_NAME", ""))).strip(),
-                            "Buy/Sell":       "BUY" if "B" in ttype else "SELL",
-                            "Quantity":       qty_i,
-                            "Price (₹)":      px,
-                            "Value (₹ Cr)":   round(qty_i * px / 1e7, 2),
-                        })
-            except Exception:
+    for deal_type, url in [
+        ("Bulk",  "https://nsearchives.nseindia.com/content/equities/bulk.csv"),
+        ("Block", "https://nsearchives.nseindia.com/content/equities/block.csv"),
+    ]:
+        try:
+            r = requests.get(url, headers=_arch_headers, timeout=10)
+            if r.status_code != 200 or not r.content or len(r.content) < 50:
                 continue
+            df_csv = pd.read_csv(_SIO(r.content.decode("utf-8", errors="ignore")))
+            df_csv.columns = [c.strip() for c in df_csv.columns]
+            for _, row in df_csv.iterrows():
+                sym = str(row.get("Symbol", row.get("SYMBOL", ""))).upper().strip()
+                if sym not in Z47_SYMBOLS:
+                    continue
+                _raw_date = str(row.get("Date", row.get("DATE", ""))).strip()
+                try:
+                    _dt = pd.to_datetime(_raw_date, dayfirst=True).date()
+                    date_str = _dt.strftime("%Y-%m-%d")
+                except Exception:
+                    date_str = today.strftime("%Y-%m-%d")
+                try:
+                    qty_i = int(float(
+                        str(row.get("Quantity Traded", row.get("QTY", 0))).replace(",", "")
+                    ))
+                except Exception:
+                    qty_i = 0
+                _px_raw = next(
+                    (row.get(k) for k in _px_keys_h if row.get(k) is not None), 0
+                )
+                try:
+                    px = float(str(_px_raw).replace(",", "").replace("₹", "").strip() or 0)
+                except Exception:
+                    px = 0.0
+                ttype = str(row.get("Buy/Sell", row.get("BUY_SELL", ""))).upper()
+                all_rows.append({
+                    "Date":           date_str,
+                    "Deal Type":      deal_type,
+                    "Symbol":         sym,
+                    "Company":        Z47_NAME_MAP.get(sym, sym),
+                    "Client / Party": str(row.get("Client Name",
+                                                  row.get("CLIENT_NAME", ""))).strip(),
+                    "Buy/Sell":       "BUY" if "B" in ttype else "SELL",
+                    "Quantity":       qty_i,
+                    "Price (₹)":      px,
+                    "Value (₹ Cr)":   round(qty_i * px / 1e7, 2),
+                })
+        except Exception:
+            continue
     if all_rows:
-        print(f"[NSE archive] fetched {len(all_rows)} Z47 deal rows from NSE archives")
+        print(f"[NSE CSV] fetched {len(all_rows)} Z47 deal rows from current-session CSVs")
     return all_rows
 
 

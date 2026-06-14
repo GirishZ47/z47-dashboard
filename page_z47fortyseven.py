@@ -381,7 +381,7 @@ def _s_kissht_takeaway() -> None:
                 )
             else:
                 hdr_html = (
-                    f'<span style="font-weight:700;color:{_BLK}">'
+                    f'<span style="font-weight:400;color:{_BLK}">'
                     f'{_process_bold(header)}</span>'
                 )
             body_html += (
@@ -857,7 +857,7 @@ def _s4_takeaway(override_tk=None) -> None:
                 )
             else:
                 hdr_html = (
-                    f'<span style="font-weight:700;color:{_BLK}">'
+                    f'<span style="font-weight:400;color:{_BLK}">'
                     f'{_process_bold(header)}</span>'
                 )
             body_html += (
@@ -892,6 +892,18 @@ def _s4_takeaway(override_tk=None) -> None:
     )
 
 
+def _is_admin() -> bool:
+    """True only when ?admin=<token> matches st.secrets["ADMIN_TOKEN"]."""
+    try:
+        expected = st.secrets.get("ADMIN_TOKEN", "")
+        if not expected:
+            return False
+        provided = st.query_params.get("admin", "")
+        return bool(provided and provided == expected)
+    except Exception:
+        return False
+
+
 def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
                           usdinr=85.0, price_cache=None) -> dict:
     """Build a fresh monthly takeaway dict from live data for draft/review."""
@@ -906,35 +918,50 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
     n_ret  = _pct_since(df, "n500_indexed", days=30) or 0.0
     spread = round(z_ret - n_ret, 1)
 
-    if spread > 0:
-        cond = ("The cohort outpaced the broad index as company-specific fundamentals "
-                "outweighed the macro and flow pressures weighing on the wider market.")
-    elif spread < 0:
-        cond = ("The cohort lagged the broad index as near-term pressure on its larger "
-                "sectors outweighed its domestic-demand resilience this month.")
-    else:
-        cond = ("The cohort tracked the broad index over the month, with company-specific "
-                "moves offsetting across sectors.")
-
-    sector_map = {
+    # Sector data must be computed BEFORE conditional bullet (bullet references sector names)
+    _sector_map = {
         "Consumer / Consumer Tech": "Consumer Tech",
         "Fintech / Financial Services": "Fintech",
         "B2B": "B2B",
         "SaaS / AI": "SaaS/AI",
     }
-    sr = {}
-    for full, short in sector_map.items():
-        tks = [c["ticker"] for c in COMPANIES if c["sector"] == full]
-        vs  = [returns_1m[t] for t in tks if returns_1m.get(t) is not None]
-        sr[short] = round(sum(vs) / len(vs), 1) if vs else None
-    vsr = {k: v for k, v in sr.items() if v is not None}
+    _descriptor = {
+        "Consumer Tech": "consumer-facing businesses",
+        "Fintech":        "financial-services names",
+        "B2B":            "B2B and enterprise names",
+        "SaaS/AI":        "AI-linked businesses",
+    }
+    _sr = {}
+    for _full, _short in _sector_map.items():
+        _tks = [c["ticker"] for c in COMPANIES if c["sector"] == _full]
+        _vs  = [returns_1m[t] for t in _tks if returns_1m.get(t) is not None]
+        _sr[_short] = round(sum(_vs) / len(_vs), 1) if _vs else None
+    vsr = {k: v for k, v in _sr.items() if v is not None}
     if vsr:
-        bs = max(vsr, key=vsr.get); ws = min(vsr, key=vsr.get)
-        sector_line = (f"Among the four sectors, {bs} led at "
-                       f"{'+' if vsr[bs] >= 0 else ''}{vsr[bs]:.1f}% "
-                       f"while {ws} trailed at {vsr[ws]:.1f}%.")
+        bs = max(vsr, key=vsr.get)
+        ws = min(vsr, key=vsr.get)
+        _desc = _descriptor.get(ws, ws.lower())
+        sector_line = (
+            f"{bs} was the best-performing sector in the cohort at "
+            f"+{vsr[bs]:.1f}%, while {ws} was the weakest at "
+            f"{'+' if vsr[ws] >= 0 else ''}{vsr[ws]:.1f}%, reflecting a clear "
+            f"investor preference for {_desc} this month."
+        )
     else:
+        bs = ws = None
         sector_line = "Sector breakdown unavailable for this window."
+
+    if spread > 0:
+        _bs_name = bs if bs else "its strongest sectors"
+        cond = (f"The cohort outpaced the broad index, with strength in {_bs_name} "
+                f"reinforcing the resilience of its domestic-demand and digital base.")
+    elif spread < 0:
+        _ws_name = ws if ws else "its weaker sectors"
+        cond = (f"The cohort lagged the broad index as weakness in {_ws_name} "
+                f"outweighed its broader domestic-demand resilience this month.")
+    else:
+        cond = ("The cohort tracked the broad index over the month, with company-specific "
+                "moves offsetting across sectors.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
@@ -975,56 +1002,80 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
     s3 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2g]
     s4 = [f"{name_map.get(t,t)} {p:+.1f}%; {_wl(t)}" for t, p in top2l]
 
-    # ── Section 6 bullets 3-4: block deals data ───────────────────────────────
+    # ── Section 6 bullet 3: 30-day trading volume from yfinance OHLCV ────────
     _cut30 = start_dt.isoformat()
     _cut60 = (today - timedelta(days=60)).isoformat()
-    s6_vol   = "[Trading volume data unavailable for this window]"
-    s6_block = "[No block deals data available for this window]"
+    s6_vol = None
     try:
-        from page_block_deals import _fetch_nse_csv_history as _bd_hist
-        _all = _bd_hist(days=60) or []
-        _d30 = [d for d in _all if str(d.get("Date", ""))[:10] >= _cut30]
-        _d60 = [d for d in _all if _cut60 <= str(d.get("Date", ""))[:10] < _cut30]
-        _vol30 = sum(d.get("Value (₹ Cr)", 0) or 0 for d in _d30)
-        _vol60 = sum(d.get("Value (₹ Cr)", 0) or 0 for d in _d60)
-        _vol_usd = _vol30 / max(usdinr * 100, 1)
-        if _vol60 > 0:
-            _mom = round((_vol30 - _vol60) / _vol60 * 100, 0)
-            _ud  = "up" if _mom >= 0 else "down"
-            s6_vol = (f"{_vol_usd:.2f} bn dollars of cohort shares traded over the month, "
-                      f"{_ud} {abs(int(_mom))}% versus the prior month.")
-        elif _vol30 > 0:
-            s6_vol = f"{_vol_usd:.2f} bn dollars of cohort shares traded over the month."
-        if _d30:
-            _lg   = max(_d30, key=lambda d: d.get("Value (₹ Cr)", 0) or 0)
-            _co   = (_lg.get("Company")
-                     or name_map.get(_lg.get("Symbol", ""), _lg.get("Symbol", "Unknown")))
-            _val  = _lg.get("Value (₹ Cr)", 0) or 0
-            _qty  = _lg.get("Quantity", 0) or 0
-            _px   = _lg.get("Price (₹)", 0) or 0
-            _tk   = _lg.get("Symbol", "")
-            _dp_s = ""
-            if price_cache and _tk in price_cache:
-                try:
-                    _pc = price_cache[_tk]
-                    if isinstance(_pc, pd.DataFrame) and not _pc.empty:
-                        for _col in ("close", "Close", "4. close"):
-                            if _col in _pc.columns:
-                                _curr = float(_pc[_col].dropna().iloc[-1])
-                                if _curr > 0 and _px > 0:
-                                    _d_pct = round((_px - _curr) / _curr * 100, 1)
-                                    _dp    = "premium" if _d_pct >= 0 else "discount"
-                                    _dp_s  = (f", at a {abs(_d_pct):.1f}% {_dp} "
-                                              f"to the prevailing price")
-                                break
-                except Exception:
-                    pass
-            s6_block = (f"Largest block: {_co}, {_val:.0f} Cr across "
-                        f"{_qty:,} shares at ₹{_px:.2f}{_dp_s}.")
+        _tickers_yf = [yf_ticker(c) for c in COMPANIES]
+        _raw_ohlcv  = yf.download(_tickers_yf, period="65d",
+                                   progress=False, auto_adjust=True)
+        if isinstance(_raw_ohlcv.columns, pd.MultiIndex):
+            _closes_v = _raw_ohlcv["Close"]
+            _vols_v   = _raw_ohlcv["Volume"]
+        else:
+            _closes_v = _raw_ohlcv[["Close"]] if "Close" in _raw_ohlcv else None
+            _vols_v   = _raw_ohlcv[["Volume"]] if "Volume" in _raw_ohlcv else None
+        if _closes_v is not None and _vols_v is not None and not _closes_v.empty:
+            _idx = pd.to_datetime(_closes_v.index).tz_localize(None)
+            _start30 = pd.Timestamp(start_dt)
+            _start60 = pd.Timestamp(today - timedelta(days=60))
+            _mask30 = (_idx >= _start30)
+            _mask60 = (_idx >= _start60) & (_idx < _start30)
+            _daily_val = (_closes_v * _vols_v)  # INR per day per stock
+            _sum30 = float(_daily_val[_mask30].sum().sum())   # total INR
+            _sum60 = float(_daily_val[_mask60].sum().sum())
+            _bn30  = _sum30 / (usdinr * 1e9)  # convert to USD billions
+            if _sum30 > 0:
+                if _sum60 > 0:
+                    _mom_v = round((_sum30 - _sum60) / _sum60 * 100, 0)
+                    _ud_v  = "up" if _mom_v >= 0 else "down"
+                    s6_vol = (f"{_bn30:.1f} bn dollars of cohort shares traded "
+                              f"over the month, {_ud_v} {abs(int(_mom_v))}% "
+                              f"versus the prior month.")
+                else:
+                    s6_vol = (f"{_bn30:.1f} bn dollars of cohort shares traded "
+                              f"over the month.")
     except Exception:
         pass
 
-    s6 = list(MONTHLY_TAKEAWAY_MACRO) + [s6_vol, s6_block]
+    # ── Section 6 bullet 4: largest block deal in 30-day window ─────────────
+    s6_block = None
+    try:
+        from page_block_deals import _fetch_nse_csv_history as _bd_hist
+        from page_block_deals import _FALLBACK_DEALS
+        _live  = _bd_hist() or []
+        _all_d = list(_live) + list(_FALLBACK_DEALS)
+        _d30   = [d for d in _all_d if str(d.get("Date", ""))[:10] >= _cut30]
+        if _d30:
+            _lg  = max(_d30, key=lambda d: d.get("Value (₹ Cr)", 0) or 0)
+            _co  = (_lg.get("Company")
+                    or name_map.get(_lg.get("Symbol", ""), _lg.get("Symbol", "Unknown")))
+            _val = _lg.get("Value (₹ Cr)", 0) or 0
+            _qty = _lg.get("Quantity", 0) or 0
+            _px  = _lg.get("Price (₹)", 0) or 0
+            _tk  = _lg.get("Symbol", "")
+            if _val > 0:
+                _dp_s = ""
+                if _px > 0 and price_cache and _tk in price_cache:
+                    try:
+                        _pc_v = price_cache[_tk]
+                        _curr = float(_pc_v.get("price", 0)) if isinstance(_pc_v, dict) else 0.0
+                        if _curr > 0:
+                            _d_pct = round((_px - _curr) / _curr * 100, 1)
+                            _dp    = "premium" if _d_pct >= 0 else "discount"
+                            _dp_s  = (f", at a {abs(_d_pct):.1f}% {_dp} "
+                                      f"to the prevailing price")
+                    except Exception:
+                        pass
+                _px_s = f" at ₹{_px:.2f}" if _px > 0 else ""
+                s6_block = (f"Largest block: {_co}, {_val:.0f} Cr across "
+                            f"{_qty:,} shares{_px_s}{_dp_s}.")
+    except Exception:
+        pass
+
+    _s6_extra = [b for b in [s6_vol, s6_block] if b]
+    s6 = list(MONTHLY_TAKEAWAY_MACRO) + _s6_extra
 
     sections = [
         {"type": "main_bullet",   "header": f"Index performance ; Z47^{_em} vs Nifty 500",
@@ -1062,65 +1113,71 @@ def _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
 
 def _s4_monthly_takeaway(df, returns_1m, mcaps, name_map,
                          usdinr=85.0, price_cache=None) -> None:
-    """Monthly Takeaway with draft generation and publish workflow."""
-    _DK   = "z47_monthly_draft"
-    draft = st.session_state.get(_DK)
-    _em   = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+    """Monthly Takeaway — public path shows published content only; admin path adds draft UI."""
+    _DK    = "z47_monthly_draft"
+    _admin = _is_admin()
+    _em    = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
 
-    if draft:
-        z  = draft.get("z_ret", 0.0)
-        n  = draft.get("n_ret", 0.0)
-        sp = draft.get("spread", 0.0)
-        _dir = "outperformed" if sp > 0 else "underperformed" if sp < 0 else "matched"
-        st.markdown(
-            f'<div style="background:#FFF8F3;border:1.5px solid {_OG};border-radius:8px;'
-            f'padding:16px 20px;margin:0 0 12px">'
-            f'<p style="font-size:11px;font-weight:700;color:{_OG};margin:0 0 8px;{_F}">'
-            f'DRAFT &nbsp;·&nbsp; NOT PUBLISHED &nbsp;·&nbsp; '
-            f'{draft.get("window","")}</p>'
-            f'<p style="font-size:13px;font-weight:600;color:{_BLK};margin:0 0 8px;{_F}">'
-            f'Reviewer checklist; verify before publishing:</p>'
-            f'<ul style="font-size:13px;color:{_DGR};margin:0 0 0 4px;'
-            f'padding-left:18px;line-height:1.8;{_F}">'
-            f'<li>Spread sign: Z47^{_em} {z:+.1f}% vs Nifty 500 {n:+.1f}%'
-            f' → {_dir} by {abs(sp):.1f} pp</li>'
-            f'<li>Section 2 names and weights match the Constituents table for this window</li>'
-            f'<li>Section 3 and 4 names and percentages are identical to the Top Movers panel</li>'
-            f'<li>Each "why" is verified against that month\'s news and results</li>'
-            f'<li>Section 6 bullets 3 and 4 placeholders updated with actual trading data</li>'
-            f'</ul>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        _pc1, _pc2 = st.columns(2, gap="small")
-        with _pc1:
-            if st.button("Publish takeaway", key="pub_monthly", type="primary"):
-                st.session_state["z47_monthly_published"] = draft["takeaway"]
-                st.session_state[_DK] = None
+    if _admin:
+        draft = st.session_state.get(_DK)
+        if draft:
+            z  = draft.get("z_ret", 0.0)
+            n  = draft.get("n_ret", 0.0)
+            sp = draft.get("spread", 0.0)
+            _dir = "outperformed" if sp > 0 else "underperformed" if sp < 0 else "matched"
+            st.markdown(
+                f'<div style="background:#FFF8F3;border:1.5px solid {_OG};border-radius:8px;'
+                f'padding:16px 20px;margin:0 0 12px">'
+                f'<p style="font-size:11px;font-weight:700;color:{_OG};margin:0 0 8px;{_F}">'
+                f'DRAFT &nbsp;·&nbsp; NOT PUBLISHED &nbsp;·&nbsp; '
+                f'{draft.get("window","")}</p>'
+                f'<p style="font-size:13px;font-weight:600;color:{_BLK};margin:0 0 8px;{_F}">'
+                f'Reviewer checklist; verify before publishing:</p>'
+                f'<ul style="font-size:13px;color:{_DGR};margin:0 0 0 4px;'
+                f'padding-left:18px;line-height:1.8;{_F}">'
+                f'<li>Spread sign: Z47^{_em} {z:+.1f}% vs Nifty 500 {n:+.1f}%'
+                f' → {_dir} by {abs(sp):.1f} pp</li>'
+                f'<li>Section 2 names and weights match the Constituents table for this window</li>'
+                f'<li>Section 3 and 4 names and percentages are identical to the Top Movers panel</li>'
+                f'<li>Each "why" is verified against that month\'s news and results</li>'
+                f'<li>Section 6 bullets 3 and 4 placeholders updated with actual trading data</li>'
+                f'</ul>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            _pc1, _pc2 = st.columns(2, gap="small")
+            with _pc1:
+                if st.button("Publish takeaway", key="pub_monthly", type="primary"):
+                    st.session_state["z47_monthly_published"] = draft["takeaway"]
+                    st.session_state[_DK] = None
+                    st.rerun()
+            with _pc2:
+                if st.button("Discard draft", key="dis_monthly"):
+                    st.session_state[_DK] = None
+                    st.rerun()
+            _s4_takeaway(override_tk=draft["takeaway"])
+        else:
+            published = st.session_state.get("z47_monthly_published")
+            _s4_takeaway(override_tk=published)
+
+        with st.expander("Generate new monthly draft", expanded=False):
+            st.markdown(
+                f'<p style="font-size:13px;color:{_DGR};margin:0;{_F}">'
+                f'Generates a draft from live data (index returns, constituents, '
+                f'sector averages). Review the checklist, then publish to make it '
+                f'live for this session.</p>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Generate draft", key="gen_monthly"):
+                with st.spinner("Generating…"):
+                    _d = _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
+                                               usdinr, price_cache)
+                st.session_state[_DK] = _d
                 st.rerun()
-        with _pc2:
-            if st.button("Discard draft", key="dis_monthly"):
-                st.session_state[_DK] = None
-                st.rerun()
-        _s4_takeaway(override_tk=draft["takeaway"])
     else:
+        # Public path: show only the published takeaway (or the hardcoded default)
         published = st.session_state.get("z47_monthly_published")
         _s4_takeaway(override_tk=published)
-
-    with st.expander("Generate new monthly draft", expanded=False):
-        st.markdown(
-            f'<p style="font-size:13px;color:{_DGR};margin:0;{_F}">'
-            f'Generates a draft from live data (index returns, constituents, '
-            f'sector averages). Review the checklist, then publish to make it '
-            f'live for this session.</p>',
-            unsafe_allow_html=True,
-        )
-        if st.button("Generate draft", key="gen_monthly"):
-            with st.spinner("Generating…"):
-                _d = _gen_monthly_takeaway(df, returns_1m, mcaps, name_map,
-                                           usdinr, price_cache)
-            st.session_state[_DK] = _d
-            st.rerun()
 
 
 def _s5_movers(returns_1m: dict, name_map: dict) -> None:
