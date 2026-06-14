@@ -584,8 +584,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         f'<div style="{_lc_vs}">{_idx_vs}</div>'
         f'<div style="font-size:22px;font-weight:700;color:{s_color};'
         f'white-space:nowrap;line-height:1.1;{_F}">{s_str}</div>'
-        f'<div style="font-size:12px;color:{_DGR};{_F}">Since 1 Jan 2024</div>'
-        f'<div style="{_sc}">Cumulative return spread</div>'
+        f'<div style="{_sc}">Since 1 Jan 2024</div>'
         f'</div>'
         # Card 4 — USD / INR
         f'<div style="{_cp}">'
@@ -610,6 +609,7 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                       key="z47fs_period")
 
     # ── Slice & rebase ─────────────────────────────────────────────────────────
+    # (must happen before period-responsive indicator so _pct_since uses right window)
     if period == "All":
         plot = df.copy()
     elif period == "YTD":
@@ -644,6 +644,27 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
         _x_kw = dict(tickformat="%d %b", tickfont=dict(size=12, **_tf))
         _y_kw = dict(tickfont=dict(size=12, **_tf))
 
+    # ── FIX 2: period-responsive indicator between toggle and chart ───────────
+    kw    = _period_kw(period)
+    z47_r = _pct_since(df, "z47_float",    **kw)
+    n5_r  = _pct_since(df, "n500_indexed", **kw)
+
+    def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
+    def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
+
+    _pl_s = (f"font-size:11px;font-weight:600;letter-spacing:0.08em;"
+             f"text-transform:uppercase;color:{_LGR};margin:0 0 2px;{_F}")
+    _pv_s = f"font-size:20px;font-weight:700;margin:0;line-height:1.1;{_F}"
+    st.markdown(
+        f'<div style="display:flex;gap:40px;padding:10px 0 12px;align-items:flex-start">'
+        f'<div><p style="{_pl_s}">{_idx_html}</p>'
+        f'<p style="{_pv_s};color:{_cc(z47_r)}">{_sign(z47_r)}</p></div>'
+        f'<div><p style="{_pl_s}">Nifty 500</p>'
+        f'<p style="{_pv_s};color:{_cc(n5_r)}">{_sign(n5_r)}</p></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
     # ── Build chart ────────────────────────────────────────────────────────────
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
@@ -661,8 +682,9 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
                     xanchor="center", x=0.5,
                     bgcolor="rgba(255,255,255,0)",
                     font=dict(size=13, color=_DGR, family="Inter")),
-        xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True, **_x_kw),
-        yaxis=dict(showgrid=True, gridcolor="#F5F5F5", showline=False, **_y_kw),
+        xaxis=dict(showgrid=False, linecolor=_BRD, linewidth=1, showline=True,
+                   ticklen=6, tickcolor="rgba(0,0,0,0)", **_x_kw),
+        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.05)", showline=False, **_y_kw),
         margin=dict(l=0, r=0, t=8, b=48),
         transition_duration=0,
     )
