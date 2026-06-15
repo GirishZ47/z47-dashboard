@@ -273,9 +273,8 @@ def generate() -> dict:
         cond = (f"The cohort lagged the broad index as weakness in {_ws_name} "
                 f"outweighed its broader domestic-demand resilience this month.")
     else:
-        cond = ("Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> "
-                "kept pace with the broader market despite a tougher macro backdrop, with its "
-                "domestic-demand orientation continuing to cushion global cyclical pressures.")
+        cond = ("The cohort kept pace with the broader market despite a tougher macro backdrop, "
+                "with its domestic-demand orientation continuing to cushion global cyclical pressures.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
