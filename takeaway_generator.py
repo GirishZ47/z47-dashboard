@@ -261,11 +261,14 @@ def generate() -> dict:
             f"{_desc}."
         )
 
-    if spread > 0:
+    # "behind" only fires on meaningful underperformance (>1pp) AND a genuinely
+    # negative worst sector; near-ties or flat-sector months get the near-tie line.
+    _worst_not_neg = (ws is None or _ws_v >= 0)
+    if spread > 1.0:
         _bs_name = bs if bs else "its strongest sectors"
         cond = (f"The cohort outpaced the broad index, with strength in {_bs_name} "
                 f"reinforcing the resilience of its domestic-demand and digital base.")
-    elif spread < 0:
+    elif spread < -1.0 and not _worst_not_neg:
         _ws_name = ws if ws else "its weaker sectors"
         cond = (f"The cohort lagged the broad index as weakness in {_ws_name} "
                 f"outweighed its broader domestic-demand resilience this month.")
