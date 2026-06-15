@@ -278,7 +278,7 @@ def _hero_band() -> None:
     """Full hero band — repeated verbatim before each of the 4 sections."""
     st.markdown(
         f'<div style="border-top:1.5px solid {_OG};border-bottom:1.5px solid {_OG};'
-        f'padding:28px 0;display:flex;flex-direction:column;gap:28px">'
+        f'padding:18px 0;display:flex;flex-direction:column;gap:16px">'
         f'<h1 style="margin:0;padding:0;font-size:28px;font-weight:800;'
         f'color:{_BLK};letter-spacing:-0.02em;line-height:1.1;{_F}">'
         f'Z47^<em style="font-style:italic">fortyseven</em></h1>'
@@ -306,8 +306,8 @@ def _section_label(label: str) -> None:
 
 
 def _section_spacer() -> None:
-    """80px gap between sections."""
-    st.markdown('<div style="height:80px"></div>', unsafe_allow_html=True)
+    """56px gap between sections."""
+    st.markdown('<div style="height:56px"></div>', unsafe_allow_html=True)
 
 
 def _s_kissht_takeaway() -> None:
@@ -1357,7 +1357,6 @@ def render() -> None:
     )
 
     # ── Hero band — rendered ONCE at the top regardless of active section ──────
-    st.markdown('<div style="padding-top:16px"></div>', unsafe_allow_html=True)
     _hero_band()
 
     # ── Load data — session-state cache avoids refetch on pill switches ──────
@@ -1507,7 +1506,7 @@ def render() -> None:
         )
     _active = st.session_state.z47fs_section
 
-    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
     # Each pill sizes to its label text; trailing gap keeps the strip left-aligned.
     # use_container_width=False lets each button shrink to content width so
     # "Methodology" is never forced into a narrow fixed-width box.
@@ -1524,7 +1523,7 @@ def render() -> None:
                 st.query_params["section"] = _sid
                 st.rerun()
     st.markdown(
-        "<hr style='border-color:#E8E8E8;margin:6px 0 14px 0'>",
+        "<hr style='border-color:#E8E8E8;margin:4px 0 8px 0'>",
         unsafe_allow_html=True,
     )
 

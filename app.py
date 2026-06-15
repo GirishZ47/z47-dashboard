@@ -125,6 +125,11 @@ def _run_startup_health_check() -> None:
 
 _run_startup_health_check()
 
+# ── Public-mode flag ─────────────────────────────────────────────────────────
+# Set to True to restore the full multi-tab app (Z47'47, IPOs, Block & Bulk Deals).
+# False = show only Z47^fortyseven; all other tabs are hidden but their code is intact.
+SHOW_INTERNAL_TABS = False
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Z47'47",
@@ -3534,7 +3539,18 @@ def refresh_all_recent_results() -> None:
 
 
 def main():
-    # Session state defaults
+    # ── Public mode: show only Z47^fortyseven, no tab strip ──────────────────
+    if not SHOW_INTERNAL_TABS:
+        try:
+            page_z47fortyseven.render()
+        except Exception as _page_err:
+            import traceback as _tb
+            st.error("⚠️ Z47fortyseven page encountered an error. Please refresh.")
+            print(f"[PAGE ERROR] z47fortyseven: {type(_page_err).__name__}: {_page_err}\n"
+                  f"{_tb.format_exc()}")
+        return
+
+    # ── Session state defaults ────────────────────────────────────────────────
     if "nav_page" not in st.session_state:
         st.session_state.nav_page = "z47"
     if "ipo_tab" not in st.session_state:
