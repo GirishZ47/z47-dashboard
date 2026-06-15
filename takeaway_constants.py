@@ -18,8 +18,8 @@ HARDCODED_INDEX_TAKEAWAY = {
     "updated":          "3 Jun 2026",
     # ── Flat bullet text (Z47’ tab backward compat) ───────────────────────
     "text": (
-        "• Index performance ; Z47fortyseven held while benchmarks slid. "
-        "Z47fortyseven traded broadly flat; Nifty fell ~2.6%, Sensex ~3.5% on FII outflows "
+        "• Index performance ; Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em> held while benchmarks slid. "
+        "Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em> traded broadly flat; Nifty fell ~2.6%, Sensex ~3.5% on FII outflows "
         "and post-RBI growth-cut pressure. The cohort’s underweight to oil, metals, and "
         "goods-export sectors is structural.\n"
         "• Market context ; the cohort proved it can absorb large institutional exits without dislocation. "
@@ -40,10 +40,10 @@ HARDCODED_INDEX_TAKEAWAY = {
     "sections": [
         {
             "type": "main_bullet",
-            "header": "Index performance ; Z47fortyseven held while benchmarks slid.",
+            "header": "Index performance ; Z47^<em style=’font-style:italic;text-transform:none’>fortyseven</em> held while benchmarks slid.",
             "sub_bullets": [
-                "Z47fortyseven traded broadly flat; Nifty fell ~2.6%, Sensex ∼3.5% on FII outflows and post-RBI growth-cut pressure.",
-                "The cohort’s underweight to oil, metals, and goods-export sectors is structural; Z47fortyseven is built around domestic compounders that hold up precisely when global cyclical sectors don’t.",
+                "Z47^<em style=’font-style:italic;text-transform:none’>fortyseven</em> traded broadly flat; Nifty fell ~2.6%, Sensex ∼3.5% on FII outflows and post-RBI growth-cut pressure.",
+                "The cohort’s underweight to oil, metals, and goods-export sectors is structural; Z47^<em style=’font-style:italic;text-transform:none’>fortyseven</em> is built around domestic compounders that hold up precisely when global cyclical sectors don’t.",
             ],
         },
         {

@@ -662,7 +662,7 @@ document.getElementById('z47cam').addEventListener('click', function() {
     # ── Build chart ────────────────────────────────────────────────────────────
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["z47_float"],
-        name="Z47^fortyseven", mode="lines",
+        name="Z47^<i>fortyseven</i>", mode="lines",
         line=dict(color=_OG, width=2.5),
         hovertemplate="%{x|%d %b %Y} · Z47: %{y:.1f}<extra></extra>"))
     fig.add_trace(go.Scatter(x=plot["date"], y=plot["n500_indexed"],
