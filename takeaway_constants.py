@@ -115,6 +115,10 @@ MONTHLY_TAKEAWAY_WHY = {
                    "correction despite continued revenue growth."),
     "MAPMYINDIA": ("muted revenue growth and slower government project execution kept "
                    "the stock under pressure."),
+    "RATEGAIN":   ("a strong Q4, driven by the Sojern integration and sharp margin recovery, "
+                   "reinforced confidence in the company's earnings trajectory."),
+    "MEESHO":     ("post-lock-in share supply and institutional exits weighed on the stock "
+                   "despite continued improvement in underlying profitability."),
 }
 
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)

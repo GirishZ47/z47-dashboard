@@ -39,7 +39,15 @@ except ImportError:
     MONTHLY_TAKEAWAY_MACRO = []
     MONTHLY_TAKEAWAY_NET_READ = []
 
-_NEUTRAL_WHY = "moved with the broader cohort this month."
+def _neutral_why(ret) -> str:
+    """Magnitude-aware fallback when a ticker has no library entry."""
+    if ret is None:
+        return "moved broadly in line with the cohort this month."
+    if ret > 5.0:
+        return "saw a sharp move on stock-specific factors this month."
+    if ret < -5.0:
+        return "declined on stock-specific factors this month."
+    return "moved broadly in line with the cohort this month."
 _OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "auto_monthly_takeaway.json")
 
 _SECTOR_MAP = {
@@ -294,7 +302,7 @@ def generate() -> dict:
         nm  = name_map.get(tk_, c["name"])
         ret = returns_1m.get(tk_)
         rs  = f"{ret:+.1f}%" if ret is not None else "—"
-        why = MONTHLY_TAKEAWAY_WHY.get(tk_, _NEUTRAL_WHY)
+        why = MONTHLY_TAKEAWAY_WHY.get(tk_) or _neutral_why(ret)
         s2.append(f"{nm} {rs}; {why}")
 
     # Sections 3 & 4: top/bottom 2 — sorted from same returns_1m
@@ -304,11 +312,11 @@ def generate() -> dict:
     top2g   = sorted(valid_r.items(), key=lambda x: -x[1])[:2]
     top2l   = sorted(valid_r.items(), key=lambda x:  x[1])[:2]
 
-    def _why(t):
-        return MONTHLY_TAKEAWAY_WHY.get(t, _NEUTRAL_WHY)
+    def _why(t, p):
+        return MONTHLY_TAKEAWAY_WHY.get(t) or _neutral_why(p)
 
-    s3 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t)}" for t, p in top2g]
-    s4 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t)}" for t, p in top2l]
+    s3 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t, p)}" for t, p in top2g]
+    s4 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t, p)}" for t, p in top2l]
 
     # Section 6 bullet 3: block deal
     s6_block = None
