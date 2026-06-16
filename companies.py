@@ -4,7 +4,7 @@
 # Sector counts: Consumer Tech 19 | Fintech 13 | B2B 6 | SaaS/AI 9 | Total 47
 # Constituent changes (full event log with divisors in constituent_events.json):
 #   30 May 2024: Awfis (AWFIS)         IN  [slot 34] — WeWork India (WEWORK)   OUT (retroactive erasure)
-#   14 Nov 2024: 360 One Wam (360ONE)  OUT — no direct replacement in revised constituent set
+#   14 Nov 2024: 360 One Wam (360ONE)  OUT; no direct replacement in revised constituent set
 #   16 Feb 2026: Aye Finance (AYE)     IN  [slot 40] — Smartworks (SMARTWORKS) OUT
 #    8 May 2026: Kissht (KISSHT)       IN  [slot 44] — Awfis prev@44 (AWFIS)  OUT (Awfis stays at slot 34)
 #   16 Jun 2026: Angel One (ANGELONE) / Affle (AFFLE) IN from 1 Jan 2024 (listed pre-base)

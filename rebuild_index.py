@@ -65,8 +65,8 @@ ENTRY_DATE = {
     "AWFIS":    pd.Timestamp("2024-05-30"),
     "AYE":      pd.Timestamp("2026-02-16"),
     "KISSHT":   pd.Timestamp("2026-05-08"),
-    "ANGELONE": pd.Timestamp("2024-01-02"),   # BASE_DATE — listed Oct 2020
-    "AFFLE":    pd.Timestamp("2024-01-02"),   # BASE_DATE — listed Aug 2019
+    "ANGELONE": pd.Timestamp("2024-01-02"),   # BASE_DATE, listed Oct 2020
+    "AFFLE":    pd.Timestamp("2024-01-02"),   # BASE_DATE, listed Aug 2019
     "AMAGI":    pd.Timestamp("2026-01-21"),   # listing date
     "FRACTAL":  pd.Timestamp("2026-02-16"),   # listing date
 }
@@ -519,6 +519,23 @@ def main():
                         if not synth.empty:
                             prices[tk] = synth
                             print(f"    {tk}: synthetic proxy from ff_mcap ({len(synth)} rows)")
+
+    # ── Validate: fail loudly if any CURRENTLY-ACTIVE constituent has no data ──
+    current_active = {
+        tk for tk in all_active_tickers
+        if effective_entry.get(tk, BASE_DATE) <= end_date
+        and effective_exit.get(tk) is None
+    }
+    missing_now = [
+        tk for tk in current_active
+        if prices.get(tk) is None or prices[tk].empty
+    ]
+    if missing_now:
+        raise RuntimeError(
+            f"FATAL: no price data for currently-active constituent(s): "
+            f"{missing_now}. Cannot build a valid index. "
+            f"Resolve the data gap before re-running."
+        )
 
     # ── Step 4: Collect all entry dates as rebalance triggers ────────────────
     print("\n── Entry event rebalance triggers ───────────────────────────────────")
