@@ -144,6 +144,31 @@ def _fetch_since_base() -> tuple:
         return None, None
 
 
+def _fetch_1m_from_history() -> tuple:
+    """Return (z47_1m_pct, n500_1m_pct) from z47_history.csv using the same
+    window as the app performance chart: last 30 calendar days of z47_float /
+    n500_indexed, identical to pct_since(df, col, days=30) in app.py."""
+    try:
+        _csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "z47_history.csv")
+        df = pd.read_csv(_csv, parse_dates=["date"])
+        df = df.sort_values("date").dropna(subset=["z47_float", "n500_indexed"])
+        last_date = df["date"].iloc[-1]
+        cutoff = last_date - pd.Timedelta(days=30)
+        sub = df[df["date"] >= cutoff]
+        if sub.empty:
+            return None, None
+        z_base = float(sub["z47_float"].iloc[0])
+        n_base = float(sub["n500_indexed"].iloc[0])
+        z_last = float(df["z47_float"].iloc[-1])
+        n_last = float(df["n500_indexed"].iloc[-1])
+        z_1m = round((z_last / z_base - 1) * 100, 1) if z_base else None
+        n_1m = round((n_last / n_base - 1) * 100, 1) if n_base else None
+        return z_1m, n_1m
+    except Exception as _e:
+        print(f"[gen] _fetch_1m_from_history failed: {_e}")
+        return None, None
+
+
 def _fetch_mcaps():
     def _get(c):
         try:
@@ -225,13 +250,16 @@ def generate() -> dict:
     returns_1m = _fetch_returns_1m()
 
     print("[gen] fetching market context...")
-    usdinr, n500_ret = _fetch_volume_and_context()
+    usdinr, _n500_ret_unused = _fetch_volume_and_context()
 
     print("[gen] fetching market caps...")
     mcaps = _fetch_mcaps()
 
     print("[gen] fetching since-base performance...")
     z_since, n_since = _fetch_since_base()
+
+    print("[gen] fetching 1M z47/n500 from history CSV (same series as chart)...")
+    _z_1m_csv, _n_1m_csv = _fetch_1m_from_history()
 
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
@@ -244,16 +272,21 @@ def generate() -> dict:
             return v
         return c.get("mkt_cap_mn", 0)
 
-    # Float-weighted Z47 return (uses same returns_1m for internal consistency)
-    total_w = sum(_wt(c) for c in COMPANIES)
-    z_ret   = 0.0
-    if total_w > 0:
-        for c in COMPANIES:
-            r = returns_1m.get(c["ticker"])
-            if r is not None:
-                z_ret += r * _wt(c) / total_w
-    z_ret  = round(z_ret, 1)
-    n_ret  = round(n500_ret, 1)
+    # 1M returns for the bullet: from z47_history.csv (same source as chart header).
+    # Fallback to float-weighted constituent average only if CSV read fails.
+    if _z_1m_csv is not None and _n_1m_csv is not None:
+        z_ret = _z_1m_csv
+        n_ret = _n_1m_csv
+    else:
+        total_w = sum(_wt(c) for c in COMPANIES)
+        _z_wt = 0.0
+        if total_w > 0:
+            for c in COMPANIES:
+                r = returns_1m.get(c["ticker"])
+                if r is not None:
+                    _z_wt += r * _wt(c) / total_w
+        z_ret = round(_z_wt, 1)
+        n_ret = round(_n500_ret_unused, 1)
     spread = round(z_ret - n_ret, 1)
 
     # Sector returns
@@ -286,7 +319,7 @@ def generate() -> dict:
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     if abs(spread) < 1.0:
-        _monthly_tail = "roughly in line with the Nifty 500."
+        _monthly_tail = "broadly in line."
     elif spread > 0:
         _monthly_tail = f"leading by {abs(spread):.1f} percentage points."
     else:
@@ -364,7 +397,7 @@ def generate() -> dict:
 
     sections = [
         {"type": "main_bullet",
-         "header": f"Index performance ; Z47^{_em} vs Nifty 500",
+         "header": "Index performance",
          "sub_bullets": s1},
         {"type": "main_bullet",
          "header": "Largest constituents ; the names that anchor the index",

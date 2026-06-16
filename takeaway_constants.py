@@ -102,7 +102,7 @@ MONTHLY_TAKEAWAY_WHY = {
     "ETERNAL":    "quick-commerce leadership and continued investment.",
     "GROWW":      "broking market-share gains and margin-funding growth.",
     "LENSKART":   "store densification and margin expansion.",
-    "CARTRADE":   "consumer auto-marketplace strength and a cash-rich balance sheet.",
+    "CARTRADE":   "auto-marketplace dominance and a cash-rich balance sheet.",
     "OLAELEC":    "Gen-3 platform rollout and in-house cell manufacturing progress.",
     "WAKEFIT":    "input-cost trends and post-lock-in share supply.",
     "MAPMYINDIA": "muted revenue growth and slower government project execution.",
@@ -135,7 +135,7 @@ MONTHLY_TAKEAWAY_MACRO = [
      "to shift from foreign investors to domestic institutions, creating a more "
      "durable shareholder base."),
     ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
-     "continued digital adoption across India remains a meaningful offset for much of the "
+     "continued digital penetration across India remains a meaningful offset for much of the "
      "cohort."),
 ]
 
@@ -548,29 +548,9 @@ HARDCODED_IPO_TAKEAWAYS = {
         "sections": [
             {
                 "type": "main_bullet",
-                "header": ("A modest listing pop followed by strong post-listing gains reinforced "
-                           "the market's preference for asset quality and disciplined underwriting "
-                           "over pure loan-book growth."),
-                "sub_bullets": [],
-            },
-            {
-                "type": "main_bullet",
-                "header": ("The listing helped reset perceptions around unsecured lending, creating "
-                           "a constructive valuation anchor for the issuers that follow."),
-                "sub_bullets": [],
-            },
-            {
-                "type": "main_bullet",
-                "header": ("The buyer mix was a notable positive, with strong participation from "
-                           "long-only domestic institutions supporting a more durable post-listing "
-                           "ownership base."),
-                "sub_bullets": [],
-            },
-            {
-                "type": "main_bullet",
-                "header": ("The IPO structure reflected improving market discipline, with "
-                           "predominantly primary capital raised to fund growth rather than provide "
-                           "liquidity to existing shareholders."),
+                "header": ("The listing reinforced the market's growing preference for disciplined "
+                           "lenders, expanding the investable universe for digital financial-services "
+                           "companies."),
                 "sub_bullets": [],
             },
             {
