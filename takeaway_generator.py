@@ -285,10 +285,15 @@ def generate() -> dict:
                       "the cohort held its ground against global headwinds.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
-    _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
+    if abs(spread) < 1.0:
+        _monthly_tail = "roughly in line with the Nifty 500."
+    elif spread > 0:
+        _monthly_tail = f"leading by {abs(spread):.1f} percentage points."
+    else:
+        _monthly_tail = f"trailing by {abs(spread):.1f} percentage points."
     _monthly_bullet = (
         f"The cohort moved {z_ret:+.1f}% over the month versus Nifty 500's "
-        f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."
+        f"{n_ret:+.1f}%, {_monthly_tail}"
     )
 
     if z_since is not None and n_since is not None:
@@ -298,8 +303,7 @@ def generate() -> dict:
         _since_ahd = "ahead" if _since_spread >= 0 else "behind"
         _since_bullet = (
             f"Z47^{_em} is {_z_dir} {abs(z_since):.1f}% since its January 2024 base date, "
-            f"versus Nifty 500's {_n_sign}%, finishing {abs(_since_spread):.1f} percentage "
-            f"points {_since_ahd}."
+            f"versus Nifty 500's {_n_sign}%, {_since_ahd} by {abs(_since_spread):.1f} percentage points."
         )
         s1 = [_since_bullet, _monthly_bullet, _reason_bullet]
     else:

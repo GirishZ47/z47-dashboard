@@ -117,9 +117,9 @@ MONTHLY_TAKEAWAY_WHY = {
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)
 MONTHLY_TAKEAWAY_THEMES = [
     ("In Q4FY26, Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort "
-     "grew its top line ~38%, more than 3x the broad market's ~12%."),
-    ("Operating leverage lifted margins about 4 percentage points into positive territory, "
-     "with 40 of 47 companies profitable, while broad-market margins stayed roughly flat."),
+     "grew its top line ~39%, more than 3x the broad market's ~12%."),
+    ("Operating leverage lifted margins around 5 percentage points into positive territory, "
+     "with 40 of 47 companies profitable, while broad-market net margins stayed roughly flat."),
     ("AI adoption runs deeper across this cohort than in the broader market, with companies "
      "using it to drive growth and reshape demand, not just improve efficiency."),
     ("The lending cohort grew earnings while improving asset quality, reflecting stronger "
