@@ -100,7 +100,7 @@ HARDCODED_INDEX_TAKEAWAY = {
 # missing tickers fall back to "[Update why for {name}]" at generation time.
 MONTHLY_TAKEAWAY_WHY = {
     "ETERNAL":    "quick-commerce leadership and continued investment.",
-    "GROWW":      "broking scale and margin-trading momentum.",
+    "GROWW":      "broking market-share gains and margin-funding growth.",
     "LENSKART":   "store densification and margin expansion.",
     "CARTRADE":   "consumer auto-marketplace strength and a cash-rich balance sheet.",
     "OLAELEC":    "Gen-3 platform rollout and in-house cell manufacturing progress.",
@@ -117,13 +117,13 @@ MONTHLY_TAKEAWAY_WHY = {
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)
 MONTHLY_TAKEAWAY_THEMES = [
     ("In Q4FY26, Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort "
-     "grew its top line ~39%, more than 3x the broad market's ~12%."),
-    ("Operating leverage lifted margins around 5 percentage points into positive territory, "
-     "with 40 of 47 companies profitable, while broad-market net margins stayed roughly flat."),
+     "grew top line ~39% YoY, more than 3x the broad market's ~12% growth."),
+    ("Operating leverage lifted net margins by around 5 percentage points into positive territory, "
+     "even as broad-market net margins remained roughly flat."),
+    ("With 40 of 47 companies now profitable, the cohort reflects a broader shift toward "
+     "profitable growth over growth at any cost."),
     ("AI adoption runs deeper across this cohort than in the broader market, with companies "
      "using it to drive growth and reshape demand, not just improve efficiency."),
-    ("The lending cohort grew earnings while improving asset quality, reflecting stronger "
-     "underwriting discipline and a more resilient growth profile."),
     ("Cash generation is increasingly defining the winners, enabling market leaders to fund "
      "acquisitions and expansion from their own balance sheets."),
 ]

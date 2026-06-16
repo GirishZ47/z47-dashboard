@@ -281,8 +281,8 @@ def generate() -> dict:
             f"{_desc}."
         )
 
-    _reason_bullet = ("Anchored in domestic demand and India's rising digital adoption, "
-                      "the cohort held its ground against global headwinds.")
+    _reason_bullet = ("Anchored in domestic demand and rising digital adoption, "
+                      "the cohort remained resilient amid global headwinds.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     if abs(spread) < 1.0:

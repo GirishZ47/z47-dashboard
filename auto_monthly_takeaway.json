@@ -1,52 +1,52 @@
 {
   "section_label": "MONTHLY TAKEAWAY",
-  "window": "17 May – 16 Jun 2026",
-  "date_range_label": "17 MAY – 16 JUN 2026",
-  "updated": "16 Jun 2026",
+  "window": "18 May – 17 Jun 2026",
+  "date_range_label": "18 MAY – 17 JUN 2026",
+  "updated": "17 Jun 2026",
   "sections": [
     {
       "type": "main_bullet",
       "header": "Index performance ; Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> vs Nifty 500",
       "sub_bullets": [
         "Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> is up 20.0% since its January 2024 base date, versus Nifty 500's +18.4%, ahead by 1.6 percentage points.",
-        "The cohort moved +2.2% over the month versus Nifty 500's +2.4%, roughly in line with the Nifty 500.",
-        "Anchored in domestic demand and India's rising digital adoption, the cohort held its ground against global headwinds.",
-        "SaaS/AI was the best-performing sector in the cohort at +7.6%, while Fintech was the weakest at +2.0%, reflecting growing investor interest in AI-linked businesses."
+        "The cohort moved +2.3% over the month versus Nifty 500's +0.6%, leading by 1.7 percentage points.",
+        "Anchored in domestic demand and rising digital adoption, the cohort remained resilient amid global headwinds.",
+        "B2B was the best-performing sector in the cohort at +7.0%, while Fintech was the weakest at +2.3%, reflecting growing investor interest in B2B and enterprise names."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Largest constituents ; the names that anchor the index",
       "sub_bullets": [
-        "Eternal (Zomato) [+2.6%]; quick-commerce leadership and continued investment.",
-        "Groww [+7.1%]; broking scale and margin-trading momentum.",
-        "Lenskart [+2.1%]; store densification and margin expansion."
+        "Eternal (Zomato) [+1.9%]; quick-commerce leadership and continued investment.",
+        "Groww [+11.2%]; broking market-share gains and margin-funding growth.",
+        "Lenskart [+1.4%]; store densification and margin expansion."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Top gainers",
       "sub_bullets": [
-        "CarTrade [+31.4%]; consumer auto-marketplace strength and a cash-rich balance sheet.",
-        "RateGain [+25.4%]; Sojern integration and margin recovery."
+        "CarTrade [+28.1%]; consumer auto-marketplace strength and a cash-rich balance sheet.",
+        "TBO Tek [+23.2%]; stock-specific factors and broader market conditions."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Top laggards",
       "sub_bullets": [
-        "Wakefit [-14.0%]; input-cost trends and post-lock-in share supply.",
-        "Meesho [-13.3%]; post-lock-in share supply and underlying profitability trajectory."
+        "Wakefit [-13.7%]; input-cost trends and post-lock-in share supply.",
+        "Meesho [-12.5%]; post-lock-in share supply and underlying profitability trajectory."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Key themes ; latest results",
       "sub_bullets": [
-        "In Q4FY26, Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort grew its top line ~39%, more than 3x the broad market's ~12%.",
-        "Operating leverage lifted margins around 5 percentage points into positive territory, with 40 of 47 companies profitable, while broad-market net margins stayed roughly flat.",
+        "In Q4FY26, Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort grew top line ~39% YoY, more than 3x the broad market's ~12% growth.",
+        "Operating leverage lifted net margins by around 5 percentage points into positive territory, even as broad-market net margins remained roughly flat.",
+        "With 40 of 47 companies now profitable, the cohort reflects a broader shift toward profitable growth over growth at any cost.",
         "AI adoption runs deeper across this cohort than in the broader market, with companies using it to drive growth and reshape demand, not just improve efficiency.",
-        "The lending cohort grew earnings while improving asset quality, reflecting stronger underwriting discipline and a more resilient growth profile.",
         "Cash generation is increasingly defining the winners, enabling market leaders to fund acquisitions and expansion from their own balance sheets."
       ]
     },
