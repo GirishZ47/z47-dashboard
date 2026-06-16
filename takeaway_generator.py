@@ -40,14 +40,8 @@ except ImportError:
     MONTHLY_TAKEAWAY_NET_READ = []
 
 def _neutral_why(ret) -> str:
-    """Magnitude-aware fallback when a ticker has no library entry."""
-    if ret is None:
-        return "moved broadly in line with the cohort this month."
-    if ret > 5.0:
-        return "saw a sharp move on stock-specific factors this month."
-    if ret < -5.0:
-        return "declined on stock-specific factors this month."
-    return "moved broadly in line with the cohort this month."
+    """Two-factor neutral fallback when a ticker has no library entry."""
+    return "stock-specific factors and broader market conditions."
 _OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "auto_monthly_takeaway.json")
 
 _SECTOR_MAP = {
@@ -135,6 +129,21 @@ def _fetch_volume_and_context():
     return usdinr, n500_ret
 
 
+def _fetch_since_base() -> tuple:
+    """Return (z47_since_pct, n500_since_pct) from history CSV (base 100 = 1 Jan 2024)."""
+    try:
+        _csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "z47_history.csv")
+        df = pd.read_csv(_csv, parse_dates=["date"])
+        df = df.sort_values("date").dropna(subset=["z47_float", "n500_indexed"])
+        last = df.iloc[-1]
+        z_since = round(float(last["z47_float"]) - 100.0, 1)
+        n_since = round(float(last["n500_indexed"]) - 100.0, 1)
+        return z_since, n_since
+    except Exception as _e:
+        print(f"[gen] _fetch_since_base failed: {_e}")
+        return None, None
+
+
 def _fetch_mcaps():
     def _get(c):
         try:
@@ -174,7 +183,7 @@ def _check_consistency(sections: list, returns_1m: dict) -> None:
             # bullet format: "Name +X.X%; why sentence"
             # strip HTML tags for matching
             clean = re.sub(r"<[^>]+>", "", bullet)
-            m = re.match(r"^(.+?)\s+([+-]\d+\.\d+)%", clean)
+            m = re.match(r"^(.+?)\s+\[?([+-]\d+\.\d+)%\]?", clean)
             if not m:
                 continue
             nm, pct_str = m.group(1).strip(), m.group(2)
@@ -220,6 +229,9 @@ def generate() -> dict:
 
     print("[gen] fetching market caps...")
     mcaps = _fetch_mcaps()
+
+    print("[gen] fetching since-base performance...")
+    z_since, n_since = _fetch_since_base()
 
     name_map = {c["ticker"]: c["name"] for c in COMPANIES}
 
@@ -269,28 +281,30 @@ def generate() -> dict:
             f"{_desc}."
         )
 
-    # "behind" only fires on meaningful underperformance (>1pp) AND a genuinely
-    # negative worst sector; near-ties or flat-sector months get the near-tie line.
-    _worst_not_neg = (ws is None or _ws_v >= 0)
-    if spread > 1.0:
-        _bs_name = bs if bs else "its strongest sectors"
-        cond = (f"The cohort outpaced the broad index, with strength in {_bs_name} "
-                f"reinforcing the resilience of its domestic-demand and digital base.")
-    elif spread < -1.0 and not _worst_not_neg:
-        _ws_name = ws if ws else "its weaker sectors"
-        cond = (f"The cohort lagged the broad index as weakness in {_ws_name} "
-                f"outweighed its broader domestic-demand resilience this month.")
-    else:
-        cond = ("The cohort kept pace with the broader market despite a tougher macro backdrop, "
-                "with its domestic-demand orientation continuing to cushion global cyclical pressures.")
+    _reason_bullet = ("Anchored in domestic demand and India's rising digital adoption, "
+                      "the cohort held its ground against global headwinds.")
 
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
-    s1 = [
-        (f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500’s "
-         f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."),
-        cond,
-    ]
+    _monthly_bullet = (
+        f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500's "
+        f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."
+    )
+
+    if z_since is not None and n_since is not None:
+        _z_dir = "up" if z_since >= 0 else "down"
+        _n_sign = f"+{n_since:.1f}" if n_since >= 0 else f"{n_since:.1f}"
+        _since_spread = round(z_since - n_since, 1)
+        _since_ahd = "ahead" if _since_spread >= 0 else "behind"
+        _since_bullet = (
+            f"Z47^{_em} is {_z_dir} {abs(z_since):.1f}% since its January 2024 base date, "
+            f"versus Nifty 500's {_n_sign}%, finishing {abs(_since_spread):.1f} percentage "
+            f"points {_since_ahd}."
+        )
+        s1 = [_since_bullet, _monthly_bullet, _reason_bullet]
+    else:
+        s1 = [_monthly_bullet, _reason_bullet]
+
     if sector_line:
         s1.append(sector_line)
 
@@ -303,7 +317,7 @@ def generate() -> dict:
         ret = returns_1m.get(tk_)
         rs  = f"{ret:+.1f}%" if ret is not None else "—"
         why = MONTHLY_TAKEAWAY_WHY.get(tk_) or _neutral_why(ret)
-        s2.append(f"{nm} {rs}; {why}")
+        s2.append(f"{nm} [{rs}]; {why}")
 
     # Sections 3 & 4: top/bottom 2 — sorted from same returns_1m
     # Matches _s5_movers: valid = {t: v for t,v in returns_1m.items() if v not None/NaN}
@@ -315,8 +329,8 @@ def generate() -> dict:
     def _why(t, p):
         return MONTHLY_TAKEAWAY_WHY.get(t) or _neutral_why(p)
 
-    s3 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t, p)}" for t, p in top2g]
-    s4 = [f"{name_map.get(t, t)} {p:+.1f}%; {_why(t, p)}" for t, p in top2l]
+    s3 = [f"{name_map.get(t, t)} [{p:+.1f}%]; {_why(t, p)}" for t, p in top2g]
+    s4 = [f"{name_map.get(t, t)} [{p:+.1f}%]; {_why(t, p)}" for t, p in top2l]
 
     # Section 6 bullet 3: block deal
     s6_block = None
@@ -342,7 +356,7 @@ def generate() -> dict:
     except Exception as _be:
         print(f"[gen] block deals skipped: {_be}")
 
-    s6 = list(MONTHLY_TAKEAWAY_MACRO) + ([s6_block] if s6_block else [])
+    s6 = list(MONTHLY_TAKEAWAY_MACRO)
 
     sections = [
         {"type": "main_bullet",

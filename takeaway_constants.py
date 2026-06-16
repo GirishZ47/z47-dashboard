@@ -99,26 +99,15 @@ HARDCODED_INDEX_TAKEAWAY = {
 # Add a ticker key for every company that could appear in sections 2/3/4;
 # missing tickers fall back to "[Update why for {name}]" at generation time.
 MONTHLY_TAKEAWAY_WHY = {
-    "ETERNAL":    ("continued reinvestment in quick commerce weighed on near-term "
-                   "sentiment; Blinkit delivered its first profitable quarter."),
-    "GROWW":      ("strong broking and margin-trading momentum supported performance; "
-                   "elevated valuations moderated further gains."),
-    "LENSKART":   ("continued store densification and margin expansion kept it among "
-                   "the stronger-performing large-weight constituents."),
-    "CARTRADE":   ("strong execution in its consumer auto marketplace and a cash-rich "
-                   "balance sheet supported sustained investor interest."),
-    "OLAELEC":    ("a sharp gross-margin turnaround driven by the Gen-3 platform and "
-                   "in-house cell manufacturing supported the stock despite softer "
-                   "revenue growth."),
-    "WAKEFIT":    ("margin compression from higher raw-material and marketing costs, "
-                   "coupled with significant post-lock-in share supply, drove a sharp "
-                   "correction despite continued revenue growth."),
-    "MAPMYINDIA": ("muted revenue growth and slower government project execution kept "
-                   "the stock under pressure."),
-    "RATEGAIN":   ("a strong Q4, driven by the Sojern integration and sharp margin recovery, "
-                   "reinforced confidence in the company's earnings trajectory."),
-    "MEESHO":     ("post-lock-in share supply and institutional exits weighed on the stock "
-                   "despite continued improvement in underlying profitability."),
+    "ETERNAL":    "quick-commerce leadership and continued investment.",
+    "GROWW":      "broking scale and margin-trading momentum.",
+    "LENSKART":   "store densification and margin expansion.",
+    "CARTRADE":   "consumer auto-marketplace strength and a cash-rich balance sheet.",
+    "OLAELEC":    "Gen-3 platform rollout and in-house cell manufacturing progress.",
+    "WAKEFIT":    "input-cost trends and post-lock-in share supply.",
+    "MAPMYINDIA": "muted revenue growth and slower government project execution.",
+    "RATEGAIN":   "Sojern integration and margin recovery.",
+    "MEESHO":     "post-lock-in share supply and underlying profitability trajectory.",
 }
 
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)
@@ -138,9 +127,10 @@ MONTHLY_TAKEAWAY_THEMES = [
 
 # Section 6 — hardcoded macro bullets (bullets 1-2); bullets 3-4 are auto-placeholders
 MONTHLY_TAKEAWAY_MACRO = [
-    ("Supply rotation from foreign VC exits to domestic institutional demand continued; "
-     "large block sales cleared without dislocation, and ownership is becoming structural "
-     "rather than flow-driven."),
+    ("The cohort saw several large block deals this month, including sizeable "
+     "post-lock-in stake sales in Lenskart and PB Fintech. Ownership continues "
+     "to shift from foreign investors to domestic institutions, creating a more "
+     "durable shareholder base."),
     ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
      "continued digital adoption across India remains a meaningful offset for much of the "
      "cohort."),
