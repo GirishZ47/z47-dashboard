@@ -53,7 +53,7 @@ def yf_sym(ticker: str, exchange: str) -> str:
 # ff_mcap at entry = mkt_cap_mn × float_pct / 100  (INR Mn)
 # After entry: ff_mcap(t) = ff_mcap_entry × price(t) / price(entry_date)
 PROXY_CONSTS = {}
-for _tk in ("NIVABUPA", "AYE", "KISSHT"):
+for _tk in ("AYE", "KISSHT", "ANGELONE", "AFFLE", "AMAGI", "FRACTAL"):
     _c = Z47_BY_TICKER[_tk]
     PROXY_CONSTS[_tk] = {
         "yf_sym":       yf_sym(_c["ticker"], _c["exchange"]),
@@ -63,9 +63,12 @@ for _tk in ("NIVABUPA", "AYE", "KISSHT"):
 # Entry dates for proxy and event-driven constituents (from constituent_events.json)
 ENTRY_DATE = {
     "AWFIS":    pd.Timestamp("2024-05-30"),
-    "NIVABUPA": pd.Timestamp("2024-11-14"),
     "AYE":      pd.Timestamp("2026-02-16"),
     "KISSHT":   pd.Timestamp("2026-05-08"),
+    "ANGELONE": pd.Timestamp("2024-01-02"),   # BASE_DATE — listed Oct 2020
+    "AFFLE":    pd.Timestamp("2024-01-02"),   # BASE_DATE — listed Aug 2019
+    "AMAGI":    pd.Timestamp("2026-01-21"),   # listing date
+    "FRACTAL":  pd.Timestamp("2026-02-16"),   # listing date
 }
 EXIT_DATE = {
     "AWFIS":      pd.Timestamp("2026-05-07"),   # trust constituent_events.json
@@ -454,7 +457,7 @@ def main():
             raw = raw.clip(lower=0)
             ff_mcap_daily[tk] = raw
 
-        # ── Proxy source (NIVABUPA, AYE, KISSHT) ──
+        # ── Proxy source (AYE, KISSHT, ANGELONE, AFFLE, AMAGI, FRACTAL) ──
         elif tk in PROXY_CONSTS:
             info    = PROXY_CONSTS[tk]
             entry   = ENTRY_DATE[tk]
@@ -712,7 +715,9 @@ def main():
             print(f"  Continuity {label}: data not available ({date_before}={v_before}, {date_on}={v_on})")
 
     check_continuity("Awfis entry",   "2024-05-29", "2024-05-30")
-    check_continuity("NivaBupa entry","2024-11-13", "2024-11-14")
+    check_continuity("360One exit",   "2024-11-13", "2024-11-14")
+    check_continuity("Amagi entry",   "2026-01-20", "2026-01-21")
+    check_continuity("Fractal entry", "2026-02-13", "2026-02-16")
     check_continuity("Aye entry",     "2026-02-13", "2026-02-16")
     check_continuity("Kissht entry",  "2026-05-07", "2026-05-08")
 

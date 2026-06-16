@@ -5,16 +5,16 @@ USAGE:
     from prompt_templates import IPO_TAKEAWAY_GENERATION_PROMPT
 
     prompt = IPO_TAKEAWAY_GENERATION_PROMPT.format(
-        company="Niva Bupa Health Insurance",
-        listing_date="TBD",
-        issue_price="74",
+        company="Fractal Analytics",
+        listing_date="16 Feb 2026",
+        issue_price="500",
         listing_premium="X%",
-        primary_ofs_split="55% primary / 45% OFS",
-        subscription_data="QIB 41x, NII 12x, Retail 3x",
+        primary_ofs_split="70% primary / 30% OFS",
+        subscription_data="QIB 35x, NII 10x, Retail 4x",
         anchor_investors="SBI MF, HDFC AMC, ...",
-        sector="Digital Health Insurance / Insurtech",
-        business_model="Health insurer with tech-led distribution",
-        valuation_vs_expectations="Priced at 5x P/B vs pre-IPO expectation of 4-5x",
+        sector="Enterprise AI / Analytics SaaS",
+        business_model="AI-powered decision intelligence for global enterprises",
+        valuation_vs_expectations="Priced at 8x P/S vs pre-IPO expectation of 7-9x",
         last_2_ipo_takeaways="[PASTE LAST 2 TAKEAWAYS HERE]",
     )
 

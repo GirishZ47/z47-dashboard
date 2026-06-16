@@ -108,6 +108,10 @@ MONTHLY_TAKEAWAY_WHY = {
     "MAPMYINDIA": "muted revenue growth and slower government project execution.",
     "RATEGAIN":   "Sojern integration and margin recovery.",
     "MEESHO":     "post-lock-in share supply and underlying profitability trajectory.",
+    "ANGELONE":   "digital broking scale and client-acquisition momentum.",
+    "AFFLE":      "mobile adtech scale and acquisition-led expansion.",
+    "AMAGI":      "cloud broadcast platform and global media wins.",
+    "FRACTAL":    "enterprise AI demand and large-client expansion.",
 }
 
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)

@@ -4,18 +4,18 @@
     "event_type": "swap",
     "removed": null,
     "added": "AWFIS",
-    "reason": "Awfis listing \u2014 WeWork India retroactively removed from index entirely (Option B clean erasure). Index ran on 46 constituents from 1 Jan 2024 to 29 May 2024, Awfis enters as the 47th member on its listing date.",
+    "reason": "Awfis listing — WeWork India retroactively removed from index entirely (Option B clean erasure). Index ran on 46 constituents from 1 Jan 2024 to 29 May 2024, Awfis enters as the 47th member on its listing date.",
     "divisor_before": 1.0,
     "divisor_after": 0.986423
   },
   {
     "effective_date": "2024-11-14",
-    "event_type": "swap",
+    "event_type": "exit",
     "removed": "360ONE",
-    "added": "NIVABUPA",
-    "reason": "Replace 360 One Wam with Niva Bupa Health Insurance \u2014 better new-age financial services thematic fit. 360 One stays in the historical series through 13 Nov 2024; Niva Bupa enters on its listing date with a divisor adjustment.",
-    "divisor_before": 0.986423,
-    "divisor_after": 1.013074
+    "added": null,
+    "reason": "360 One Wam exits index on 13 Nov 2024. In the revised constituent set (Jun 2026 rebalance), Niva Bupa is removed, so no direct replacement is credited at this date. Rebalance is triggered to reflect the exit.",
+    "divisor_before": null,
+    "divisor_after": null
   },
   {
     "effective_date": "2026-02-16",
@@ -31,7 +31,26 @@
     "event_type": "swap",
     "removed": "AWFIS",
     "added": "KISSHT",
-    "reason": "Kissht (OnEMI Technology) IPO listing replaces Awfis Space Solutions (at the Kissht slot, num 44). Awfis continues in the index at slot 34 as the retroactive WeWork replacement. Divisor adjusted in underlying Excel model; not recomputed here.",
+    "reason": "Kissht (OnEMI Technology) IPO listing replaces Awfis Space Solutions (at the Kissht slot, num 44). Awfis continues in the index at slot 34 as the retroactive WeWork replacement.",
+    "divisor_before": null,
+    "divisor_after": null
+  },
+  {
+    "effective_date": "2026-06-16",
+    "event_type": "batch_swap",
+    "removed": [
+      "HOMEFIRST",
+      "INDIASHLTR",
+      "YATRA",
+      "NIVABUPA"
+    ],
+    "added": [
+      "ANGELONE",
+      "AFFLE",
+      "AMAGI",
+      "FRACTAL"
+    ],
+    "reason": "June 2026 constituent rebalance. OUT: Home First Finance (sub-scale HFC), India Shelter Finance (sub-scale HFC), Yatra Online (small-cap travel OTA), Niva Bupa (removed retroactively from revised index). IN from 1 Jan 2024: Angel One (listed Oct 2020), Affle (listed Aug 2019). IN from listing date: Amagi Media Labs (listed 21 Jan 2026), Fractal Analytics (listed 16 Feb 2026). Full history recomputed with revised 47-name set.",
     "divisor_before": null,
     "divisor_after": null
   }
