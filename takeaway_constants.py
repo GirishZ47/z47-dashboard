@@ -131,7 +131,7 @@ MONTHLY_TAKEAWAY_THEMES = [
 # Section 6 — hardcoded macro bullets (bullets 1-2); bullets 3-4 are auto-placeholders
 MONTHLY_TAKEAWAY_MACRO = [
     ("The cohort saw several large block deals this month, including sizeable "
-     "post-lock-in stake sales in Lenskart and PB Fintech. Ownership continues "
+     "stake sales in Lenskart and PB Fintech. Ownership continues "
      "to shift from foreign investors to domestic institutions, creating a more "
      "durable shareholder base."),
     ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
