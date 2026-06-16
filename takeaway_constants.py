@@ -141,7 +141,8 @@ MONTHLY_TAKEAWAY_MACRO = [
 
 # Net Read — 2 hardcoded bullets (update each monthly refresh)
 MONTHLY_TAKEAWAY_NET_READ = [
-    "The cohort absorbed significant institutional supply without meaningful market dislocation.",
+    ("Fundamentals continued to strengthen across the cohort, with growth, margins, and cash "
+     "generation improving in tandem."),
     ("Performance dispersion widened, with profitability and earnings quality increasingly "
      "distinguishing the strongest performers from the rest."),
 ]
