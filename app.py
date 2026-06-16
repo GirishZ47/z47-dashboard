@@ -4406,9 +4406,53 @@ def _run_z47_desktop():
     for c in COMPANIES:
         sector_counts[c["sector"]] = sector_counts.get(c["sector"], 0) + 1
 
+    # Compute live index weights: ff_mcap per ticker, 10% cap, normalise, sum by sector.
+    _ff_mcaps_pie = {}
+    _missing_wt   = []
+    for c in COMPANIES:
+        mc = live_mktcaps.get(c["ticker"])
+        if mc is None:
+            _missing_wt.append(c["ticker"])
+        else:
+            mc_inr = mc["mc"] if mc["currency"] == "INR" else mc["mc"] * usdinr
+            _ff_mcaps_pie[c["ticker"]] = mc_inr * c["float_pct"] / 100.0
+
+    if _missing_wt:
+        st.error(
+            f"Sector weights unavailable: no live market cap data for "
+            f"{', '.join(_missing_wt)}. Refresh to retry."
+        )
+        _sector_weights = None
+    else:
+        _total_ff_pie = sum(_ff_mcaps_pie.values())
+        _CAP = 0.10
+        _raw_wts = {tk: v / _total_ff_pie for tk, v in _ff_mcaps_pie.items()}
+        for _ in range(20):
+            _over = {tk: w for tk, w in _raw_wts.items() if w > _CAP}
+            if not _over:
+                break
+            _excess    = sum(w - _CAP for w in _over.values())
+            _under_sum = sum(w for tk, w in _raw_wts.items() if w <= _CAP)
+            _raw_wts   = {
+                tk: (_CAP if tk in _over else w + _excess * w / _under_sum)
+                for tk, w in _raw_wts.items()
+            }
+        _wt_sum    = sum(_raw_wts.values())
+        _index_wts = {tk: v / _wt_sum * 100.0 for tk, v in _raw_wts.items()}
+        _sector_weights = {}
+        for c in COMPANIES:
+            s = c["sector"]
+            _sector_weights[s] = _sector_weights.get(s, 0.0) + _index_wts[c["ticker"]]
+
+    _sort_key = (lambda s: -_sector_weights[s]) if _sector_weights is not None else (lambda s: -sector_counts[s])
     s_df = pd.DataFrame([
-        {"Sector": k, "Count": v, "Color": SECTOR_COLORS.get(k, "#8b6d4a")}
-        for k, v in sorted(sector_counts.items(), key=lambda x: -x[1])
+        {
+            "Sector": s,
+            "Count":  sector_counts[s],
+            "Weight": round(_sector_weights[s], 1) if _sector_weights is not None else 0.0,
+            "Color":  SECTOR_COLORS.get(s, "#8b6d4a"),
+        }
+        for s in sorted(sector_counts, key=_sort_key)
     ])
 
     # Pastel colors + short display labels for the donut chart only
@@ -4429,48 +4473,51 @@ def _run_z47_desktop():
 
     col_pie, col_bar2 = st.columns([1, 2])
     with col_pie:
-        fig_pie = go.Figure(go.Pie(
-            labels=pie_labels,
-            values=s_df["Count"],
-            hole=0.5,
-            marker=dict(
-                colors=pie_colors,
-                line=dict(color="#cccccc", width=1.5),
-            ),
-            textinfo="label+percent",
-            textposition="inside",
-            insidetextorientation="horizontal",
-            textfont=dict(size=11, color="#1a1a1a"),
-            automargin=True,
-            hovertext=s_df["Sector"],
-            hovertemplate="%{hovertext}: %{value} companies (%{percent})<extra></extra>",
-        ))
-        fig_pie.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            showlegend=False,
-            uniformtext_minsize=9,
-            uniformtext_mode="hide",
-            margin=dict(l=10, r=10, t=10, b=10),
-            height=420,
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-        # Clean HTML legend with full sector names + pastel swatches
-        legend_parts = []
-        for s, v in zip(s_df["Sector"], s_df["Count"]):
-            bg = _PIE_PASTELS.get(s, "#eeeeee")
-            legend_parts.append(
-                f"<span style='display:inline-flex;align-items:center;margin:3px 10px 3px 0'>"
-                f"<span style='width:13px;height:13px;border-radius:3px;background:{bg};"
-                f"border:1px solid #ccc;display:inline-block;margin-right:5px'></span>"
-                f"<span style='font-size:11px;color:#1a1a1a'>{s} ({int(v)})</span></span>"
+        if _sector_weights is None:
+            st.warning("Donut chart requires live weights. See error above.")
+        else:
+            fig_pie = go.Figure(go.Pie(
+                labels=pie_labels,
+                values=s_df["Weight"],
+                hole=0.5,
+                marker=dict(
+                    colors=pie_colors,
+                    line=dict(color="#cccccc", width=1.5),
+                ),
+                textinfo="label+percent",
+                textposition="inside",
+                insidetextorientation="horizontal",
+                textfont=dict(size=11, color="#1a1a1a"),
+                automargin=True,
+                hovertext=s_df["Sector"],
+                hovertemplate="%{hovertext}: %{value:.1f}% of index weight<extra></extra>",
+            ))
+            fig_pie.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                uniformtext_minsize=9,
+                uniformtext_mode="hide",
+                margin=dict(l=10, r=10, t=10, b=10),
+                height=420,
             )
-        legend_html = "".join(legend_parts)
-        st.markdown(
-            f"<div style='text-align:center;margin-top:-8px;line-height:1.8'>{legend_html}</div>",
-            unsafe_allow_html=True,
-        )
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+            # Legend: "{Sector}  {N} co · {weight%}"
+            legend_parts = []
+            for s, cnt, wt in zip(s_df["Sector"], s_df["Count"], s_df["Weight"]):
+                bg = _PIE_PASTELS.get(s, "#eeeeee")
+                legend_parts.append(
+                    f"<span style='display:inline-flex;align-items:center;margin:3px 10px 3px 0'>"
+                    f"<span style='width:13px;height:13px;border-radius:3px;background:{bg};"
+                    f"border:1px solid #ccc;display:inline-block;margin-right:5px'></span>"
+                    f"<span style='font-size:11px;color:#1a1a1a'>{s}&nbsp;&nbsp;{int(cnt)} co &middot; {wt:.1f}%</span></span>"
+                )
+            legend_html = "".join(legend_parts)
+            st.markdown(
+                f"<div style='text-align:center;margin-top:-8px;line-height:1.8'>{legend_html}</div>",
+                unsafe_allow_html=True,
+            )
 
     with col_bar2:
         fig_sb = go.Figure(go.Bar(
