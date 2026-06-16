@@ -1,52 +1,52 @@
 {
   "section_label": "MONTHLY TAKEAWAY",
-  "window": "16 May – 15 Jun 2026",
-  "date_range_label": "16 MAY – 15 JUN 2026",
-  "updated": "15 Jun 2026",
+  "window": "17 May – 16 Jun 2026",
+  "date_range_label": "17 MAY – 16 JUN 2026",
+  "updated": "16 Jun 2026",
   "sections": [
     {
       "type": "main_bullet",
       "header": "Index performance ; Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> vs Nifty 500",
       "sub_bullets": [
-        "Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> moved +1.8% over the month versus Nifty 500’s +1.8%, finishing 0.0 percentage points in line.",
+        "Z47^<em style=\"font-style:italic;text-transform:none\">fortyseven</em> moved +1.7% over the month versus Nifty 500’s +2.4%, finishing 0.7 percentage points behind.",
         "The cohort kept pace with the broader market despite a tougher macro backdrop, with its domestic-demand orientation continuing to cushion global cyclical pressures.",
-        "SaaS/AI was the best-performing sector in the cohort at +7.2%, while Fintech was the weakest at +0.8%, reflecting growing investor interest in AI-linked businesses."
+        "SaaS/AI was the best-performing sector in the cohort at +7.7%, while Fintech was the weakest at +0.9%, reflecting growing investor interest in AI-linked businesses."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Largest constituents ; the names that anchor the index",
       "sub_bullets": [
-        "Eternal (Zomato) +3.4%; continued reinvestment in quick commerce weighed on near-term sentiment; Blinkit delivered its first profitable quarter.",
-        "Groww +9.8%; strong broking and margin-trading momentum supported performance; elevated valuations moderated further gains.",
-        "Lenskart +2.5%; continued store densification and margin expansion kept it among the stronger-performing large-weight constituents."
+        "Eternal (Zomato) +4.2%; continued reinvestment in quick commerce weighed on near-term sentiment; Blinkit delivered its first profitable quarter.",
+        "Groww +5.9%; strong broking and margin-trading momentum supported performance; elevated valuations moderated further gains.",
+        "Lenskart +3.3%; continued store densification and margin expansion kept it among the stronger-performing large-weight constituents."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Top gainers",
       "sub_bullets": [
-        "CarTrade +27.4%; strong execution in its consumer auto marketplace and a cash-rich balance sheet supported sustained investor interest.",
-        "RateGain +25.0%; a strong Q4, driven by the Sojern integration and sharp margin recovery, reinforced confidence in the company's earnings trajectory."
+        "CarTrade +30.7%; strong execution in its consumer auto marketplace and a cash-rich balance sheet supported sustained investor interest.",
+        "RateGain +28.0%; a strong Q4, driven by the Sojern integration and sharp margin recovery, reinforced confidence in the company's earnings trajectory."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Top laggards",
       "sub_bullets": [
-        "PolicyBazaar -13.6%; declined on stock-specific factors this month.",
-        "Meesho -13.2%; post-lock-in share supply and institutional exits weighed on the stock despite continued improvement in underlying profitability."
+        "Meesho -13.8%; post-lock-in share supply and institutional exits weighed on the stock despite continued improvement in underlying profitability.",
+        "Wakefit -13.2%; margin compression from higher raw-material and marketing costs, coupled with significant post-lock-in share supply, drove a sharp correction despite continued revenue growth."
       ]
     },
     {
       "type": "main_bullet",
       "header": "Key themes ; latest results",
       "sub_bullets": [
-        "Operating performance best captures the cohort's underlying progress this quarter; reported profit was shaped by one-off items and reinvestment.",
-        "Profit growth outpaced revenue across the cohort, reflecting improving operating leverage as businesses scaled.",
-        "AI is emerging as both a cost lever and a growth lever; the more significant value creation is coming from businesses using it to reshape demand, not just improve efficiency.",
-        "The lending cohort grew earnings while improving asset quality, as stronger underwriting discipline drove a more resilient growth profile.",
-        "Cash generation is increasingly defining success across the cohort, letting market leaders fund acquisitions and expansion from their own balance sheets."
+        "Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort delivered ~38% revenue growth in FY26, more than 3x the broad market's ~12%.",
+        "Operating leverage lifted net margins by nearly 5 percentage points into positive territory, with 38 of 47 companies now profitable, while broad-market net margins stayed roughly flat.",
+        "AI adoption runs deeper across this cohort than in the broader market, with companies using it to drive growth and reshape demand, not just improve efficiency.",
+        "The lending cohort grew earnings while improving asset quality, reflecting stronger underwriting discipline and a more resilient growth profile.",
+        "Cash generation is increasingly defining the winners, enabling market leaders to fund acquisitions and expansion from their own balance sheets."
       ]
     },
     {

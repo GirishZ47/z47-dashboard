@@ -123,17 +123,17 @@ MONTHLY_TAKEAWAY_WHY = {
 
 # Section 5 — Key themes; verbatim bullets (update each monthly refresh)
 MONTHLY_TAKEAWAY_THEMES = [
-    ("Operating performance best captures the cohort's underlying progress this quarter; "
-     "reported profit was shaped by one-off items and reinvestment."),
-    ("Profit growth outpaced revenue across the cohort, reflecting improving operating "
-     "leverage as businesses scaled."),
-    ("AI is emerging as both a cost lever and a growth lever; the more significant value "
-     "creation is coming from businesses using it to reshape demand, not just improve "
-     "efficiency."),
-    ("The lending cohort grew earnings while improving asset quality, as stronger "
-     "underwriting discipline drove a more resilient growth profile."),
-    ("Cash generation is increasingly defining success across the cohort, letting market "
-     "leaders fund acquisitions and expansion from their own balance sheets."),
+    ("Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort delivered "
+     "~38% revenue growth in FY26, more than 3x the broad market's ~12%."),
+    ("Operating leverage lifted net margins by nearly 5 percentage points into positive "
+     "territory, with 38 of 47 companies now profitable, while broad-market net margins "
+     "stayed roughly flat."),
+    ("AI adoption runs deeper across this cohort than in the broader market, with companies "
+     "using it to drive growth and reshape demand, not just improve efficiency."),
+    ("The lending cohort grew earnings while improving asset quality, reflecting stronger "
+     "underwriting discipline and a more resilient growth profile."),
+    ("Cash generation is increasingly defining the winners, enabling market leaders to fund "
+     "acquisitions and expansion from their own balance sheets."),
 ]
 
 # Section 6 — hardcoded macro bullets (bullets 1-2); bullets 3-4 are auto-placeholders
