@@ -287,7 +287,7 @@ def generate() -> dict:
     _em  = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
     _ahd = "ahead" if spread > 0 else "behind" if spread < 0 else "in line"
     _monthly_bullet = (
-        f"Z47^{_em} moved {z_ret:+.1f}% over the month versus Nifty 500's "
+        f"The cohort moved {z_ret:+.1f}% over the month versus Nifty 500's "
         f"{n_ret:+.1f}%, finishing {abs(spread):.1f} percentage points {_ahd}."
     )
 
