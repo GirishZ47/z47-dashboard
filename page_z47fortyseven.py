@@ -786,7 +786,13 @@ def _build_sections_html(sections: list) -> str:
                 hdr_html = (
                     f'<span style="font-weight:700;color:{_BLK}">{_process_bold(lbl)}</span>'
                     f'<span style="color:{_LGR}"> &nbsp;&#183;&nbsp; </span>'
-                    f'<span style="font-weight:500;color:{_BLK}">{_process_bold(verd)}</span>'
+                    f'<span style="font-weight:400;font-style:italic;color:{_BLK}">{_process_bold(verd)}</span>'
+                )
+            elif " - " in header:
+                lbl, verd = header.split(" - ", 1)
+                hdr_html = (
+                    f'<span style="font-weight:700;color:{_BLK}">{_process_bold(lbl)}</span>'
+                    f'<span style="font-weight:400;font-style:italic;color:{_BLK}"> - {_process_bold(verd)}</span>'
                 )
             else:
                 hdr_html = (
