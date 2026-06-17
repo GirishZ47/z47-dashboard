@@ -119,7 +119,7 @@ MONTHLY_TAKEAWAY_WHY = {
 MONTHLY_TAKEAWAY_THEMES = [
     ("In Q4FY26, Z47^<em style='font-style:italic;text-transform:none'>fortyseven</em>'s cohort "
      "grew top line ~39% YoY, more than 3x the broad market's ~12% growth."),
-    ("Operating leverage lifted net margins by around 5 percentage points into positive territory, "
+    ("Operating leverage lifted net margins around 500 bps into positive territory, "
      "even as broad-market net margins remained roughly flat."),
     ("With 40 of 47 companies now profitable, the cohort reflects a broader shift toward "
      "profitable growth over growth at any cost."),
