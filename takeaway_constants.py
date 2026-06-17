@@ -107,7 +107,8 @@ MONTHLY_TAKEAWAY_WHY = {
     "WAKEFIT":    "input-cost trends and post-lock-in share supply.",
     "MAPMYINDIA": "muted revenue growth and slower government project execution.",
     "RATEGAIN":   "Sojern integration and margin recovery.",
-    "MEESHO":     "post-lock-in share supply and underlying profitability trajectory.",
+    "MEESHO":     "competitive intensity and evolving profitability.",
+    "TBOTEK":     "travel-tech volume growth and take-rate expansion.",
     "ANGELONE":   "digital broking scale and client-acquisition momentum.",
     "AFFLE":      "mobile adtech scale and acquisition-led expansion.",
     "AMAGI":      "cloud broadcast platform and global media wins.",
@@ -124,16 +125,19 @@ MONTHLY_TAKEAWAY_THEMES = [
      "profitable growth over growth at any cost."),
     ("AI adoption runs deeper across this cohort than in the broader market, with companies "
      "using it to drive growth and reshape demand, not just improve efficiency."),
-    ("Cash generation is increasingly defining the winners, enabling market leaders to fund "
-     "acquisitions and expansion from their own balance sheets."),
+    ("Cash generation is increasingly defining the winners, enabling market leaders like "
+     "Eternal, CarTrade, and PB Fintech to fund acquisitions and expansion from their own "
+     "balance sheets."),
 ]
 
-# Section 6 — hardcoded macro bullets (bullets 1-2); bullets 3-4 are auto-placeholders
+# Section 6 — hardcoded macro bullets (all static)
 MONTHLY_TAKEAWAY_MACRO = [
     ("The cohort saw several large block deals this month, including sizeable "
-     "stake sales in Lenskart and PB Fintech. Ownership continues "
-     "to shift from foreign investors to domestic institutions, creating a more "
-     "durable shareholder base."),
+     "stake sales in Lenskart and Groww."),
+    ("Ownership continues to shift from foreign investors to domestic institutions, "
+     "creating a more durable shareholder base."),
+    ("AI remained the defining technology investment theme, driving capital deployment "
+     "across both private and public markets."),
     ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
      "continued digital penetration across India remains a meaningful offset for much of the "
      "cohort."),
@@ -572,15 +576,6 @@ HARDCODED_IPO_TAKEAWAYS = {
                            "predominantly primary capital raised to fund growth rather than provide "
                            "liquidity to existing shareholders."),
                 "sub_bullets": [],
-            },
-            {
-                "type": "section_title",
-                "header": "Net Read",
-                "sub_bullets": [
-                    ("The listing reinforced the market's growing preference for disciplined "
-                     "lenders, highlighting a broader opportunity set across digital "
-                     "financial-services companies."),
-                ],
             },
         ],
     },
