@@ -138,9 +138,6 @@ MONTHLY_TAKEAWAY_MACRO = [
      "creating a more durable shareholder base."),
     ("AI remained the defining technology investment theme, driving capital deployment "
      "across both private and public markets."),
-    ("Global headwinds (oil, a softer rupee, rate-cut delay, monsoon risk) persist, but "
-     "continued digital penetration across India remains a meaningful offset for much of the "
-     "cohort."),
 ]
 
 # Net Read — 2 hardcoded bullets (update each monthly refresh)
