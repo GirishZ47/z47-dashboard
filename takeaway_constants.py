@@ -548,18 +548,38 @@ HARDCODED_IPO_TAKEAWAYS = {
         "sections": [
             {
                 "type": "main_bullet",
-                "header": ("The listing reinforced the market's growing preference for disciplined "
-                           "lenders, expanding the investable universe for digital financial-services "
-                           "companies."),
+                "header": ("A modest listing pop followed by strong post-listing gains reinforced "
+                           "the market's preference for asset quality and disciplined underwriting "
+                           "over pure loan-book growth."),
+                "sub_bullets": [],
+            },
+            {
+                "type": "main_bullet",
+                "header": ("The listing helped reset perceptions around unsecured lending, creating "
+                           "a constructive valuation anchor for the issuers that follow."),
+                "sub_bullets": [],
+            },
+            {
+                "type": "main_bullet",
+                "header": ("The buyer mix was a notable positive, with strong participation from "
+                           "long-only domestic institutions supporting a more durable post-listing "
+                           "ownership base."),
+                "sub_bullets": [],
+            },
+            {
+                "type": "main_bullet",
+                "header": ("The IPO structure reflected improving market discipline, with "
+                           "predominantly primary capital raised to fund growth rather than provide "
+                           "liquidity to existing shareholders."),
                 "sub_bullets": [],
             },
             {
                 "type": "section_title",
                 "header": "Net Read",
                 "sub_bullets": [
-                    ("The listing broadened what public markets are willing to underwrite, with "
-                     "strong investor demand reinforcing confidence in digitally native lenders "
-                     "built on underwriting quality and asset performance."),
+                    ("The listing reinforced the market's growing preference for disciplined "
+                     "lenders, expanding the investable universe for digital financial-services "
+                     "companies."),
                 ],
             },
         ],
