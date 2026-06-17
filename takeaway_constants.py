@@ -578,8 +578,8 @@ HARDCODED_IPO_TAKEAWAYS = {
                 "header": "Net Read",
                 "sub_bullets": [
                     ("The listing reinforced the market's growing preference for disciplined "
-                     "lenders, expanding the investable universe for digital financial-services "
-                     "companies."),
+                     "lenders, highlighting a broader opportunity set across digital "
+                     "financial-services companies."),
                 ],
             },
         ],
