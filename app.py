@@ -2980,73 +2980,154 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
 
 # ── Utility ───────────────────────────────────────────────────────────────────
 
+_Z47_EXIT_BEFORE_APP = {"AWFIS": pd.Timestamp("2026-05-07")}
+
+
+def _apply_iterative_cap_app(ff_mcap_dict: dict, cap: float = 0.10) -> dict:
+    """Iteratively redistribute weight from names above cap to uncapped names."""
+    weights = {k: float(v) for k, v in ff_mcap_dict.items()}
+    total = sum(weights.values())
+    if total <= 0:
+        return weights
+    for k in weights:
+        weights[k] /= total
+    for _ in range(100):
+        over = {k: v for k, v in weights.items() if v > cap}
+        if not over:
+            break
+        excess = sum(v - cap for v in over.values())
+        under = {k: v for k, v in weights.items() if v <= cap}
+        u_total = sum(under.values())
+        for k in over:
+            weights[k] = cap
+        if u_total > 0:
+            for k in under:
+                weights[k] += excess * (weights[k] / u_total)
+    return weights
+
 def build_extended_df(hist, n500_live):
     """
     Extend the history CSV with ALL missing trading days up to today.
-    Uses yfinance to fetch Nifty 500 for each missing day and scales
-    Z47 proportionally from the last known anchor point.
-    Falls back to a single-today row if yfinance is unavailable.
+    Computes Z47 from constituent-weighted prices (free-float caps, 10% iterative
+    cap); N500 extended independently from ^CRSLDX. n500_live is unused but kept
+    for backward-compatible call sites.
     """
+    from concurrent.futures import ThreadPoolExecutor as _TPE
+
     last      = hist.iloc[-1]
     today     = pd.Timestamp.today().normalize()
     last_date = pd.Timestamp(last["date"]).normalize()
     if last_date >= today:
         return hist
 
-    nb_base  = float(last.get("n500_abs")  or 0)
-    z47_base = float(last["z47_float"])
-    ni_base  = float(last["n500_indexed"])
-    z47mc_b  = float(last.get("z47_mcap")  or z47_base)
+    last_z47 = float(last["z47_float"])
+    last_n5i = float(last["n500_indexed"])
+    last_n5a = float(last.get("n500_abs") or 0)
+
+    active = [c for c in COMPANIES
+              if _Z47_EXIT_BEFORE_APP.get(c["ticker"], pd.Timestamp("2099-12-31")) >= today]
+    ff_map = {c["ticker"]: c["mkt_cap_mn"] * c["float_pct"] / 100.0 for c in active}
+    weights = _apply_iterative_cap_app(ff_map)
+
+    dl_start = (last_date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
+    dl_end   = (today + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    yf_tks   = [yf_ticker(c) for c in active] + ["^CRSLDX"]
+    try:
+        raw    = yf.download(yf_tks, start=dl_start, end=dl_end,
+                             auto_adjust=True, progress=False, threads=True)
+        closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
+        closes.index = pd.DatetimeIndex(closes.index).normalize()
+    except Exception:
+        closes = pd.DataFrame()
+
+    base_px: dict = {}
+    if not closes.empty:
+        for c in active:
+            col = yf_ticker(c)
+            if col in closes.columns:
+                avail = closes[col].loc[closes.index <= last_date].dropna()
+                if not avail.empty:
+                    base_px[c["ticker"]] = float(avail.iloc[-1])
 
     new_rows: list[dict] = []
-    try:
-        gap_start = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        gap_end   = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        nf = yf.download("^CRSLDX", start=gap_start, end=gap_end,
-                         progress=False, auto_adjust=True)
-
-        def _close_series(df_yfin: "pd.DataFrame") -> "pd.Series":
-            if df_yfin.empty:
-                return pd.Series(dtype=float)
-            # yfinance ≥ 0.2.x may return MultiIndex columns
-            if isinstance(df_yfin.columns, pd.MultiIndex):
-                return df_yfin["Close"].squeeze()
-            return df_yfin["Close"].squeeze() if "Close" in df_yfin.columns else df_yfin.iloc[:, 0]
-
-        nf_close = _close_series(nf)
-
-        for dt in nf_close.index:
-            dt_norm = pd.Timestamp(dt).normalize()
-            if dt_norm <= last_date:
+    if not closes.empty:
+        gap_days = closes.index[(closes.index > last_date) & (closes.index < today)]
+        for dt in sorted(gap_days):
+            n5_px = None
+            if "^CRSLDX" in closes.columns:
+                v = closes["^CRSLDX"].get(dt)
+                if v is not None and not pd.isna(v):
+                    n5_px = float(v)
+            if n5_px is None or last_n5a <= 0:
                 continue
-            nb_new = float(nf_close.loc[dt])
-            if not nb_new or not nb_base:
+            num = denom = 0.0
+            for c in active:
+                w = weights.get(c["ticker"], 0.0)
+                p_b = base_px.get(c["ticker"])
+                col = yf_ticker(c)
+                p_n = None
+                if col in closes.columns:
+                    v = closes[col].get(dt)
+                    if v is not None and not pd.isna(v):
+                        p_n = float(v)
+                if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                    continue
+                num += w * p_n / p_b
+                denom += w
+            if denom < 0.5:
                 continue
-            ratio  = nb_new / nb_base
             new_rows.append({
-                "date":         dt_norm,
-                "z47_float":    round(z47_base * ratio, 4),
-                "z47_mcap":     round(z47mc_b  * ratio, 4),
-                "n500_indexed": round(ni_base  * ratio, 4),
-                "n500_abs":     round(nb_new, 2),
+                "date": dt,
+                "z47_float": round(last_z47 * num / denom, 4),
+                "z47_mcap":  round(last_z47 * num / denom, 4),
+                "n500_indexed": round(last_n5i * n5_px / last_n5a, 4),
+                "n500_abs":  round(n5_px, 2),
             })
-        if new_rows:
-            print(f"[build_extended_df] filled {len(new_rows)} missing trading days "
-                  f"({last_date.date()} → {today.date()})")
-    except Exception as _ext_e:
-        print(f"[build_extended_df] yfinance gap fill error: {_ext_e}")
+
+    def _get_px(c):
+        try:
+            px = float(yf.Ticker(yf_ticker(c)).fast_info.last_price)
+            return c["ticker"], px if px > 0.1 else None
+        except Exception:
+            return c["ticker"], None
+
+    with _TPE(max_workers=12) as ex:
+        today_px = dict(ex.map(_get_px, active))
+
+    n500_intraday = None
+    try:
+        n500_intraday = float(yf.Ticker("^CRSLDX").fast_info.last_price)
+    except Exception:
+        pass
+
+    if n500_intraday and last_n5a > 0:
+        num = denom = 0.0
+        for c in active:
+            w = weights.get(c["ticker"], 0.0)
+            p_b = base_px.get(c["ticker"])
+            p_n = today_px.get(c["ticker"])
+            if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                continue
+            num += w * p_n / p_b
+            denom += w
+        if denom >= 0.5 and num > 0:
+            new_rows.append({
+                "date": today,
+                "z47_float": round(last_z47 * num / denom, 4),
+                "z47_mcap":  round(last_z47 * num / denom, 4),
+                "n500_indexed": round(last_n5i * n500_intraday / last_n5a, 4),
+                "n500_abs":  round(n500_intraday, 2),
+            })
 
     if not new_rows:
-        # Fallback: single today row using live prices already in memory
-        ratio  = (n500_live / nb_base) if nb_base and n500_live else 1.0
-        new_rows = [{"date": today,
-                     "z47_float":    round(z47_base * ratio, 4),
-                     "z47_mcap":     round(z47mc_b  * ratio, 4),
-                     "n500_indexed": round(ni_base  * ratio, 4),
-                     "n500_abs":     n500_live or nb_base}]
+        return hist
 
     new_df = pd.DataFrame(new_rows).sort_values("date")
-    return pd.concat([hist, new_df], ignore_index=True)
+    result  = pd.concat([hist, new_df], ignore_index=True)
+    result  = result.drop_duplicates(subset=["date"], keep="last")
+    print(f"[build_extended_df] filled {len(new_rows)} row(s) "
+          f"({last_date.date()} -> {today.date()})")
+    return result.sort_values("date").reset_index(drop=True)
 
 
 def safe_render(fn, name: str) -> None:

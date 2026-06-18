@@ -129,12 +129,162 @@ def _fetch_volume_and_context():
     return usdinr, n500_ret
 
 
-def _fetch_since_base() -> tuple:
-    """Return (z47_since_pct, n500_since_pct) from history CSV (base 100 = 1 Jan 2024)."""
+_Z47_EXIT_BEFORE = {"AWFIS": pd.Timestamp("2026-05-07")}
+
+
+def _apply_iterative_cap(ff_mcap_dict: dict, cap: float = 0.10) -> dict:
+    """Iteratively redistribute weight from names above cap to uncapped names."""
+    weights = {k: float(v) for k, v in ff_mcap_dict.items()}
+    total = sum(weights.values())
+    if total <= 0:
+        return weights
+    for k in weights:
+        weights[k] /= total
+    for _ in range(100):
+        over = {k: v for k, v in weights.items() if v > cap}
+        if not over:
+            break
+        excess = sum(v - cap for v in over.values())
+        under = {k: v for k, v in weights.items() if v <= cap}
+        u_total = sum(under.values())
+        for k in over:
+            weights[k] = cap
+        if u_total > 0:
+            for k in under:
+                weights[k] += excess * (weights[k] / u_total)
+    return weights
+
+
+def _build_live_extended_df() -> pd.DataFrame:
+    """Load z47_history.csv and append today's live row from fast_info.
+
+    Mirrors _fetch_live_extension in page_z47fortyseven.py so the takeaway
+    generator's window end equals the chart's window end exactly."""
+    _csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "z47_history.csv")
+    df = pd.read_csv(_csv, parse_dates=["date"])
+    df = df.sort_values("date").dropna(subset=["z47_float", "n500_indexed"]).reset_index(drop=True)
+
+    today = pd.Timestamp.today().normalize()
+    last = df.iloc[-1]
+    last_date = pd.Timestamp(last["date"]).normalize()
+    last_z47 = float(last["z47_float"])
+    last_n5i = float(last["n500_indexed"])
+    last_n5a = float(last.get("n500_abs") or 0)
+
+    # Active constituents: exclude post-exit names
+    active = [c for c in COMPANIES
+              if _Z47_EXIT_BEFORE.get(c["ticker"], pd.Timestamp("2099-12-31")) >= today]
+    ff_map = {c["ticker"]: c["mkt_cap_mn"] * c["float_pct"] / 100.0 for c in active}
+    weights = _apply_iterative_cap(ff_map)
+
+    # Fetch daily closes from last_date-7d to today+1 (covers gap days + base prices)
+    dl_start = (last_date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
+    dl_end = (today + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    yf_tks = [yf_ticker(c) for c in active] + ["^CRSLDX"]
     try:
-        _csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "z47_history.csv")
-        df = pd.read_csv(_csv, parse_dates=["date"])
-        df = df.sort_values("date").dropna(subset=["z47_float", "n500_indexed"])
+        raw = yf.download(yf_tks, start=dl_start, end=dl_end,
+                          auto_adjust=True, progress=False, threads=True)
+        closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
+        closes.index = pd.DatetimeIndex(closes.index).normalize()
+    except Exception:
+        closes = pd.DataFrame()
+
+    # Base prices on last_date for each constituent
+    base_px: dict = {}
+    if not closes.empty:
+        for c in active:
+            col = yf_ticker(c)
+            if col in closes.columns:
+                avail = closes[col].loc[closes.index <= last_date].dropna()
+                if not avail.empty:
+                    base_px[c["ticker"]] = float(avail.iloc[-1])
+
+    new_rows: list[dict] = []
+
+    # Historical gap rows: last_date < day < today
+    if not closes.empty:
+        gap_days = closes.index[(closes.index > last_date) & (closes.index < today)]
+        for dt in sorted(gap_days):
+            n5_px = None
+            if "^CRSLDX" in closes.columns:
+                v = closes["^CRSLDX"].get(dt)
+                if v is not None and not pd.isna(v):
+                    n5_px = float(v)
+            if n5_px is None or last_n5a <= 0:
+                continue
+            num = denom = 0.0
+            for c in active:
+                w = weights.get(c["ticker"], 0.0)
+                p_b = base_px.get(c["ticker"])
+                col = yf_ticker(c)
+                p_n = None
+                if col in closes.columns:
+                    v = closes[col].get(dt)
+                    if v is not None and not pd.isna(v):
+                        p_n = float(v)
+                if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                    continue
+                num += w * p_n / p_b
+                denom += w
+            if denom < 0.5:
+                continue
+            new_rows.append({
+                "date": dt,
+                "z47_float": round(last_z47 * num / denom, 6),
+                "z47_mcap": round(last_z47 * num / denom, 6),
+                "n500_indexed": round(last_n5i * n5_px / last_n5a, 4),
+                "n500_abs": round(n5_px, 2),
+            })
+
+    # Today's intraday row via fast_info
+    def _get_px(c):
+        try:
+            px = float(yf.Ticker(yf_ticker(c)).fast_info.last_price)
+            return c["ticker"], px if px > 0.1 else None
+        except Exception:
+            return c["ticker"], None
+
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        today_px = dict(ex.map(_get_px, active))
+
+    n500_live = None
+    try:
+        n500_live = float(yf.Ticker("^CRSLDX").fast_info.last_price)
+    except Exception:
+        pass
+
+    if n500_live and last_n5a > 0:
+        num = denom = 0.0
+        for c in active:
+            w = weights.get(c["ticker"], 0.0)
+            p_b = base_px.get(c["ticker"])
+            p_n = today_px.get(c["ticker"])
+            if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                continue
+            num += w * p_n / p_b
+            denom += w
+        if denom >= 0.5 and num > 0:
+            new_rows.append({
+                "date": today,
+                "z47_float": round(last_z47 * num / denom, 6),
+                "z47_mcap": round(last_z47 * num / denom, 6),
+                "n500_indexed": round(last_n5i * n500_live / last_n5a, 4),
+                "n500_abs": round(n500_live, 2),
+            })
+
+    if not new_rows:
+        return df
+
+    new_df = pd.DataFrame(new_rows).sort_values("date")
+    result = pd.concat([df, new_df], ignore_index=True)
+    result = result.drop_duplicates(subset=["date"], keep="last")
+    return result.sort_values("date").reset_index(drop=True)
+
+
+def _fetch_since_base() -> tuple:
+    """Return (z47_since_pct, n500_since_pct) using the live-extended series."""
+    try:
+        df = _build_live_extended_df()
         last = df.iloc[-1]
         z_since = round(float(last["z47_float"]) - 100.0, 1)
         n_since = round(float(last["n500_indexed"]) - 100.0, 1)
@@ -145,13 +295,11 @@ def _fetch_since_base() -> tuple:
 
 
 def _fetch_1m_from_history() -> tuple:
-    """Return (z47_1m_pct, n500_1m_pct) from z47_history.csv using the same
-    window as the app performance chart: last 30 calendar days of z47_float /
-    n500_indexed, identical to pct_since(df, col, days=30) in app.py."""
+    """Return (z47_1m_pct, n500_1m_pct) from the live-extended series.
+
+    Uses today's intraday prices so the window end matches the app chart exactly."""
     try:
-        _csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "z47_history.csv")
-        df = pd.read_csv(_csv, parse_dates=["date"])
-        df = df.sort_values("date").dropna(subset=["z47_float", "n500_indexed"])
+        df = _build_live_extended_df()
         last_date = df["date"].iloc[-1]
         cutoff = last_date - pd.Timedelta(days=30)
         sub = df[df["date"] >= cutoff]

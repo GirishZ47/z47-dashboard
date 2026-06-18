@@ -312,7 +312,7 @@ def _fetch_price(symbol: str, exchange: str) -> dict:
     return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — 1M returns
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — 1M returns
 def _fetch_1m_returns() -> dict[str, float]:
     """1-calendar-month returns for all 47 companies, NaN-safe."""
     tickers = [yf_ticker(c) for c in COMPANIES]
@@ -345,7 +345,7 @@ def _fetch_1m_returns() -> dict[str, float]:
         return {}
 
 
-@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — market caps
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — market caps
 def _fetch_mcaps() -> dict:
     """Live market caps for all 47 companies."""
     def _get(c):
