@@ -2980,7 +2980,7 @@ def render_company_deep_dive(c, details, usdinr, price_data=None, mc_data=None):
 
 # ── Utility ───────────────────────────────────────────────────────────────────
 
-_Z47_EXIT_BEFORE_APP = {"AWFIS": pd.Timestamp("2026-05-07")}
+_Z47_EXIT_BEFORE_APP: dict = {}  # AWFIS (slot 34) remains active; see companies.py line 9
 
 
 def _apply_iterative_cap_app(ff_mcap_dict: dict, cap: float = 0.10) -> dict:

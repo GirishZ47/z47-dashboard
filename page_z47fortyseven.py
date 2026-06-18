@@ -103,10 +103,9 @@ def _load_history() -> pd.DataFrame:
 
 
 # Constituents with a past exit date that must be excluded from the live extension.
-# Matches EXIT_DATE in rebuild_index.py for tickers still present in COMPANIES.
-_Z47_EXIT_BEFORE: dict[str, pd.Timestamp] = {
-    "AWFIS": pd.Timestamp("2026-05-07"),
-}
+# AWFIS (slot 34, B2B) is active; the May 2026 event removed only a duplicate
+# slot-44 entry (replaced by KISSHT). No current ticker has an exit date.
+_Z47_EXIT_BEFORE: dict[str, pd.Timestamp] = {}
 
 
 def _apply_iterative_cap(ff_mcap_dict: dict, cap: float = 0.10) -> dict:

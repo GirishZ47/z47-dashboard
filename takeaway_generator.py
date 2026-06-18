@@ -129,7 +129,7 @@ def _fetch_volume_and_context():
     return usdinr, n500_ret
 
 
-_Z47_EXIT_BEFORE = {"AWFIS": pd.Timestamp("2026-05-07")}
+_Z47_EXIT_BEFORE: dict = {}  # AWFIS (slot 34) remains active; see companies.py line 9
 
 
 def _apply_iterative_cap(ff_mcap_dict: dict, cap: float = 0.10) -> dict:
