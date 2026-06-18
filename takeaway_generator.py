@@ -309,9 +309,7 @@ def generate() -> dict:
         _ws_sign = "roughly flat" if _ws_v == 0.0 else (f"+{_ws_v:.1f}%" if _ws_v > 0 else f"{_ws_v:.1f}%")
         sector_line = (
             f"{bs} was the best-performing sector in the cohort at "
-            f"{_bs_sign}, while {ws} was the weakest at "
-            f"{_ws_sign}, reflecting growing investor interest in "
-            f"{_desc}."
+            f"{_bs_sign}, reflecting growing investor interest in AI-linked businesses."
         )
 
     _reason_bullet = ("Anchored in domestic demand and rising digital adoption, "
