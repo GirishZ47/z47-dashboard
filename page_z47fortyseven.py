@@ -102,46 +102,170 @@ def _load_history() -> pd.DataFrame:
     return df.sort_values("date").reset_index(drop=True)
 
 
-def _extend_history(hist: pd.DataFrame, n500_live) -> pd.DataFrame:
-    """Fill all missing trading days via yfinance ratio-scaling."""
-    last      = hist.iloc[-1]
-    today     = pd.Timestamp.today().normalize()
-    last_date = pd.Timestamp(last["date"]).normalize()
-    if last_date >= today:
-        return hist
-    nb_base = float(last.get("n500_abs")  or 0)
-    z47_b   = float(last["z47_float"])
-    ni_b    = float(last["n500_indexed"])
-    z47mc_b = float(last.get("z47_mcap") or z47_b)
-    new_rows: list[dict] = []
+# Constituents with a past exit date that must be excluded from the live extension.
+# Matches EXIT_DATE in rebuild_index.py for tickers still present in COMPANIES.
+_Z47_EXIT_BEFORE: dict[str, pd.Timestamp] = {
+    "AWFIS": pd.Timestamp("2026-05-07"),
+}
+
+
+def _apply_iterative_cap(ff_mcap_dict: dict, cap: float = 0.10) -> dict:
+    """Iterative 10% per-name cap; identical logic to rebuild_index.py."""
+    active = {k: v for k, v in ff_mcap_dict.items() if v > 0}
+    if not active:
+        return {}
+    total = sum(active.values())
+    w = {k: v / total for k, v in active.items()}
+    for _ in range(100):
+        over = {k: wt for k, wt in w.items() if wt > cap + 1e-9}
+        if not over:
+            break
+        excess = sum(wt - cap for wt in over.values())
+        for k in over:
+            w[k] = cap
+        under = {k: wt for k, wt in w.items() if k not in over}
+        ut = sum(under.values())
+        if ut <= 0:
+            break
+        for k in under:
+            w[k] += excess * under[k] / ut
+    s = sum(w.values())
+    return {k: v / s for k, v in w.items()}
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def _fetch_live_extension(last_date_str: str, last_z47: float,
+                          last_n500_indexed: float, last_n500_abs: float) -> pd.DataFrame:
+    """
+    For every trading day after last_date_str through today, compute:
+      z47_float     : true constituent-weighted cohort index level
+      n500_indexed  : Nifty 500 rebased series, fetched independently from ^CRSLDX
+    Z47 is NEVER derived from N500. Each series uses its own price source.
+    Cached for 15 minutes so intraday moves are captured without hammering yfinance.
+    """
     try:
-        s  = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        e  = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        nf = yf.download("^CRSLDX", start=s, end=e, progress=False, auto_adjust=True)
-        def _cls(d):
-            if d.empty: return pd.Series(dtype=float)
-            if isinstance(d.columns, pd.MultiIndex): return d["Close"].squeeze()
-            return d["Close"].squeeze() if "Close" in d.columns else d.iloc[:, 0]
-        nfc = _cls(nf)
-        for dt in nfc.index:
-            dn = pd.Timestamp(dt).normalize()
-            if dn <= last_date: continue
-            nb_new = float(nfc.loc[dt])
-            if not nb_new or not nb_base: continue
-            r = nb_new / nb_base
-            new_rows.append({"date": dn,
-                "z47_float": round(z47_b*r,4), "z47_mcap": round(z47mc_b*r,4),
-                "n500_indexed": round(ni_b*r,4),
-                "n500_abs": round(nb_new,2)})
+        last_date = pd.Timestamp(last_date_str)
+        today     = pd.Timestamp.today().normalize()
+        if last_date >= today:
+            return pd.DataFrame()
+
+        # Active constituents: all COMPANIES excluding past exits
+        active_cos = [
+            c for c in COMPANIES
+            if _Z47_EXIT_BEFORE.get(c["ticker"], pd.Timestamp("2099-12-31")) >= today
+        ]
+
+        # Static ff_mcap weights (mkt_cap_mn x float_pct/100) then 10% cap.
+        # These are close to the last quarterly rebalance weights; valid for
+        # the few days between CSV cutoff and today.
+        ff_map  = {c["ticker"]: c["mkt_cap_mn"] * c["float_pct"] / 100.0
+                   for c in active_cos}
+        weights = _apply_iterative_cap(ff_map)
+
+        # Download prices: active constituents + ^CRSLDX
+        yf_tks   = [yf_ticker(c) for c in active_cos] + ["^CRSLDX"]
+        dl_start = (last_date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
+        dl_end   = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+
+        raw = yf.download(yf_tks, start=dl_start, end=dl_end,
+                          auto_adjust=True, progress=False, threads=True)
+        if isinstance(raw, pd.DataFrame) and raw.empty:
+            return pd.DataFrame()
+
+        closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
+        closes.index = pd.DatetimeIndex(closes.index).normalize()
+        if isinstance(closes, pd.Series):
+            closes = closes.to_frame()
+
+        # N500 series — independent from Z47
+        n500_s = (closes["^CRSLDX"].dropna()
+                  if "^CRSLDX" in closes.columns
+                  else pd.Series(dtype=float))
+
+        # Base prices: last available on or before last_date for each constituent
+        base_px: dict[str, float] = {}
+        for c in active_cos:
+            col = yf_ticker(c)
+            if col in closes.columns:
+                avail = closes[col].loc[:last_date].dropna()
+                if not avail.empty:
+                    base_px[c["ticker"]] = float(avail.iloc[-1])
+
+        new_days = closes.index[closes.index > last_date]
+        if new_days.empty:
+            return pd.DataFrame()
+
+        rows = []
+        for dt in new_days:
+            # Z47: weighted sum of (price_today / price_csv_last) ratios
+            num   = 0.0
+            denom = 0.0
+            for c in active_cos:
+                z47tk = c["ticker"]
+                col   = yf_ticker(c)
+                w     = weights.get(z47tk, 0.0)
+                if w == 0:
+                    continue
+                p_base = base_px.get(z47tk)
+                if not p_base or p_base <= 0:
+                    continue
+                if col not in closes.columns:
+                    continue
+                avail = closes[col].loc[:dt].dropna()
+                if avail.empty:
+                    continue
+                num   += w * float(avail.iloc[-1]) / p_base
+                denom += w
+
+            if denom < 0.5 or num <= 0:
+                continue
+
+            z47_today = last_z47 * num / denom
+
+            # N500 from ^CRSLDX, rebased consistently with the CSV series
+            n500_avail = n500_s.loc[:dt].dropna()
+            if n500_avail.empty:
+                continue
+            n500_abs_now = float(n500_avail.iloc[-1])
+            if last_n500_abs <= 0:
+                continue
+            n500_idx_now = last_n500_indexed * n500_abs_now / last_n500_abs
+
+            rows.append({
+                "date":         dt,
+                "z47_float":    round(z47_today, 6),
+                "z47_mcap":     round(z47_today, 6),
+                "n500_indexed": round(n500_idx_now, 4),
+                "n500_abs":     round(n500_abs_now, 2),
+            })
+
+        if not rows:
+            return pd.DataFrame()
+        return (pd.DataFrame(rows)
+                .sort_values("date")
+                .reset_index(drop=True))
+
     except Exception as _e:
-        print(f"[z47fs extend_history] {_e}")
-    if not new_rows:
-        ratio = (n500_live / nb_base) if nb_base and n500_live else 1.0
-        new_rows = [{"date": today, "z47_float": round(z47_b*ratio,4),
-            "z47_mcap": round(z47mc_b*ratio,4),
-            "n500_indexed": round(ni_b*ratio,4),
-            "n500_abs": n500_live or nb_base}]
-    return pd.concat([hist, pd.DataFrame(new_rows).sort_values("date")], ignore_index=True)
+        print(f"[z47fs live_extension] {_e}")
+        return pd.DataFrame()
+
+
+def _extend_history(hist: pd.DataFrame) -> pd.DataFrame:
+    """Append live-computed extension rows to the CSV history."""
+    if hist.empty:
+        return hist
+    last  = hist.iloc[-1]
+    extra = _fetch_live_extension(
+        str(last["date"])[:10],
+        float(last["z47_float"]),
+        float(last["n500_indexed"]),
+        float(last["n500_abs"]),
+    )
+    if extra.empty:
+        return hist
+    return (pd.concat([hist, extra], ignore_index=True)
+            .sort_values("date")
+            .reset_index(drop=True))
 
 
 @st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — constituent prices
@@ -1424,7 +1548,7 @@ def render() -> None:
                     price_cache[_ftk] = _fpd
 
             try:
-                df = _extend_history(hist, n500_live) if not hist.empty else pd.DataFrame()
+                df = _extend_history(hist) if not hist.empty else pd.DataFrame()
             except Exception as _e:
                 _fetch_errors.append(f"extend_history:{_e}")
                 df = hist if not hist.empty else pd.DataFrame()
