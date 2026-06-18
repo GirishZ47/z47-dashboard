@@ -78,7 +78,7 @@ def _card_wrap(extra=""):
 # Data helpers — self-contained, no app.py imports
 # ─────────────────────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — matches "updated hourly" claim
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — intraday refresh
 def _live_indices() -> tuple:
     n500 = usdinr = fx_chg = None
     try:    n500   = round(float(yf.Ticker("^CRSLDX").fast_info.last_price), 2)
@@ -133,15 +133,15 @@ def _apply_iterative_cap(ff_mcap_dict: dict, cap: float = 0.10) -> dict:
     return {k: v / s for k, v in w.items()}
 
 
-@st.cache_data(ttl=900, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _fetch_live_extension(last_date_str: str, last_z47: float,
                           last_n500_indexed: float, last_n500_abs: float) -> pd.DataFrame:
     """
     For every trading day after last_date_str through today, compute:
       z47_float     : true constituent-weighted cohort index level
       n500_indexed  : Nifty 500 rebased series, fetched independently from ^CRSLDX
-    Z47 is NEVER derived from N500. Each series uses its own price source.
-    Cached for 15 minutes so intraday moves are captured without hammering yfinance.
+    Closed days use daily-close prices; today uses fast_info (intraday, ~15-min delay).
+    Z47 is NEVER derived from N500. 5-minute cache for intraday moves.
     """
     try:
         last_date = pd.Timestamp(last_date_str)
@@ -156,33 +156,29 @@ def _fetch_live_extension(last_date_str: str, last_z47: float,
         ]
 
         # Static ff_mcap weights (mkt_cap_mn x float_pct/100) then 10% cap.
-        # These are close to the last quarterly rebalance weights; valid for
-        # the few days between CSV cutoff and today.
         ff_map  = {c["ticker"]: c["mkt_cap_mn"] * c["float_pct"] / 100.0
                    for c in active_cos}
         weights = _apply_iterative_cap(ff_map)
 
-        # Download prices: active constituents + ^CRSLDX
+        # ── Step 1: Historical closed days (daily closes via yf.download) ──────
         yf_tks   = [yf_ticker(c) for c in active_cos] + ["^CRSLDX"]
         dl_start = (last_date - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
-        dl_end   = (today     + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        dl_end   = today.strftime("%Y-%m-%d")      # exclusive → through yesterday
 
         raw = yf.download(yf_tks, start=dl_start, end=dl_end,
                           auto_adjust=True, progress=False, threads=True)
-        if isinstance(raw, pd.DataFrame) and raw.empty:
-            return pd.DataFrame()
+        closes = pd.DataFrame()
+        if not (isinstance(raw, pd.DataFrame) and raw.empty):
+            closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
+            closes.index = pd.DatetimeIndex(closes.index).normalize()
+            if isinstance(closes, pd.Series):
+                closes = closes.to_frame()
 
-        closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
-        closes.index = pd.DatetimeIndex(closes.index).normalize()
-        if isinstance(closes, pd.Series):
-            closes = closes.to_frame()
+        n500_hist = (closes["^CRSLDX"].dropna()
+                     if "^CRSLDX" in closes.columns
+                     else pd.Series(dtype=float))
 
-        # N500 series — independent from Z47
-        n500_s = (closes["^CRSLDX"].dropna()
-                  if "^CRSLDX" in closes.columns
-                  else pd.Series(dtype=float))
-
-        # Base prices: last available on or before last_date for each constituent
+        # Base prices: last available on or before last_date
         base_px: dict[str, float] = {}
         for c in active_cos:
             col = yf_ticker(c)
@@ -191,58 +187,82 @@ def _fetch_live_extension(last_date_str: str, last_z47: float,
                 if not avail.empty:
                     base_px[c["ticker"]] = float(avail.iloc[-1])
 
-        new_days = closes.index[closes.index > last_date]
-        if new_days.empty:
-            return pd.DataFrame()
+        rows: list[dict] = []
+        hist_days = closes.index[closes.index > last_date] if not closes.empty else pd.DatetimeIndex([])
 
-        rows = []
-        for dt in new_days:
-            # Z47: weighted sum of (price_today / price_csv_last) ratios
-            num   = 0.0
-            denom = 0.0
+        for dt in hist_days:
+            px_map: dict[str, float] = {}
             for c in active_cos:
-                z47tk = c["ticker"]
-                col   = yf_ticker(c)
-                w     = weights.get(z47tk, 0.0)
-                if w == 0:
-                    continue
-                p_base = base_px.get(z47tk)
-                if not p_base or p_base <= 0:
-                    continue
-                if col not in closes.columns:
-                    continue
-                avail = closes[col].loc[:dt].dropna()
-                if avail.empty:
-                    continue
-                num   += w * float(avail.iloc[-1]) / p_base
-                denom += w
-
-            if denom < 0.5 or num <= 0:
-                continue
-
-            z47_today = last_z47 * num / denom
-
-            # N500 from ^CRSLDX, rebased consistently with the CSV series
-            n500_avail = n500_s.loc[:dt].dropna()
+                col = yf_ticker(c)
+                if col in closes.columns:
+                    avail = closes[col].loc[:dt].dropna()
+                    if not avail.empty:
+                        px_map[c["ticker"]] = float(avail.iloc[-1])
+            n500_avail = n500_hist.loc[:dt].dropna()
             if n500_avail.empty:
                 continue
             n500_abs_now = float(n500_avail.iloc[-1])
-            if last_n500_abs <= 0:
+            # inline computation (avoids closure issue with base_px)
+            num = denom = 0.0
+            for c in active_cos:
+                w = weights.get(c["ticker"], 0.0)
+                p_b = base_px.get(c["ticker"])
+                p_n = px_map.get(c["ticker"])
+                if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                    continue
+                num += w * p_n / p_b; denom += w
+            if denom < 0.5 or num <= 0 or last_n500_abs <= 0:
                 continue
-            n500_idx_now = last_n500_indexed * n500_abs_now / last_n500_abs
-
             rows.append({
                 "date":         dt,
-                "z47_float":    round(z47_today, 6),
-                "z47_mcap":     round(z47_today, 6),
-                "n500_indexed": round(n500_idx_now, 4),
+                "z47_float":    round(last_z47 * num / denom, 6),
+                "z47_mcap":     round(last_z47 * num / denom, 6),
+                "n500_indexed": round(last_n500_indexed * n500_abs_now / last_n500_abs, 4),
                 "n500_abs":     round(n500_abs_now, 2),
             })
+
+        # ── Step 2: Today's intraday row via fast_info (~15-min delayed) ────────
+        def _fast_px(c):
+            try:
+                fi = yf.Ticker(yf_ticker(c)).fast_info
+                px = float(fi.last_price)
+                return c["ticker"], (px if px and px > 0.1 else None)
+            except Exception:
+                return c["ticker"], None
+
+        with ThreadPoolExecutor(max_workers=12) as _ex:
+            today_px: dict[str, float | None] = dict(_ex.map(_fast_px, active_cos))
+
+        n500_today_abs: float | None = None
+        try:
+            n500_today_abs = float(yf.Ticker("^CRSLDX").fast_info.last_price)
+        except Exception:
+            if not n500_hist.empty:
+                n500_today_abs = float(n500_hist.iloc[-1])
+
+        if n500_today_abs and n500_today_abs > 0 and last_n500_abs > 0:
+            num = denom = 0.0
+            for c in active_cos:
+                w = weights.get(c["ticker"], 0.0)
+                p_b = base_px.get(c["ticker"])
+                p_n = today_px.get(c["ticker"])
+                if w == 0 or not p_b or p_b <= 0 or not p_n or p_n <= 0:
+                    continue
+                num += w * p_n / p_b; denom += w
+            if denom >= 0.5 and num > 0:
+                rows.append({
+                    "date":         today,
+                    "z47_float":    round(last_z47 * num / denom, 6),
+                    "z47_mcap":     round(last_z47 * num / denom, 6),
+                    "n500_indexed": round(last_n500_indexed * n500_today_abs / last_n500_abs, 4),
+                    "n500_abs":     round(n500_today_abs, 2),
+                })
 
         if not rows:
             return pd.DataFrame()
         return (pd.DataFrame(rows)
                 .sort_values("date")
+                .drop_duplicates(subset=["date"], keep="last")
                 .reset_index(drop=True))
 
     except Exception as _e:
@@ -268,7 +288,7 @@ def _extend_history(hist: pd.DataFrame) -> pd.DataFrame:
             .reset_index(drop=True))
 
 
-@st.cache_data(ttl=3600, show_spinner=False)   # 1-hr TTL — constituent prices
+@st.cache_data(ttl=300, show_spinner=False)   # 5-min TTL — constituent prices
 def _fetch_price(symbol: str, exchange: str) -> dict:
     """Live price: fast_info → history(5d) → {}."""
     tk = symbol + ".NS" if exchange == "NSE" else symbol
@@ -1430,7 +1450,7 @@ def render() -> None:
 
     # ── Adaptive auto-refresh: 3 min during market hours, 15 min outside ─────
     _mh = _is_market_hours()
-    _refresh_ms = 180_000 if _mh else 900_000
+    _refresh_ms = 300_000 if _mh else 900_000
     st_autorefresh(interval=_refresh_ms, key="z47fs_autorefresh")
 
     # ── Weekly content cache refresh (Monday-keyed, idempotent) ──────────────
@@ -1497,7 +1517,7 @@ def render() -> None:
     # Each source is isolated: one failed ticker/feed never crashes the page.
     _ss         = st.session_state
     _now_epoch  = datetime.now(_IST_TZ).timestamp()
-    _DATA_TTL_S = 3600  # 1-hour TTL — matches "updated hourly" claim
+    _DATA_TTL_S = 300   # 5-min TTL — intraday refresh
     _have_cache = "z47fs_cache" in _ss
     _cache_age  = _now_epoch - _ss.get("z47fs_fetch_epoch", 0.0)
     # Outside market hours: never hit the network; serve whatever cache we have.
@@ -1614,6 +1634,7 @@ def render() -> None:
         _fetch_1m_returns.clear()
         _fetch_mcaps.clear()
         _load_history.clear()
+        _fetch_live_extension.clear()
         for _k in ("z47fs_cache", "z47fs_fetch_ts", "z47fs_fetch_epoch"):
             _ss.pop(_k, None)
         print(f"[FORCE-REFRESH {_now_ist_str('%Y-%m-%d %H:%M IST')}] user clicked 🔄")
