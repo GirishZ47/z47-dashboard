@@ -1402,10 +1402,24 @@ def _s9_methodology() -> None:
     )
 
     # ── Sub-section 4: Disclosure ─────────────────────────────────────────────
-    s4 = _sub_section("DISCLAIMER", [
-        "For informational and discussion purposes only. Not investment advice. Past "
-        "performance is not indicative of future results.",
-    ])
+    _disc_em = '<em style="font-style:italic;text-transform:none">fortyseven</em>'
+    _disc_p  = f"font-size:14px;color:{_DGR};line-height:1.65;{_F}"
+    s4 = (
+        f'<p style="{_lbl("margin-top:28px")};">DISCLAIMER</p>'
+        f'<p style="{_disc_p};margin:0 0 14px">Z47^{_disc_em} is published for '
+        f'informational purposes only and does not constitute investment advice, or any '
+        f'offer, solicitation, or recommendation to buy or sell securities. Index '
+        f'performance is historical and should not be construed as indicative of future '
+        f'results.</p>'
+        f'<p style="{_disc_p};margin:0">While reasonable care has been taken in compiling '
+        f'the information used in the index, no representation or warranty, express or '
+        f'implied, is made as to the accuracy, completeness, timeliness or suitability of '
+        f'the index or any related information. Neither Z47 nor any of its affiliates, '
+        f'partners, employees, officers, directors, agents or representatives shall have '
+        f'any liability whatsoever for any loss or damage arising directly or indirectly '
+        f'from the use of, reliance upon, or reference to the index or any information '
+        f'relating thereto.</p>'
+    )
 
     st.markdown(s1 + s2 + s3 + s4, unsafe_allow_html=True)
 
