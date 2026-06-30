@@ -367,37 +367,34 @@ def _fetch_mcaps() -> dict:
 # Utility helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _pct_since(df: pd.DataFrame, col: str,
-               months: int | None = None, years: int | None = None,
-               ytd: bool = False, all_time: bool = False) -> float | None:
-    """Return % change for col over the window.
-    months/years use same-calendar-date convention (Google Finance style):
-    base = first df row on or after (end_date - N months/years)."""
-    if df.empty: return None
-    last = df[col].iloc[-1]
-    if all_time:
-        sub = df
-    elif ytd:
-        yr  = df["date"].iloc[-1].year
-        sub = df[df["date"] >= pd.Timestamp(yr, 1, 1)]
-    elif months:
-        cut = df["date"].iloc[-1] - pd.DateOffset(months=months)
-        sub = df[df["date"] >= cut]
-    elif years:
-        cut = df["date"].iloc[-1] - pd.DateOffset(years=years)
-        sub = df[df["date"] >= cut]
-    else:
+def _period_cut(end: pd.Timestamp, period: str) -> pd.Timestamp | None:
+    """Single source of truth for window anchors (Google Finance calendar convention).
+
+    Returns the calendar anchor date; caller finds the first trading row >= this date.
+    Returns None for 'All' (caller uses the full series).
+    end = latest available trading date (today's live close).
+    """
+    if period == "1M":  return end - pd.DateOffset(months=1)
+    if period == "3M":  return end - pd.DateOffset(months=3)
+    if period == "6M":  return end - pd.DateOffset(months=6)
+    if period == "1Y":  return end - pd.DateOffset(years=1)
+    if period == "YTD": return pd.Timestamp(end.year, 1, 1)
+    return None  # "All" — use full series from inception
+
+
+def _pct_since(df: pd.DataFrame, col: str, period: str) -> float | None:
+    """% change for col over period, using _period_cut for the base date.
+    All callers pass the same period string so the window is always identical."""
+    if df.empty:
         return None
-    if sub.empty: return None
+    end  = df["date"].iloc[-1]
+    last = df[col].iloc[-1]
+    cut  = _period_cut(end, period)
+    sub  = df if cut is None else df[df["date"] >= cut]
+    if sub.empty:
+        return None
     base = sub[col].iloc[0]
     return round((last / base - 1) * 100, 2) if base and base != 0 else None
-
-
-def _period_kw(period: str) -> dict:
-    if period == "All": return {"all_time": True}
-    if period == "YTD": return {"ytd": True}
-    if period == "1Y":  return {"years": 1}
-    return {"months": {"1M": 1, "3M": 3, "6M": 6}[period]}
 
 
 def _delta_html(v, suffix="%", size=13):
@@ -626,8 +623,8 @@ def _s2_performance(df: pd.DataFrame, n500_live=None, usdinr: float = 85.0,
     last    = df.iloc[-1]
     now_ts  = _now_ist_str()
     z47_v   = float(last["z47_float"])
-    z47_all = _pct_since(df, "z47_float",    all_time=True)
-    n5_all  = _pct_since(df, "n500_indexed", all_time=True)
+    z47_all = _pct_since(df, "z47_float",    "All")
+    n5_all  = _pct_since(df, "n500_indexed", "All")
     spread  = round(z47_all - n5_all, 1) if z47_all is not None and n5_all is not None else None
     s_str   = (f"+{spread:.1f}%" if spread and spread >= 0
                else (f"{spread:.1f}%" if spread is not None else "—"))
@@ -754,18 +751,8 @@ document.getElementById('z47cam').addEventListener('click', function() {
 
     # ── Slice & rebase ─────────────────────────────────────────────────────────
     # (must happen before period-responsive indicator so _pct_since uses right window)
-    if period == "All":
-        plot = df.copy()
-    elif period == "YTD":
-        yr   = df["date"].iloc[-1].year
-        plot = df[df["date"] >= pd.Timestamp(yr, 1, 1)].copy()
-    elif period == "1Y":
-        cut  = df["date"].iloc[-1] - pd.DateOffset(years=1)
-        plot = df[df["date"] >= cut].copy()
-    else:
-        months = {"1M": 1, "3M": 3, "6M": 6}[period]
-        cut    = df["date"].iloc[-1] - pd.DateOffset(months=months)
-        plot   = df[df["date"] >= cut].copy()
+    cut  = _period_cut(df["date"].iloc[-1], period)
+    plot = df.copy() if cut is None else df[df["date"] >= cut].copy()
 
     if not plot.empty:
         base = plot.iloc[0]
@@ -791,10 +778,9 @@ document.getElementById('z47cam').addEventListener('click', function() {
         _x_kw = dict(tickformat="%d %b", tickfont=dict(size=12, **_tf))
         _y_kw = dict(tickfont=dict(size=12, **_tf))
 
-    # ── FIX 2: period-responsive indicator between toggle and chart ───────────
-    kw    = _period_kw(period)
-    z47_r = _pct_since(df, "z47_float",    **kw)
-    n5_r  = _pct_since(df, "n500_indexed", **kw)
+    # ── period-responsive indicator between toggle and chart ─────────────────
+    z47_r = _pct_since(df, "z47_float",    period)
+    n5_r  = _pct_since(df, "n500_indexed", period)
 
     def _sign(v): return (f"+{v:.1f}%" if v >= 0 else f"{v:.1f}%") if v is not None else "—"
     def _cc(v):   return (_GRN if v >= 0 else _RED) if v is not None else _LGR
@@ -854,14 +840,9 @@ def _s3_returns(df: pd.DataFrame) -> None:
     """Section 3 — Returns heatmap matrix, fully inline-styled."""
     st.markdown(f'<p style="{_lbl()}">RETURNS SUMMARY</p>', unsafe_allow_html=True)
 
-    periods = [
-        ("1M",            {"months": 1}),
-        ("3M",            {"months": 3}),
-        ("6M",            {"months": 6}),
-        ("1Y",            {"years": 1}),
-        ("YTD",           {"ytd": True}),
-        ("Since Jan 2024", {"all_time": True}),
-    ]
+    periods = ["1M", "3M", "6M", "1Y", "YTD", "All"]
+    period_labels = {"1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
+                     "YTD": "YTD", "All": "Since Jan 2024"}
     rows_cfg = [
         ('Z47^<em style="font-style:italic">fortyseven</em>', "z47_float"),
         ("Nifty 500",      "n500_indexed"),
@@ -874,15 +855,15 @@ def _s3_returns(df: pd.DataFrame) -> None:
     tbl   = (f'<div style="overflow-x:auto">'
              f'<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
              f'<thead><tr><th style="{th_l}"></th>')
-    for lbl, _ in periods:
-        tbl += f'<th style="{th_s}">{lbl}</th>'
+    for p in periods:
+        tbl += f'<th style="{th_s}">{period_labels[p]}</th>'
     tbl += "</tr></thead><tbody>"
     for idx_name, col in rows_cfg:
         tbl += (f'<tr><td style="padding:14px 16px;font-size:14px;font-weight:700;'
                 f'color:{_BLK};border-bottom:1px solid {_BRD};white-space:nowrap;{_F}">'
                 f'{idx_name}</td>')
-        for _, kw in periods:
-            v  = _pct_since(df, col, **kw)
+        for p in periods:
+            v  = _pct_since(df, col, p)
             vs = (f"+{v:.1f}%" if v > 0 else f"{v:.1f}%") if v is not None else "—"
             # No background tint — signal carried entirely by text colour
             tc = _GRN if (v or 0) > 0 else (_RED if (v or 0) < 0 else _LGR)
