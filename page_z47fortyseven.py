@@ -321,7 +321,7 @@ def _fetch_1m_returns() -> dict[str, float]:
         closes = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
         if closes.empty:
             return {}
-        target = date.today() - timedelta(days=30)
+        target = (closes.index[-1] - pd.DateOffset(months=1)).date()
         valid_i = [i for i, d in enumerate(closes.index) if d.date() >= target]
         if not valid_i:
             return {}
@@ -368,8 +368,11 @@ def _fetch_mcaps() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _pct_since(df: pd.DataFrame, col: str,
-               days: int | None = None, ytd: bool = False,
-               all_time: bool = False) -> float | None:
+               months: int | None = None, years: int | None = None,
+               ytd: bool = False, all_time: bool = False) -> float | None:
+    """Return % change for col over the window.
+    months/years use same-calendar-date convention (Google Finance style):
+    base = first df row on or after (end_date - N months/years)."""
     if df.empty: return None
     last = df[col].iloc[-1]
     if all_time:
@@ -377,8 +380,11 @@ def _pct_since(df: pd.DataFrame, col: str,
     elif ytd:
         yr  = df["date"].iloc[-1].year
         sub = df[df["date"] >= pd.Timestamp(yr, 1, 1)]
-    elif days:
-        cut = df["date"].iloc[-1] - pd.Timedelta(days=days)
+    elif months:
+        cut = df["date"].iloc[-1] - pd.DateOffset(months=months)
+        sub = df[df["date"] >= cut]
+    elif years:
+        cut = df["date"].iloc[-1] - pd.DateOffset(years=years)
         sub = df[df["date"] >= cut]
     else:
         return None
@@ -390,7 +396,8 @@ def _pct_since(df: pd.DataFrame, col: str,
 def _period_kw(period: str) -> dict:
     if period == "All": return {"all_time": True}
     if period == "YTD": return {"ytd": True}
-    return {"days": {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]}
+    if period == "1Y":  return {"years": 1}
+    return {"months": {"1M": 1, "3M": 3, "6M": 6}[period]}
 
 
 def _delta_html(v, suffix="%", size=13):
@@ -752,10 +759,13 @@ document.getElementById('z47cam').addEventListener('click', function() {
     elif period == "YTD":
         yr   = df["date"].iloc[-1].year
         plot = df[df["date"] >= pd.Timestamp(yr, 1, 1)].copy()
-    else:
-        days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
-        cut  = df["date"].iloc[-1] - pd.Timedelta(days=days)
+    elif period == "1Y":
+        cut  = df["date"].iloc[-1] - pd.DateOffset(years=1)
         plot = df[df["date"] >= cut].copy()
+    else:
+        months = {"1M": 1, "3M": 3, "6M": 6}[period]
+        cut    = df["date"].iloc[-1] - pd.DateOffset(months=months)
+        plot   = df[df["date"] >= cut].copy()
 
     if not plot.empty:
         base = plot.iloc[0]
@@ -845,10 +855,10 @@ def _s3_returns(df: pd.DataFrame) -> None:
     st.markdown(f'<p style="{_lbl()}">RETURNS SUMMARY</p>', unsafe_allow_html=True)
 
     periods = [
-        ("1M",            {"days": 30}),
-        ("3M",            {"days": 90}),
-        ("6M",            {"days": 180}),
-        ("1Y",            {"days": 365}),
+        ("1M",            {"months": 1}),
+        ("3M",            {"months": 3}),
+        ("6M",            {"months": 6}),
+        ("1Y",            {"years": 1}),
         ("YTD",           {"ytd": True}),
         ("Since Jan 2024", {"all_time": True}),
     ]

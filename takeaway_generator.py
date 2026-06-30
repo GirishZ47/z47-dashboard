@@ -68,8 +68,9 @@ def _fetch_returns_1m() -> dict:
     1-calendar-month returns for all 47 companies, NaN-safe.
     Exact replica of _fetch_1m_returns() from page_z47fortyseven.py:
       - period="50d"
-      - base = first row in the shared date index with date >= today-30d
+      - base = first row in closes on or after (last_close_date - 1 calendar month)
       - return = round((end / base - 1) * 100, 2)
+    Uses same-calendar-date convention (Google Finance style).
     """
     tickers = [yf_ticker(c) for c in COMPANIES]
     tk_map  = {yf_ticker(c): c["ticker"] for c in COMPANIES}
@@ -77,7 +78,7 @@ def _fetch_returns_1m() -> dict:
     closes  = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
     if closes.empty:
         return {}
-    target  = date.today() - timedelta(days=30)
+    target  = (closes.index[-1] - pd.DateOffset(months=1)).date()
     valid_i = [i for i, d in enumerate(closes.index) if d.date() >= target]
     if not valid_i:
         return {}
@@ -301,7 +302,7 @@ def _fetch_1m_from_history() -> tuple:
     try:
         df = _build_live_extended_df()
         last_date = df["date"].iloc[-1]
-        cutoff = last_date - pd.Timedelta(days=30)
+        cutoff = last_date - pd.DateOffset(months=1)
         sub = df[df["date"] >= cutoff]
         if sub.empty:
             return None, None
