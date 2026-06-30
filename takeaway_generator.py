@@ -78,20 +78,17 @@ def _fetch_returns_1m() -> dict:
     closes  = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw
     if closes.empty:
         return {}
-    target  = (closes.index[-1] - pd.DateOffset(months=1)).date()
-    valid_i = [i for i, d in enumerate(closes.index) if d.date() >= target]
-    if not valid_i:
-        return {}
-    base_i = valid_i[0]
+    anchor = closes.index[-1] - pd.DateOffset(months=1)
     result: dict = {}
     for yftk in closes.columns:
         z47tk = tk_map.get(yftk)
         if not z47tk:
             continue
-        s = closes[yftk].dropna()
-        if len(s) < base_i + 1:
+        s   = closes[yftk].dropna()
+        sub = s[s.index >= anchor]          # date-filter per ticker (avoids base_i misalignment)
+        if sub.empty or s.empty:
             continue
-        b = float(s.iloc[base_i])
+        b = float(sub.iloc[0])
         e = float(s.iloc[-1])
         if b and b > 0 and not pd.isna(b) and not pd.isna(e):
             result[z47tk] = round((e / b - 1) * 100, 2)
