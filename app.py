@@ -3143,13 +3143,17 @@ def safe_render(fn, name: str) -> None:
         print(f"[CRASH] {name}: {type(_e).__name__}: {_e}\n{_tb.format_exc()}")
 
 
-def pct_since(df, col, days=None, ytd=False):
+def pct_since(df, col, days=None, ytd=False, period=None):
     last_val = df[col].iloc[-1]
+    end      = df["date"].iloc[-1]
     if ytd:
-        sub = df[df["date"] >= pd.Timestamp(df["date"].iloc[-1].year, 1, 1)]
+        sub = df[df["date"] >= pd.Timestamp(end.year, 1, 1)]
+    elif period:
+        _off = {"1M": pd.DateOffset(months=1), "3M": pd.DateOffset(months=3),
+                "6M": pd.DateOffset(months=6), "1Y": pd.DateOffset(years=1)}[period]
+        sub = df[df["date"] >= end - _off]
     elif days:
-        cutoff = df["date"].iloc[-1] - pd.Timedelta(days=days)
-        sub = df[df["date"] >= cutoff]
+        sub = df[df["date"] >= end - pd.Timedelta(days=days)]
     else:
         sub = df
     if sub.empty: return None
@@ -3192,9 +3196,9 @@ def make_perf_chart(df, period):
     elif period == "YTD":
         plot = df[df["date"] >= pd.Timestamp(df["date"].iloc[-1].year, 1, 1)].copy()
     else:
-        days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
-        cutoff = df["date"].iloc[-1] - pd.Timedelta(days=days)
-        plot = df[df["date"] >= cutoff].copy()
+        _off = {"1M": pd.DateOffset(months=1), "3M": pd.DateOffset(months=3),
+                "6M": pd.DateOffset(months=6), "1Y": pd.DateOffset(years=1)}[period]
+        plot = df[df["date"] >= df["date"].iloc[-1] - _off].copy()
 
     if not plot.empty and period != "All":
         for col in ["z47_float", "n500_indexed"]:
@@ -3239,7 +3243,7 @@ def build_data_context(df, returns_1m, live_mktcaps, usdinr, n500_live):
 
     z47_now  = round(float(last["z47_float"]), 2)
     z47_ytd  = pct_since(df, "z47_float", ytd=True)
-    z47_1y   = pct_since(df, "z47_float", days=365)
+    z47_1y   = pct_since(df, "z47_float", period="1Y")
     z47_all  = pct_since(df, "z47_float")
     n5_ytd   = pct_since(df, "n500_indexed", ytd=True)
     n5_all   = pct_since(df, "n500_indexed")
@@ -3982,9 +3986,9 @@ def _run_z47_desktop():
     elif period == "YTD":
         _plot = df[df["date"] >= pd.Timestamp(df["date"].iloc[-1].year, 1, 1)].copy()
     else:
-        _days = {"1M": 30, "3M": 90, "6M": 180, "1Y": 365}[period]
-        _cutoff = df["date"].iloc[-1] - pd.Timedelta(days=_days)
-        _plot = df[df["date"] >= _cutoff].copy()
+        _off = {"1M": pd.DateOffset(months=1), "3M": pd.DateOffset(months=3),
+                "6M": pd.DateOffset(months=6), "1Y": pd.DateOffset(years=1)}[period]
+        _plot = df[df["date"] >= df["date"].iloc[-1] - _off].copy()
 
     if not _plot.empty and period != "All":
         for _col in ["z47_float", "n500_indexed"]:

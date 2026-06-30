@@ -111,8 +111,6 @@ def _fetch_volume_and_context():
         return 85.0, 0.0
 
     closes  = raw["Close"]
-    today_dt = date.today()
-    start30  = pd.Timestamp(today_dt - timedelta(days=30))
 
     usdinr = 85.0
     if "USDINR=X" in closes.columns:
@@ -122,10 +120,11 @@ def _fetch_volume_and_context():
 
     n500_ret = 0.0
     if "^CRSLDX" in closes.columns:
-        n_s  = closes["^CRSLDX"].dropna()
-        n_30 = n_s[n_s.index >= start30]
-        if len(n_30) >= 2:
-            n500_ret = round((float(n_30.iloc[-1]) / float(n_30.iloc[0]) - 1) * 100, 2)
+        n_s    = closes["^CRSLDX"].dropna()
+        anchor = pd.Timestamp(n_s.index[-1]) - pd.DateOffset(months=1)
+        n_1m   = n_s[n_s.index >= anchor]
+        if len(n_1m) >= 2:
+            n500_ret = round((float(n_1m.iloc[-1]) / float(n_1m.iloc[0]) - 1) * 100, 2)
 
     return usdinr, n500_ret
 
@@ -392,7 +391,7 @@ def _check_consistency(sections: list, returns_1m: dict) -> None:
 def generate() -> dict:
     """Generate and return the monthly takeaway dict (no Streamlit deps)."""
     today    = date.today()
-    start_dt = today - timedelta(days=30)
+    start_dt = (pd.Timestamp(today) - pd.DateOffset(months=1)).date()
     window   = f"{start_dt.day} {start_dt.strftime('%b')} – {today.day} {today.strftime('%b %Y')}"
 
     print("[gen] fetching 1M returns (canonical — matches _fetch_1m_returns)...")
